@@ -1,0 +1,457 @@
+import { useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ReferenceLine,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  Share2,
+  ChevronDown,
+  BarChart2,
+  AlertCircle,
+  ChevronRight,
+  BarChart3,
+} from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface TrendPoint {
+  label: string;
+  iph: number;
+}
+
+interface WeeklyRow {
+  minggu: string;
+  iph: number;
+  status: "waspada" | "stabil" | "deflasi" | "proyeksi";
+  pemicu: string;
+  highlighted?: boolean;
+}
+
+interface CommodityShare {
+  name: string;
+  pct: number;
+  color: string;
+}
+
+// ─── Mock Data ────────────────────────────────────────────────────────────────
+
+const trendData: TrendPoint[] = [
+  { label: "M1 Mar", iph: 0.0   },
+  { label: "M2 Mar", iph: 0.88  },
+  { label: "M3 Mar", iph: 1.28  },
+  { label: "M4 Mar", iph: 0.62  },
+  { label: "M1 Apr", iph: 0.48  },
+  { label: "M2 Apr", iph: 0.15  },
+  { label: "M3 Apr", iph: -0.42 },
+];
+
+const weeklyRows: WeeklyRow[] = [
+  { minggu: "Minggu I Apr",         iph:  0.48,  status: "waspada",  pemicu: "Daging Ayam Ras, Cabai Rawit"   },
+  { minggu: "Minggu II Apr",        iph:  0.05,  status: "stabil",   pemicu: "Beras Medium, Minyakita"        },
+  { minggu: "Minggu III Apr",       iph: -0.42,  status: "deflasi",  pemicu: "Bawang Merah, Telur Ayam", highlighted: true },
+  { minggu: "Minggu IV Apr (Est)",  iph: -0.28,  status: "proyeksi", pemicu: "Panen Raya Hortikultura"        },
+];
+
+const commodityShares: CommodityShare[] = [
+  { name: "Cabai Rawit Merah",           pct: 65, color: "#ef4444" },
+  { name: "Beras Medium (SPHP & Lokal)", pct: 48, color: "#f97316" },
+  { name: "Minyak Goreng Kemasan",       pct: 36, color: "#eab308" },
+  { name: "Telur Ayam Ras",              pct: 28, color: "#22c55e" },
+  { name: "Bawang Merah",                pct: 22, color: "#8b5cf6" },
+];
+
+// ─── Custom Tooltip ───────────────────────────────────────────────────────────
+// Define props manually so we don't depend on recharts internal type paths.
+
+interface TooltipPayloadItem {
+  value?: number | string | null;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string | number;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+  const raw = payload[0]?.value;
+  const val = typeof raw === "number" ? raw : 0;
+  const isDeflasi = val < 0;
+  return (
+    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-700">
+      <div className="font-bold text-gray-300 mb-0.5">{label}</div>
+      <div className={`text-sm font-black ${isDeflasi ? "text-emerald-400" : "text-amber-400"}`}>
+        {val > 0 ? "+" : ""}
+        {val.toFixed(2)}% {isDeflasi ? "Deflasi" : "Inflasi"}
+      </div>
+    </div>
+  );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+type WeeklyStatus = WeeklyRow["status"];
+
+interface StatusChipConfig {
+  label: string;
+  cls: string;
+}
+
+const weeklyStatusMap: Record<WeeklyStatus, StatusChipConfig> = {
+  waspada:  { label: "Waspada Naik",  cls: "bg-amber-100 text-amber-700"    },
+  stabil:   { label: "Stabil Netral", cls: "bg-gray-100 text-gray-600"      },
+  deflasi:  { label: "Deflasi Sehat", cls: "bg-emerald-100 text-emerald-700" },
+  proyeksi: { label: "Proyeksi",      cls: "bg-gray-100 text-gray-400"      },
+};
+
+function WeeklyStatusBadge({ status }: { status: WeeklyStatus }) {
+  const { label, cls } = weeklyStatusMap[status];
+  return (
+    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${cls}`}>{label}</span>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+type YearTab = "2024" | "2025" | "2026";
+
+export default function VisualisasiTren() {
+  const [activeYear, setActiveYear] = useState<YearTab>("2026");
+  const [showOnlyPenutupan, setShowOnlyPenutupan] = useState(false);
+
+  const years: YearTab[] = ["2024", "2025", "2026"];
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white">
+      {/* Page header */}
+      <div className="px-6 py-4 border-b border-gray-800">
+        <div className="flex items-center gap-2 text-[11px] text-gray-500 mb-0.5">
+          <span className="text-emerald-400 font-semibold">Periode Evaluasi 2026</span>
+          <span className="text-gray-600">•</span>
+          <span>Terakhir diperbarui: Minggu IV April 2026, 08:30 WIB</span>
+        </div>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-white mb-0.5">
+              Visualisasi Tren &amp; Analitik IPH Kota Batu
+            </h1>
+            <p className="text-xs text-gray-400">
+              Grafik interaktif pemantauan stabilitas harga dan andil komoditas pangan Kota Batu
+            </p>
+          </div>
+          <div className="flex items-center gap-2 bg-emerald-900/40 border border-emerald-700/50 rounded-xl px-4 py-2 flex-shrink-0">
+            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div>
+              <div className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wide">
+                Status Regional
+              </div>
+              <div className="text-sm font-bold text-emerald-300">Terkendali &amp; Waspada Cabai</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="px-6 py-3 border-b border-gray-800 flex items-center gap-4">
+        <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
+          {years.map((y) => (
+            <button
+              key={y}
+              onClick={() => setActiveYear(y)}
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                activeYear === y
+                  ? "bg-emerald-600 text-white"
+                  : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              {y === "2026" ? `${y} Aktif` : y}
+            </button>
+          ))}
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showOnlyPenutupan}
+            onClick={() => setShowOnlyPenutupan((p) => !p)}
+            className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${
+              showOnlyPenutupan ? "bg-emerald-600" : "bg-gray-700"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                showOnlyPenutupan ? "translate-x-4" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+          <span className="text-xs text-gray-400">Tampilkan hanya minggu penutupan</span>
+        </label>
+
+        <div className="ml-auto flex items-center gap-2">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-400 hover:bg-gray-800">
+            <Share2 size={12} />
+          </button>
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-400 hover:bg-gray-800">
+            Opsi Ekspor &amp; Data
+            <ChevronDown size={12} />
+          </button>
+        </div>
+      </div>
+
+      {/* Info banner */}
+      <div className="mx-6 mt-4 flex items-center gap-2 px-3 py-2 bg-amber-900/20 border border-amber-700/30 rounded-lg">
+        <AlertCircle size={13} className="text-amber-400 flex-shrink-0" />
+        <span className="text-[11px] text-amber-200">
+          <strong>Catatan Pantauan:</strong> Deviasi Cabai Rawit (+7.8%) di Pasar Batu termonitor
+          menjelang panen raya Pujon. Kondisi terkendali.
+        </span>
+        <button className="ml-auto text-[11px] text-amber-400 font-semibold hover:text-amber-300 flex items-center gap-0.5 flex-shrink-0">
+          Detail Pantauan <ChevronRight size={11} />
+        </button>
+      </div>
+
+      {/* Chart card */}
+      <div className="mx-6 mt-4 bg-gray-900 border border-gray-800 rounded-2xl p-5">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="text-base font-black text-white mb-0.5">
+              Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
+            </h2>
+            <p className="text-[11px] text-gray-400">
+              Pergerakan kumulatif 20 komoditas strategis Kota Batu per minggu (Baseline 0.00%)
+            </p>
+          </div>
+          <div className="flex items-center gap-4 text-[10px] text-gray-400 flex-shrink-0">
+            <div className="flex items-center gap-1.5">
+              <div className="w-6 h-0.5 bg-emerald-500 rounded" />
+              <span>BPS Terverifikasi</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-6 border-t-2 border-dashed border-red-400" />
+              <span>Batas Waspada (+1.50%)</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-900/40 rounded">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="text-emerald-400">Zona Aman Terkendali</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Recharts Line Chart */}
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "#6b7280", fontSize: 10 }}
+                axisLine={{ stroke: "#374151" }}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: "#6b7280", fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}%`}
+                domain={[-1.2, 2.0]}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <ReferenceLine
+                y={0}
+                stroke="#374151"
+                strokeWidth={1}
+                label={{
+                  value: "0.00% Titik Keseimbangan Normal",
+                  fill: "#6b7280",
+                  fontSize: 10,
+                  position: "insideTopLeft",
+                }}
+              />
+              <ReferenceLine
+                y={1.5}
+                stroke="#ef4444"
+                strokeDasharray="4 3"
+                strokeWidth={1.5}
+                label={{
+                  value: "Ambang Waspada Kemendagri (+1.50%)",
+                  fill: "#ef4444",
+                  fontSize: 9,
+                  position: "insideTopRight",
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="iph"
+                stroke="#10b981"
+                strokeWidth={2.5}
+                dot={{ fill: "#10b981", r: 4, strokeWidth: 2, stroke: "#064e3b" }}
+                activeDot={{ r: 6, fill: "#34d399" }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-800">
+          {(
+            [
+              { label: "IPH Minggu III April", value: "-0.42%",     sub: "Deflasi Ringan",  color: "text-emerald-400" },
+              { label: "Rata-rata Kuartal",    value: "+0.48%",     sub: undefined,         color: "text-white"       },
+              { label: "Puncak Tertinggi",     value: "+1.28%",     sub: "(M3 Mar)",        color: "text-amber-400"   },
+              { label: "Stabilitas Pasar",     value: "Terkendali", sub: "(0.31)",          color: "text-emerald-400" },
+            ] as const
+          ).map(({ label, value, sub, color }) => (
+            <div key={label} className="text-center">
+              <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-wide">{label}</div>
+              <div className={`text-lg font-black ${color}`}>
+                {value}
+                {sub && <span className="text-xs font-normal text-gray-400 ml-1">{sub}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom 2-col */}
+      <div className="grid grid-cols-2 gap-4 mx-6 mt-4 mb-6">
+        {/* Matriks Evaluasi Mingguan */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-bold text-white">Matriks Evaluasi Mingguan</h3>
+              <p className="text-[10px] text-gray-400">
+                Pergerakan IPH April 2026 dan komoditas pemicu
+              </p>
+            </div>
+            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-900/30 px-2 py-1 rounded">
+              April 2026
+            </span>
+          </div>
+
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-800">
+                {(["Minggu", "IPH", "Status", "Pemicu Utama"] as const).map((col) => (
+                  <th
+                    key={col}
+                    className="text-left text-[10px] font-semibold text-gray-500 uppercase pb-2 pr-3"
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800/50">
+              {weeklyRows.map((row: WeeklyRow) => (
+                <tr
+                  key={row.minggu}
+                  className={`${row.highlighted ? "bg-emerald-900/10" : ""} ${
+                    row.status === "proyeksi" ? "opacity-60" : ""
+                  }`}
+                >
+                  <td className="py-2 pr-3">
+                    <div className="flex items-center gap-1.5">
+                      {row.highlighted && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                      )}
+                      <span
+                        className={`text-xs font-semibold ${
+                          row.highlighted ? "text-emerald-300" : "text-gray-300"
+                        }`}
+                      >
+                        {row.minggu}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-2 pr-3">
+                    <span
+                      className={`text-xs font-black ${
+                        row.iph < 0
+                          ? "text-emerald-400"
+                          : row.iph > 0.5
+                          ? "text-amber-400"
+                          : "text-gray-200"
+                      }`}
+                    >
+                      {row.iph > 0 ? "+" : ""}
+                      {row.iph.toFixed(2)}%
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3">
+                    <WeeklyStatusBadge status={row.status} />
+                  </td>
+                  <td className="py-2">
+                    <span className="text-[10px] text-gray-400">{row.pemicu}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800">
+            <span className="text-[10px] text-gray-500">20 komoditas terverifikasi</span>
+            <button className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold hover:text-emerald-300">
+              Buka Rincian Lengkap <ChevronRight size={10} />
+            </button>
+          </div>
+        </div>
+
+        {/* Andil Komoditas */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-bold text-white">Andil Komoditas Terhadap Fluktuasi</h3>
+              <p className="text-[10px] text-gray-400">
+                Frekuensi sebagai pemicu utama fluktuasi harga (2026)
+              </p>
+            </div>
+            <BarChart3 size={16} className="text-gray-500" />
+          </div>
+
+          <div className="space-y-3">
+            {commodityShares.map(({ name, pct, color }: CommodityShare) => (
+              <div key={name}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] text-gray-300 font-medium">{name}</span>
+                  <span className="text-[11px] font-black" style={{ color }}>
+                    {pct}%
+                  </span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${pct}%`, backgroundColor: color }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-800">
+            <span className="text-[10px] text-gray-500">Sumber: SP2KP Kemendag &amp; BPS</span>
+            <button className="flex items-center gap-1 text-[10px] text-gray-400 font-semibold hover:text-gray-300">
+              <BarChart2 size={10} />
+              Bobot Andil
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mx-6 mb-6 py-3 border-t border-gray-800 text-center">
+        <span className="text-[10px] text-gray-600">
+          © 2026 Tim Pengendali Inflasi Daerah (TPID) Kota Batu • Badan Pusat Statistik Kota Batu
+          • Dinas Koperasi, Usaha Mikro, Perindustrian dan Perdagangan Kota Batu
+        </span>
+      </div>
+    </div>
+  );
+}
