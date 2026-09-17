@@ -85,9 +85,9 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   const val = typeof raw === "number" ? raw : 0;
   const isDeflasi = val < 0;
   return (
-    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-700">
-      <div className="font-bold text-gray-300 mb-0.5">{label}</div>
-      <div className={`text-sm font-black ${isDeflasi ? "text-emerald-400" : "text-amber-400"}`}>
+    <div className="bg-white text-gray-900 text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-200">
+      <div className="font-bold text-gray-500 mb-0.5">{label}</div>
+      <div className={`text-sm font-black ${isDeflasi ? "text-emerald-600" : "text-amber-600"}`}>
         {val > 0 ? "+" : ""}
         {val.toFixed(2)}% {isDeflasi ? "Deflasi" : "Inflasi"}
       </div>
@@ -129,38 +129,38 @@ export default function VisualisasiTren() {
   const years: YearTab[] = ["2024", "2025", "2026"];
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Page header */}
-      <div className="px-6 py-4 border-b border-gray-800">
+      <div className="px-6 py-4 border-b border-gray-200 bg-white">
         <div className="flex items-center gap-2 text-[11px] text-gray-500 mb-0.5">
-          <span className="text-emerald-400 font-semibold">Periode Evaluasi 2026</span>
-          <span className="text-gray-600">•</span>
+          <span className="text-emerald-600 font-semibold">Periode Evaluasi 2026</span>
+          <span className="text-gray-300">•</span>
           <span>Terakhir diperbarui: Minggu IV April 2026, 08:30 WIB</span>
         </div>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-black text-white mb-0.5">
+            <h1 className="text-2xl font-black text-gray-900 mb-0.5">
               Visualisasi Tren &amp; Analitik IPH Kota Batu
             </h1>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               Grafik interaktif pemantauan stabilitas harga dan andil komoditas pangan Kota Batu
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-emerald-900/40 border border-emerald-700/50 rounded-xl px-4 py-2 flex-shrink-0">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 flex-shrink-0">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
             <div>
-              <div className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wide">
+              <div className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wide">
                 Status Regional
               </div>
-              <div className="text-sm font-bold text-emerald-300">Terkendali &amp; Waspada Cabai</div>
+              <div className="text-sm font-bold text-emerald-700">Terkendali &amp; Waspada Cabai</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="px-6 py-3 border-b border-gray-800 flex items-center gap-4">
-        <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
+      <div className="px-6 py-3 border-b border-gray-200 bg-white flex items-center gap-4">
+        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
           {years.map((y) => (
             <button
               key={y}
@@ -168,7 +168,7 @@ export default function VisualisasiTren() {
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
                 activeYear === y
                   ? "bg-emerald-600 text-white"
-                  : "text-gray-400 hover:text-gray-200"
+                  : "text-gray-500 hover:text-gray-800"
               }`}
             >
               {y === "2026" ? `${y} Aktif` : y}
@@ -183,7 +183,7 @@ export default function VisualisasiTren() {
             aria-checked={showOnlyPenutupan}
             onClick={() => setShowOnlyPenutupan((p) => !p)}
             className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${
-              showOnlyPenutupan ? "bg-emerald-600" : "bg-gray-700"
+              showOnlyPenutupan ? "bg-emerald-600" : "bg-gray-300"
             }`}
           >
             <span
@@ -192,14 +192,14 @@ export default function VisualisasiTren() {
               }`}
             />
           </button>
-          <span className="text-xs text-gray-400">Tampilkan hanya minggu penutupan</span>
+          <span className="text-xs text-gray-500">Tampilkan hanya minggu penutupan</span>
         </label>
 
         <div className="ml-auto flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-400 hover:bg-gray-800">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-100">
             <Share2 size={12} />
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-700 text-xs text-gray-400 hover:bg-gray-800">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-100">
             Opsi Ekspor &amp; Data
             <ChevronDown size={12} />
           </button>
@@ -207,29 +207,29 @@ export default function VisualisasiTren() {
       </div>
 
       {/* Info banner */}
-      <div className="mx-6 mt-4 flex items-center gap-2 px-3 py-2 bg-amber-900/20 border border-amber-700/30 rounded-lg">
-        <AlertCircle size={13} className="text-amber-400 flex-shrink-0" />
-        <span className="text-[11px] text-amber-200">
+      <div className="mx-6 mt-4 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+        <AlertCircle size={13} className="text-amber-600 flex-shrink-0" />
+        <span className="text-[11px] text-amber-800">
           <strong>Catatan Pantauan:</strong> Deviasi Cabai Rawit (+7.8%) di Pasar Batu termonitor
           menjelang panen raya Pujon. Kondisi terkendali.
         </span>
-        <button className="ml-auto text-[11px] text-amber-400 font-semibold hover:text-amber-300 flex items-center gap-0.5 flex-shrink-0">
+        <button className="ml-auto text-[11px] text-amber-700 font-semibold hover:text-amber-800 flex items-center gap-0.5 flex-shrink-0">
           Detail Pantauan <ChevronRight size={11} />
         </button>
       </div>
 
       {/* Chart card */}
-      <div className="mx-6 mt-4 bg-gray-900 border border-gray-800 rounded-2xl p-5">
+      <div className="mx-6 mt-4 bg-white border border-gray-200 rounded-2xl p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-base font-black text-white mb-0.5">
+            <h2 className="text-base font-black text-gray-900 mb-0.5">
               Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
             </h2>
-            <p className="text-[11px] text-gray-400">
+            <p className="text-[11px] text-gray-500">
               Pergerakan kumulatif 20 komoditas strategis Kota Batu per minggu (Baseline 0.00%)
             </p>
           </div>
-          <div className="flex items-center gap-4 text-[10px] text-gray-400 flex-shrink-0">
+          <div className="flex items-center gap-4 text-[10px] text-gray-500 flex-shrink-0">
             <div className="flex items-center gap-1.5">
               <div className="w-6 h-0.5 bg-emerald-500 rounded" />
               <span>BPS Terverifikasi</span>
@@ -238,9 +238,9 @@ export default function VisualisasiTren() {
               <div className="w-6 border-t-2 border-dashed border-red-400" />
               <span>Batas Waspada (+1.50%)</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-900/40 rounded">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-emerald-400">Zona Aman Terkendali</span>
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-emerald-700">Zona Aman Terkendali</span>
             </div>
           </div>
         </div>
@@ -249,15 +249,15 @@ export default function VisualisasiTren() {
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis
                 dataKey="label"
-                tick={{ fill: "#6b7280", fontSize: 10 }}
-                axisLine={{ stroke: "#374151" }}
+                tick={{ fill: "#9ca3af", fontSize: 10 }}
+                axisLine={{ stroke: "#e5e7eb" }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: "#6b7280", fontSize: 10 }}
+                tick={{ fill: "#9ca3af", fontSize: 10 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}%`}
@@ -266,7 +266,7 @@ export default function VisualisasiTren() {
               <Tooltip content={<CustomTooltip />} />
               <ReferenceLine
                 y={0}
-                stroke="#374151"
+                stroke="#d1d5db"
                 strokeWidth={1}
                 label={{
                   value: "0.00% Titik Keseimbangan Normal",
@@ -300,13 +300,13 @@ export default function VisualisasiTren() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-800">
+        <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
           {(
             [
-              { label: "IPH Minggu III April", value: "-0.42%",     sub: "Deflasi Ringan",  color: "text-emerald-400" },
-              { label: "Rata-rata Kuartal",    value: "+0.48%",     sub: undefined,         color: "text-white"       },
-              { label: "Puncak Tertinggi",     value: "+1.28%",     sub: "(M3 Mar)",        color: "text-amber-400"   },
-              { label: "Stabilitas Pasar",     value: "Terkendali", sub: "(0.31)",          color: "text-emerald-400" },
+              { label: "IPH Minggu III April", value: "-0.42%",     sub: "Deflasi Ringan",  color: "text-emerald-600" },
+              { label: "Rata-rata Kuartal",    value: "+0.48%",     sub: undefined,         color: "text-gray-900"   },
+              { label: "Puncak Tertinggi",     value: "+1.28%",     sub: "(M3 Mar)",        color: "text-amber-600"  },
+              { label: "Stabilitas Pasar",     value: "Terkendali", sub: "(0.31)",          color: "text-emerald-600" },
             ] as const
           ).map(({ label, value, sub, color }) => (
             <div key={label} className="text-center">
@@ -323,22 +323,22 @@ export default function VisualisasiTren() {
       {/* Bottom 2-col */}
       <div className="grid grid-cols-2 gap-4 mx-6 mt-4 mb-6">
         {/* Matriks Evaluasi Mingguan */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+        <div className="bg-white border border-gray-200 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-bold text-white">Matriks Evaluasi Mingguan</h3>
-              <p className="text-[10px] text-gray-400">
+              <h3 className="text-sm font-bold text-gray-900">Matriks Evaluasi Mingguan</h3>
+              <p className="text-[10px] text-gray-500">
                 Pergerakan IPH April 2026 dan komoditas pemicu
               </p>
             </div>
-            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-900/30 px-2 py-1 rounded">
+            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
               April 2026
             </span>
           </div>
 
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-800">
+              <tr className="border-b border-gray-200">
                 {(["Minggu", "IPH", "Status", "Pemicu Utama"] as const).map((col) => (
                   <th
                     key={col}
@@ -349,22 +349,22 @@ export default function VisualisasiTren() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800/50">
+            <tbody className="divide-y divide-gray-100">
               {weeklyRows.map((row: WeeklyRow) => (
                 <tr
                   key={row.minggu}
-                  className={`${row.highlighted ? "bg-emerald-900/10" : ""} ${
+                  className={`${row.highlighted ? "bg-emerald-50" : ""} ${
                     row.status === "proyeksi" ? "opacity-60" : ""
                   }`}
                 >
                   <td className="py-2 pr-3">
                     <div className="flex items-center gap-1.5">
                       {row.highlighted && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
                       )}
                       <span
                         className={`text-xs font-semibold ${
-                          row.highlighted ? "text-emerald-300" : "text-gray-300"
+                          row.highlighted ? "text-emerald-700" : "text-gray-700"
                         }`}
                       >
                         {row.minggu}
@@ -375,10 +375,10 @@ export default function VisualisasiTren() {
                     <span
                       className={`text-xs font-black ${
                         row.iph < 0
-                          ? "text-emerald-400"
+                          ? "text-emerald-600"
                           : row.iph > 0.5
-                          ? "text-amber-400"
-                          : "text-gray-200"
+                          ? "text-amber-600"
+                          : "text-gray-800"
                       }`}
                     >
                       {row.iph > 0 ? "+" : ""}
@@ -389,27 +389,27 @@ export default function VisualisasiTren() {
                     <WeeklyStatusBadge status={row.status} />
                   </td>
                   <td className="py-2">
-                    <span className="text-[10px] text-gray-400">{row.pemicu}</span>
+                    <span className="text-[10px] text-gray-500">{row.pemicu}</span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800">
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
             <span className="text-[10px] text-gray-500">20 komoditas terverifikasi</span>
-            <button className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold hover:text-emerald-300">
+            <button className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold hover:text-emerald-700">
               Buka Rincian Lengkap <ChevronRight size={10} />
             </button>
           </div>
         </div>
 
         {/* Andil Komoditas */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+        <div className="bg-white border border-gray-200 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-bold text-white">Andil Komoditas Terhadap Fluktuasi</h3>
-              <p className="text-[10px] text-gray-400">
+              <h3 className="text-sm font-bold text-gray-900">Andil Komoditas Terhadap Fluktuasi</h3>
+              <p className="text-[10px] text-gray-500">
                 Frekuensi sebagai pemicu utama fluktuasi harga (2026)
               </p>
             </div>
@@ -420,12 +420,12 @@ export default function VisualisasiTren() {
             {commodityShares.map(({ name, pct, color }: CommodityShare) => (
               <div key={name}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-gray-300 font-medium">{name}</span>
+                  <span className="text-[11px] text-gray-700 font-medium">{name}</span>
                   <span className="text-[11px] font-black" style={{ color }}>
                     {pct}%
                   </span>
                 </div>
-                <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${pct}%`, backgroundColor: color }}
@@ -435,9 +435,9 @@ export default function VisualisasiTren() {
             ))}
           </div>
 
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-800">
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
             <span className="text-[10px] text-gray-500">Sumber: SP2KP Kemendag &amp; BPS</span>
-            <button className="flex items-center gap-1 text-[10px] text-gray-400 font-semibold hover:text-gray-300">
+            <button className="flex items-center gap-1 text-[10px] text-gray-500 font-semibold hover:text-gray-800">
               <BarChart2 size={10} />
               Bobot Andil
             </button>
@@ -446,8 +446,8 @@ export default function VisualisasiTren() {
       </div>
 
       {/* Footer */}
-      <div className="mx-6 mb-6 py-3 border-t border-gray-800 text-center">
-        <span className="text-[10px] text-gray-600">
+      <div className="mx-6 mb-6 py-3 border-t border-gray-200 text-center">
+        <span className="text-[10px] text-gray-500">
           © 2026 Tim Pengendali Inflasi Daerah (TPID) Kota Batu • Badan Pusat Statistik Kota Batu
           • Dinas Koperasi, Usaha Mikro, Perindustrian dan Perdagangan Kota Batu
         </span>

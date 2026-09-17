@@ -2,7 +2,7 @@ import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
-import RekapanData from "./components/RekapanData";
+import RekapanData from "./components/Rekapandata";
 import VisualisasiTren from "./components/Visualisasitren";
 
 export type PageId =
@@ -18,7 +18,7 @@ export type PageId =
   | "bantuan";
 
 // Pages that use a dark full-screen layout (no shared header)
-const DARK_PAGES: PageId[] = ["visualisasi-tren"];
+const DARK_PAGES: PageId[] = [];
 
 function PageContent({ page }: { page: PageId }) {
   switch (page) {
