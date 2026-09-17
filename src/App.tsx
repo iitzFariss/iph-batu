@@ -2,7 +2,8 @@ import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
-import RekapanData from "./components/Rekapandata";
+import RekapanData from "./components/RekapanData";
+import InputRekapIPH from "./components/InputRekapIPH";
 import VisualisasiTren from "./components/Visualisasitren";
 
 export type PageId =
@@ -26,6 +27,8 @@ function PageContent({ page }: { page: PageId }) {
       return <Dashboard />;
     case "rekapan-data":
       return <RekapanData />;
+    case "input-rekap":
+      return <InputRekapIPH />;
     case "visualisasi-tren":
       return <VisualisasiTren />;
     default:
