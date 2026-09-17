@@ -494,7 +494,7 @@ function ActivityLogTable() {
 
 export default function Dashboard() {
   return (
-    <div className="p-5 space-y-4 max-w-[1400px]">
+    <div className="p-5 space-y-4 w-full">
       <HeroMetrics />
       <WorkflowSteps />
 

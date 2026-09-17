@@ -208,7 +208,7 @@ export default function RekapanData() {
   };
 
   return (
-    <div className="p-5 space-y-4 max-w-[1200px]">
+    <div className="p-5 space-y-4 w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-[11px] text-gray-400">
         <span className="hover:text-gray-600 cursor-pointer">TPID Terpadu</span>
