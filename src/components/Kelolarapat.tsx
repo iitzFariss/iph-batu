@@ -104,7 +104,7 @@ export default function KelolaRapat() {
   ];
 
   return (
-    <div className="p-5 space-y-5 max-w-[1100px]">
+    <div className="p-5 space-y-5 w-full">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
         <span className="hover:text-gray-600 cursor-pointer">Dashboard</span>

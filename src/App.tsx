@@ -5,6 +5,8 @@ import Dashboard from "./components/Dashboard";
 import RekapanData from "./components/RekapanData";
 import InputRekapIPH from "./components/InputRekapIPH";
 import VisualisasiTren from "./components/Visualisasitren";
+import KelolaRapat from "./components/Kelolarapat";
+import MonitoringResume from "./components/Monitoringresume";
 
 export type PageId =
   | "dashboard"
@@ -31,6 +33,10 @@ function PageContent({ page }: { page: PageId }) {
       return <InputRekapIPH />;
     case "visualisasi-tren":
       return <VisualisasiTren />;
+    case "kelola-rapat":
+      return <KelolaRapat />;
+    case "monitoring-resume":
+      return <MonitoringResume />;
     default:
       return (
         <div className="flex items-center justify-center h-full text-gray-400 text-sm">

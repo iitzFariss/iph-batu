@@ -140,7 +140,7 @@ export default function MonitoringResume() {
   const [selectedRapat, setSelectedRapat] = useState("18");
 
   return (
-    <div className="p-5 space-y-5 max-w-[1100px]">
+    <div className="p-5 space-y-5 w-full">
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <CheckCircle2 size={14} className="text-emerald-600" />
