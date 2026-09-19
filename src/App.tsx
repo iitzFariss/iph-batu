@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
@@ -7,6 +8,10 @@ import InputRekapIPH from "./components/InputRekapIPH";
 import VisualisasiTren from "./components/Visualisasitren";
 import KelolaRapat from "./components/Kelolarapat";
 import MonitoringResume from "./components/Monitoringresume";
+import AnalisisTeksSiaran from "./components/Analisistekssiaran";
+import LoginPage from "./components/LoginPage";
+import RegisterPage from "./components/RegisterPage";
+import MasyarakatView from "./components/MasyarakatView";
 
 export type PageId =
   | "dashboard"
@@ -37,6 +42,8 @@ function PageContent({ page }: { page: PageId }) {
       return <KelolaRapat />;
     case "monitoring-resume":
       return <MonitoringResume />;
+    case "analisis-teks":
+      return <AnalisisTeksSiaran />;
     default:
       return (
         <div className="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -46,7 +53,7 @@ function PageContent({ page }: { page: PageId }) {
   }
 }
 
-export default function App() {
+function InternalApp() {
   const [activePage, setActivePage] = useState<PageId>("dashboard");
   const isDark = DARK_PAGES.includes(activePage);
 
@@ -60,5 +67,32 @@ export default function App() {
         </main>
       </div>
     </div>
+  );
+}
+
+function AppShell() {
+  const { user, isAuthenticated } = useAuth();
+  const [authView, setAuthView] = useState<"login" | "register">("login");
+
+  if (!isAuthenticated || !user) {
+    return authView === "register" ? (
+      <RegisterPage onGoLogin={() => setAuthView("login")} />
+    ) : (
+      <LoginPage onGoRegister={() => setAuthView("register")} />
+    );
+  }
+
+  if (user.role === "masyarakat") {
+    return <MasyarakatView />;
+  }
+
+  return <InternalApp />;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
   );
 }

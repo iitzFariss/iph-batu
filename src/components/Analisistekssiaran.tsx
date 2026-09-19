@@ -184,7 +184,7 @@ export default function AnalisisTeksSiaran() {
   }
 
   return (
-    <div className="p-5 space-y-4 max-w-[1100px]">
+    <div className="p-5 space-y-4 w-full">
       {/* Breadcrumb + badge */}
       <div className="flex items-center gap-2">
         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
