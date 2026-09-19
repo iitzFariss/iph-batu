@@ -12,6 +12,7 @@ import AnalisisTeksSiaran from "./components/Analisistekssiaran";
 import LoginPage from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
 import MasyarakatView from "./components/MasyarakatView";
+import LandingPage from "./components/LandingPage";
 
 export type PageId =
   | "dashboard"
@@ -72,13 +73,20 @@ function InternalApp() {
 
 function AppShell() {
   const { user, isAuthenticated } = useAuth();
-  const [authView, setAuthView] = useState<"login" | "register">("login");
+  const [authView, setAuthView] = useState<"landing" | "login" | "register">("landing");
 
   if (!isAuthenticated || !user) {
-    return authView === "register" ? (
-      <RegisterPage onGoLogin={() => setAuthView("login")} />
-    ) : (
-      <LoginPage onGoRegister={() => setAuthView("register")} />
+    if (authView === "login") {
+      return <LoginPage onGoRegister={() => setAuthView("register")} />;
+    }
+    if (authView === "register") {
+      return <RegisterPage onGoLogin={() => setAuthView("login")} />;
+    }
+    return (
+      <LandingPage
+        onLogin={() => setAuthView("login")}
+        onRegister={() => setAuthView("register")}
+      />
     );
   }
 
