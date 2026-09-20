@@ -173,7 +173,7 @@ export default function PengaturanAkun() {
   const strengthColor = ["", "bg-red-400", "bg-amber-400", "bg-emerald-400", "bg-emerald-600"][passStrength];
 
   return (
-    <div className="p-5 space-y-5 max-w-[780px]">
+    <div className="p-5 space-y-5 w-full">
       {/* Page header */}
       <div>
         <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-1">

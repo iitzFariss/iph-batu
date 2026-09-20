@@ -66,7 +66,7 @@ export default function ProfilSaya() {
   }
 
   return (
-    <div className="p-5 space-y-5 max-w-[860px]">
+    <div className="p-5 space-y-5 w-full">
       {/* Page header */}
       <div>
         <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-1">
