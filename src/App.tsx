@@ -9,12 +9,13 @@ import VisualisasiTren from "./components/Visualisasitren";
 import KelolaRapat from "./components/Kelolarapat";
 import MonitoringResume from "./components/Monitoringresume";
 import AnalisisTeksSiaran from "./components/Analisistekssiaran";
+import KelolaPegawai from "./components/Kelolapegawai";
 import LoginPage from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
 import MasyarakatView from "./components/MasyarakatView";
 import LandingPage from "./components/LandingPage";
 import ProfilSaya from "./components/ProfilSaya";
-import PengaturanAkun from "./components/Pengaturanakun";
+import PengaturanAkun from "./components/PengaturanAkun";
 
 export type PageId =
   | "dashboard"
@@ -47,6 +48,8 @@ function PageContent({ page }: { page: PageId }) {
       return <KelolaRapat />;
     case "monitoring-resume":
       return <MonitoringResume />;
+    case "kelola-pegawai":
+      return <KelolaPegawai />;
     case "analisis-teks":
       return <AnalisisTeksSiaran />;
     case "profil-saya":
