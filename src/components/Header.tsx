@@ -1,7 +1,7 @@
 import { Search, SlidersHorizontal, Download, Bell } from "lucide-react";
 import UserMenu from "./Usermenu";
 
-export default function Header() {
+export default function Header({ onNavigate }: { onNavigate?: (page: string) => void }) {
   return (
     <header className="bg-white border-b border-gray-100 px-6 py-2.5 flex items-center gap-4 flex-shrink-0">
       {/* Nav tabs */}
@@ -63,7 +63,7 @@ export default function Header() {
           <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
         </button>
         <div className="w-px h-6 bg-gray-100" />
-        <UserMenu />
+        <UserMenu onNavigate={onNavigate} />
       </div>
     </header>
   );

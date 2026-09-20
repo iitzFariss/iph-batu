@@ -13,6 +13,8 @@ import LoginPage from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
 import MasyarakatView from "./components/MasyarakatView";
 import LandingPage from "./components/LandingPage";
+import ProfilSaya from "./components/ProfilSaya";
+import PengaturanAkun from "./components/Pengaturanakun";
 
 export type PageId =
   | "dashboard"
@@ -23,6 +25,8 @@ export type PageId =
   | "kelola-pegawai"
   | "visualisasi-tren"
   | "analisis-teks"
+  | "profil-saya"
+  | "pengaturan-akun"
   | "pengaturan"
   | "bantuan";
 
@@ -45,6 +49,10 @@ function PageContent({ page }: { page: PageId }) {
       return <MonitoringResume />;
     case "analisis-teks":
       return <AnalisisTeksSiaran />;
+    case "profil-saya":
+      return <ProfilSaya />;
+    case "pengaturan-akun":
+      return <PengaturanAkun />;
     default:
       return (
         <div className="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -62,7 +70,7 @@ function InternalApp() {
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
       <Sidebar activePage={activePage} onNavigate={(id) => setActivePage(id as PageId)} />
       <div className={`flex-1 flex flex-col overflow-hidden ${isDark ? "bg-gray-950" : ""}`}>
-        {!isDark && <Header />}
+        {!isDark && <Header onNavigate={(page) => setActivePage(page as PageId)} />}
         <main className="flex-1 overflow-y-auto">
           <PageContent page={activePage} />
         </main>
