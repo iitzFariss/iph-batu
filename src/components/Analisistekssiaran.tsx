@@ -184,18 +184,18 @@ export default function AnalisisTeksSiaran() {
   }
 
   return (
-    <div className="p-5 space-y-4 w-full">
+    <div className="p-4 sm:p-5 space-y-4 w-full">
       {/* Breadcrumb + badge */}
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+        <span className="text-xs font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
           Modul Otomasi Siaran V4
         </span>
         <span className="text-gray-300">•</span>
-        <span className="text-[11px] text-gray-400 font-mono">KEMENDAGRI-IPH-BATU-2026-W16</span>
+        <span className="text-sm text-gray-400 font-mono">KEMENDAGRI-IPH-BATU-2026-W16</span>
       </div>
 
       {/* Page header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-gray-900 mb-0.5">
             Generator Siaran Pers &amp; Ringkasan Eksekutif TPID
@@ -208,21 +208,21 @@ export default function AnalisisTeksSiaran() {
         <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl flex-shrink-0">
           <ShieldCheck size={13} className="text-emerald-600" />
           <div>
-            <div className="text-[9px] text-emerald-500 font-semibold uppercase tracking-wide">Status Validasi</div>
-            <div className="text-[11px] font-bold text-emerald-700">Sinkronisasi Realtime BPS</div>
+            <div className="text-[11px] text-emerald-500 font-semibold uppercase tracking-wide">Status Validasi</div>
+            <div className="text-sm font-bold text-emerald-700">Sinkronisasi Realtime BPS</div>
           </div>
         </div>
       </div>
 
       {/* Filter toolbar */}
-      <div className="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+      <div className="bg-white border border-gray-100 rounded-xl p-3 flex flex-wrap items-center gap-3">
         {[
           { label: "Tahun Anggaran", value: "2026 (Aktif)" },
           { label: "Bulan Pelaporan", value: "April" },
           { label: "Pekan Evaluasi IPH", value: "Minggu III (14 – 20 April 2026)" },
         ].map(({ label, value }) => (
           <div key={label} className="flex flex-col gap-0.5">
-            <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide">{label}</span>
+            <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">{label}</span>
             <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100">
               {value}
               <ChevronDown size={11} />
@@ -238,7 +238,7 @@ export default function AnalisisTeksSiaran() {
       </div>
 
       {/* Main 2-col */}
-      <div className="grid grid-cols-[1fr_260px] gap-4 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-4 items-start">
 
         {/* Left: draf */}
         <div className="space-y-3">
@@ -251,15 +251,15 @@ export default function AnalisisTeksSiaran() {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-gray-900">Draf Siaran Resmi &amp; Notulensi Otomatis</div>
-                  <div className="text-[10px] text-gray-400">Dokumen Terenkripsi • Standar Format Ditjen Bina Bangda</div>
+                  <div className="text-xs text-gray-400">Dokumen Terenkripsi • Standar Format Ditjen Bina Bangda</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                   <TrendingDown size={9} />
                   IPH: -0.42% (Deflasi Terkendali)
                 </span>
-                <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                <span className="flex items-center gap-1 text-xs text-gray-400">
                   <Clock size={9} />
                   Diproses: 18 Apr 2026, 09:15 WIB
                 </span>
@@ -272,7 +272,7 @@ export default function AnalisisTeksSiaran() {
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
-                  className={`px-3 py-2.5 text-[11px] font-semibold border-b-2 transition-colors ${
+                  className={`px-3 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
                     activeTab === key
                       ? "border-emerald-600 text-emerald-700"
                       : "border-transparent text-gray-400 hover:text-gray-600"
@@ -282,14 +282,14 @@ export default function AnalisisTeksSiaran() {
                 </button>
               ))}
               <div className="ml-auto flex items-center gap-2 py-2">
-                <span className="text-[10px] text-gray-400">Mono</span>
-                <span className="text-[10px] text-gray-400">↕ 100%</span>
+                <span className="text-xs text-gray-400">Mono</span>
+                <span className="text-xs text-gray-400">↕ 100%</span>
               </div>
             </div>
 
             {/* Draf content */}
             <div className="p-4">
-              <pre className="text-[11px] text-gray-700 leading-relaxed font-mono whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-100 max-h-72 overflow-y-auto">
+              <pre className="text-sm text-gray-700 leading-relaxed font-mono whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-100 max-h-72 overflow-y-auto">
                 {currentDraf}
               </pre>
             </div>
@@ -344,7 +344,7 @@ export default function AnalisisTeksSiaran() {
               </div>
 
               {/* Hint */}
-              <p className="text-[10px] text-gray-400">
+              <p className="text-xs text-gray-400">
                 "Kirim Grafik + Teks" akan melampirkan visualisasi matriks andil komoditas
                 bersama draf teks <strong>{tabLabel[activeTab]}</strong> ke WhatsApp Dinas.
               </p>
@@ -353,7 +353,7 @@ export default function AnalisisTeksSiaran() {
             {/* Footer note */}
             <div className="px-4 pb-3 flex items-center gap-1.5 border-t border-gray-50 pt-3">
               <ShieldCheck size={10} className="text-gray-400" />
-              <span className="text-[10px] text-gray-400">
+              <span className="text-xs text-gray-400">
                 Sesuai Standar Template Pelaporan TPID Kemendagri RI No. 500/2026. Checksum: SHA256-789a4b2c
               </span>
             </div>
@@ -363,7 +363,7 @@ export default function AnalisisTeksSiaran() {
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <span className="text-xs font-bold text-gray-900">Riwayat Transmisi Siaran (Pekan Terakhir)</span>
-              <button className="text-[11px] text-emerald-600 font-semibold hover:text-emerald-700">
+              <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
                 Lihat Semua Arsip
               </button>
             </div>
@@ -371,7 +371,7 @@ export default function AnalisisTeksSiaran() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Waktu Rilis", "Periode", "Nilai IPH", "Target Disposisi", "Status", "Aksi"].map((col) => (
-                    <th key={col} className="text-left text-[10px] font-bold text-gray-400 uppercase px-4 py-2.5">
+                    <th key={col} className="text-left text-xs font-bold text-gray-400 uppercase px-4 py-2.5">
                       {col}
                     </th>
                   ))}
@@ -380,21 +380,21 @@ export default function AnalisisTeksSiaran() {
               <tbody className="divide-y divide-gray-50">
                 {transmisiRows.map((row, i) => (
                   <tr key={i} className="hover:bg-gray-50/50">
-                    <td className="px-4 py-3 text-[11px] text-gray-500 whitespace-nowrap">{row.waktu}</td>
-                    <td className="px-4 py-3 text-[11px] text-gray-700">{row.periode}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{row.waktu}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{row.periode}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-black ${row.nilaiIPH < 0 ? "text-emerald-600" : "text-amber-600"}`}>
                         {row.nilaiIPH > 0 ? "+" : ""}{row.nilaiIPH.toFixed(2)}%
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[11px] text-gray-500">{row.target}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{row.target}</td>
                     <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
                         Terkirim
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button className="text-[11px] text-emerald-600 font-semibold hover:text-emerald-700">
+                      <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
                         Buka Draf
                       </button>
                     </td>
@@ -414,16 +414,16 @@ export default function AnalisisTeksSiaran() {
               <span className="text-amber-500">⚠</span>
               <span className="text-xs font-bold text-amber-800">Catatan Pengawasan Komoditas</span>
             </div>
-            <p className="text-[11px] text-amber-700 leading-relaxed mb-2.5">
+            <p className="text-sm text-amber-700 leading-relaxed mb-2.5">
               Meskipun IPH gabungan deflasi (−0.42%), komoditas{" "}
               <strong>Cabai Rawit</strong> mengalami tekanan kenaikan harga +0.18% di Pasar
               Relokasi Batu akibat cuaca penghujan di sentra Pujon.
             </p>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-amber-600 font-semibold">
+              <span className="text-xs text-amber-600 font-semibold">
                 Rekomendasi: Operasi Pasar Terbatas
               </span>
-              <button className="flex items-center gap-0.5 text-[10px] text-amber-700 font-bold hover:text-amber-900">
+              <button className="flex items-center gap-0.5 text-xs text-amber-700 font-bold hover:text-amber-900">
                 Detail Pemicu <ChevronRight size={10} />
               </button>
             </div>
@@ -433,7 +433,7 @@ export default function AnalisisTeksSiaran() {
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-3.5 py-3 border-b border-gray-100">
               <span className="text-xs font-bold text-gray-900">Matriks Andil Fluktuasi</span>
-              <span className="text-[10px] text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded">
+              <span className="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded">
                 Minggu III
               </span>
             </div>
@@ -441,8 +441,8 @@ export default function AnalisisTeksSiaran() {
               {commodities.map((c) => (
                 <div key={c.name} className="px-3.5 py-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-semibold text-gray-800">{c.name}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    <span className="text-sm font-semibold text-gray-800">{c.name}</span>
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
                       c.direction === "turun"
                         ? "bg-blue-50 text-blue-700"
                         : "bg-red-50 text-red-600"
@@ -455,9 +455,9 @@ export default function AnalisisTeksSiaran() {
                       <span className="text-sm font-black text-gray-900">
                         Rp {c.price.toLocaleString("id-ID")}
                       </span>
-                      <span className="text-[10px] text-gray-400">/{c.unit}</span>
+                      <span className="text-xs text-gray-400">/{c.unit}</span>
                     </div>
-                    <div className={`flex items-center gap-1 text-[10px] font-semibold ${
+                    <div className={`flex items-center gap-1 text-xs font-semibold ${
                       c.direction === "turun" ? "text-blue-600" : "text-red-600"
                     }`}>
                       {c.direction === "turun"
@@ -467,7 +467,7 @@ export default function AnalisisTeksSiaran() {
                       {Math.abs(Math.round(c.price * Math.abs(c.change) / 100)).toLocaleString("id-ID")}
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">{c.note}</p>
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">{c.note}</p>
                 </div>
               ))}
             </div>
@@ -493,17 +493,17 @@ export default function AnalisisTeksSiaran() {
                 {penerimaSiaran.map((p) => (
                   <div key={p.name} className="flex items-center justify-between px-3.5 py-2.5">
                     <div className="flex items-center gap-2.5">
-                      <div className={`w-7 h-7 rounded-full ${p.color} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0`}>
+                      <div className={`w-7 h-7 rounded-full ${p.color} text-white text-xs font-bold flex items-center justify-center flex-shrink-0`}>
                         {p.initials}
                       </div>
                       <div>
-                        <div className="text-[11px] font-semibold text-gray-900">{p.name}</div>
-                        <div className="text-[10px] text-gray-400">{p.jabatan}</div>
+                        <div className="text-sm font-semibold text-gray-900">{p.name}</div>
+                        <div className="text-xs text-gray-400">{p.jabatan}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <div className={`w-1.5 h-1.5 rounded-full ${p.status === "siap" ? "bg-emerald-500" : "bg-purple-500"}`} />
-                      <span className={`text-[10px] font-semibold ${p.status === "siap" ? "text-emerald-600" : "text-purple-600"}`}>
+                      <span className={`text-xs font-semibold ${p.status === "siap" ? "text-emerald-600" : "text-purple-600"}`}>
                         {p.status === "siap" ? "Siap" : "Terhubung"}
                       </span>
                     </div>

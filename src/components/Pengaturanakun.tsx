@@ -72,7 +72,7 @@ function SectionCard({
         </div>
         <div>
           <div className="text-sm font-bold text-gray-900">{title}</div>
-          <div className="text-[11px] text-gray-400">{desc}</div>
+          <div className="text-sm text-gray-400">{desc}</div>
         </div>
       </div>
       <div className="p-5">{children}</div>
@@ -173,10 +173,10 @@ export default function PengaturanAkun() {
   const strengthColor = ["", "bg-red-400", "bg-amber-400", "bg-emerald-400", "bg-emerald-600"][passStrength];
 
   return (
-    <div className="p-5 space-y-5 w-full">
+    <div className="p-4 sm:p-5 space-y-5 w-full">
       {/* Page header */}
       <div>
-        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-1">
+        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-1">
           <span>Pengaturan</span>
           <ChevronRight size={10} />
           <span className="text-gray-700 font-medium">Pengaturan Akun</span>
@@ -226,7 +226,7 @@ export default function PengaturanAkun() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* New password */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
@@ -261,7 +261,7 @@ export default function PengaturanAkun() {
                         />
                       ))}
                     </div>
-                    <span className="text-[10px] text-gray-500 w-20 text-right">{strengthLabel}</span>
+                    <span className="text-xs text-gray-500 w-20 text-right">{strengthLabel}</span>
                   </div>
                 )}
               </div>
@@ -355,18 +355,18 @@ export default function PengaturanAkun() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-gray-900">{s.device}</span>
                     {s.current && (
-                      <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
                         Sesi Ini
                       </span>
                     )}
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">
+                  <div className="text-xs text-gray-400 mt-0.5">
                     {s.location} · {s.lastActive}
                   </div>
                 </div>
               </div>
               {!s.current && (
-                <button className="text-[10px] text-red-500 font-semibold hover:text-red-700 flex items-center gap-1">
+                <button className="text-xs text-red-500 font-semibold hover:text-red-700 flex items-center gap-1">
                   <LogOut size={10} />
                   Akhiri
                 </button>
@@ -374,7 +374,7 @@ export default function PengaturanAkun() {
             </div>
           ))}
         </div>
-        <button className="mt-3 text-[11px] text-red-500 font-semibold hover:text-red-700 flex items-center gap-1">
+        <button className="mt-3 text-sm text-red-500 font-semibold hover:text-red-700 flex items-center gap-1">
           <LogOut size={11} />
           Akhiri Semua Sesi Lain
         </button>
@@ -399,7 +399,7 @@ export default function PengaturanAkun() {
             <div key={key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
               <div>
                 <div className="text-xs font-semibold text-gray-800">{label}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{desc}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
               </div>
               <Toggle
                 checked={notif[key]}
@@ -427,7 +427,7 @@ export default function PengaturanAkun() {
             <div key={key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
               <div>
                 <div className="text-xs font-semibold text-gray-800">{label}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{desc}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
               </div>
               <Toggle
                 checked={privacy[key]}
@@ -451,36 +451,36 @@ export default function PengaturanAkun() {
             </div>
             <div>
               <div className="text-sm font-bold text-red-700">Zona Berbahaya</div>
-              <div className="text-[11px] text-red-400">Tindakan permanen yang tidak dapat dibatalkan</div>
+              <div className="text-sm text-red-400">Tindakan permanen yang tidak dapat dibatalkan</div>
             </div>
           </div>
           <div className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold text-gray-900">Hapus Akun</div>
-                <div className="text-[11px] text-gray-400 mt-0.5">
+                <div className="text-sm text-gray-400 mt-0.5">
                   Seluruh data akun Anda akan dihapus secara permanen.
                 </div>
               </div>
               {!deleteConfirm ? (
                 <button
                   onClick={() => setDeleteConfirm(true)}
-                  className="px-3 py-1.5 text-[11px] font-semibold text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
+                  className="px-3 py-1.5 text-sm font-semibold text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
                 >
                   Hapus Akun
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-red-600 font-semibold">Yakin?</span>
+                  <span className="text-sm text-red-600 font-semibold">Yakin?</span>
                   <button
                     onClick={() => { logout(); }}
-                    className="px-3 py-1.5 text-[11px] font-bold text-white bg-red-600 rounded-lg hover:bg-red-700"
+                    className="px-3 py-1.5 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700"
                   >
                     Ya, Hapus
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(false)}
-                    className="px-3 py-1.5 text-[11px] font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                    className="px-3 py-1.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
                   >
                     Batal
                   </button>

@@ -114,7 +114,7 @@ const weeklyStatusMap: Record<WeeklyStatus, StatusChipConfig> = {
 function WeeklyStatusBadge({ status }: { status: WeeklyStatus }) {
   const { label, cls } = weeklyStatusMap[status];
   return (
-    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${cls}`}>{label}</span>
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded ${cls}`}>{label}</span>
   );
 }
 
@@ -131,13 +131,13 @@ export default function VisualisasiTren() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Page header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-white">
-        <div className="flex items-center gap-2 text-[11px] text-gray-500 mb-0.5">
+      <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
           <span className="text-emerald-600 font-semibold">Periode Evaluasi 2026</span>
           <span className="text-gray-300">•</span>
           <span>Terakhir diperbarui: Minggu IV April 2026, 08:30 WIB</span>
         </div>
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-black text-gray-900 mb-0.5">
               Visualisasi Tren &amp; Analitik IPH Kota Batu
@@ -146,10 +146,10 @@ export default function VisualisasiTren() {
               Grafik interaktif pemantauan stabilitas harga dan andil komoditas pangan Kota Batu
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 flex-shrink-0">
+          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 flex-shrink-0 md:self-start">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
             <div>
-              <div className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wide">
+              <div className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">
                 Status Regional
               </div>
               <div className="text-sm font-bold text-emerald-700">Terkendali &amp; Waspada Cabai</div>
@@ -159,7 +159,7 @@ export default function VisualisasiTren() {
       </div>
 
       {/* Toolbar */}
-      <div className="px-6 py-3 border-b border-gray-200 bg-white flex items-center gap-4">
+      <div className="px-4 sm:px-6 py-3 border-b border-gray-200 bg-white flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
           {years.map((y) => (
             <button
@@ -207,29 +207,29 @@ export default function VisualisasiTren() {
       </div>
 
       {/* Info banner */}
-      <div className="mx-6 mt-4 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+      <div className="mx-4 sm:mx-6 mt-4 flex flex-wrap items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
         <AlertCircle size={13} className="text-amber-600 flex-shrink-0" />
-        <span className="text-[11px] text-amber-800">
+        <span className="text-sm text-amber-800">
           <strong>Catatan Pantauan:</strong> Deviasi Cabai Rawit (+7.8%) di Pasar Batu termonitor
           menjelang panen raya Pujon. Kondisi terkendali.
         </span>
-        <button className="ml-auto text-[11px] text-amber-700 font-semibold hover:text-amber-800 flex items-center gap-0.5 flex-shrink-0">
+        <button className="ml-auto text-sm text-amber-700 font-semibold hover:text-amber-800 flex items-center gap-0.5 flex-shrink-0">
           Detail Pantauan <ChevronRight size={11} />
         </button>
       </div>
 
       {/* Chart card */}
-      <div className="mx-6 mt-4 bg-white border border-gray-200 rounded-2xl p-5">
-        <div className="flex items-start justify-between mb-4">
+      <div className="mx-4 sm:mx-6 mt-4 bg-white border border-gray-200 rounded-2xl p-5">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
           <div>
             <h2 className="text-base font-black text-gray-900 mb-0.5">
               Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
             </h2>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-sm text-gray-500">
               Pergerakan kumulatif 20 komoditas strategis Kota Batu per minggu (Baseline 0.00%)
             </p>
           </div>
-          <div className="flex items-center gap-4 text-[10px] text-gray-500 flex-shrink-0">
+          <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0">
             <div className="flex items-center gap-1.5">
               <div className="w-6 h-0.5 bg-emerald-500 rounded" />
               <span>BPS Terverifikasi</span>
@@ -300,7 +300,7 @@ export default function VisualisasiTren() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
           {(
             [
               { label: "IPH Minggu III April", value: "-0.42%",     sub: "Deflasi Ringan",  color: "text-emerald-600" },
@@ -310,7 +310,7 @@ export default function VisualisasiTren() {
             ] as const
           ).map(({ label, value, sub, color }) => (
             <div key={label} className="text-center">
-              <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-wide">{label}</div>
+              <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">{label}</div>
               <div className={`text-lg font-black ${color}`}>
                 {value}
                 {sub && <span className="text-xs font-normal text-gray-400 ml-1">{sub}</span>}
@@ -321,17 +321,17 @@ export default function VisualisasiTren() {
       </div>
 
       {/* Bottom 2-col */}
-      <div className="grid grid-cols-2 gap-4 mx-6 mt-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mx-4 sm:mx-6 mt-4 mb-6">
         {/* Matriks Evaluasi Mingguan */}
         <div className="bg-white border border-gray-200 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-sm font-bold text-gray-900">Matriks Evaluasi Mingguan</h3>
-              <p className="text-[10px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 Pergerakan IPH April 2026 dan komoditas pemicu
               </p>
             </div>
-            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
               April 2026
             </span>
           </div>
@@ -342,7 +342,7 @@ export default function VisualisasiTren() {
                 {(["Minggu", "IPH", "Status", "Pemicu Utama"] as const).map((col) => (
                   <th
                     key={col}
-                    className="text-left text-[10px] font-semibold text-gray-500 uppercase pb-2 pr-3"
+                    className="text-left text-xs font-semibold text-gray-500 uppercase pb-2 pr-3"
                   >
                     {col}
                   </th>
@@ -389,7 +389,7 @@ export default function VisualisasiTren() {
                     <WeeklyStatusBadge status={row.status} />
                   </td>
                   <td className="py-2">
-                    <span className="text-[10px] text-gray-500">{row.pemicu}</span>
+                    <span className="text-xs text-gray-500">{row.pemicu}</span>
                   </td>
                 </tr>
               ))}
@@ -397,8 +397,8 @@ export default function VisualisasiTren() {
           </table>
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-            <span className="text-[10px] text-gray-500">20 komoditas terverifikasi</span>
-            <button className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold hover:text-emerald-700">
+            <span className="text-xs text-gray-500">20 komoditas terverifikasi</span>
+            <button className="flex items-center gap-1 text-xs text-emerald-600 font-semibold hover:text-emerald-700">
               Buka Rincian Lengkap <ChevronRight size={10} />
             </button>
           </div>
@@ -409,7 +409,7 @@ export default function VisualisasiTren() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-sm font-bold text-gray-900">Andil Komoditas Terhadap Fluktuasi</h3>
-              <p className="text-[10px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 Frekuensi sebagai pemicu utama fluktuasi harga (2026)
               </p>
             </div>
@@ -420,8 +420,8 @@ export default function VisualisasiTren() {
             {commodityShares.map(({ name, pct, color }: CommodityShare) => (
               <div key={name}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-gray-700 font-medium">{name}</span>
-                  <span className="text-[11px] font-black" style={{ color }}>
+                  <span className="text-sm text-gray-700 font-medium">{name}</span>
+                  <span className="text-sm font-black" style={{ color }}>
                     {pct}%
                   </span>
                 </div>
@@ -436,8 +436,8 @@ export default function VisualisasiTren() {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-            <span className="text-[10px] text-gray-500">Sumber: SP2KP Kemendag &amp; BPS</span>
-            <button className="flex items-center gap-1 text-[10px] text-gray-500 font-semibold hover:text-gray-800">
+            <span className="text-xs text-gray-500">Sumber: SP2KP Kemendag &amp; BPS</span>
+            <button className="flex items-center gap-1 text-xs text-gray-500 font-semibold hover:text-gray-800">
               <BarChart2 size={10} />
               Bobot Andil
             </button>
@@ -447,7 +447,7 @@ export default function VisualisasiTren() {
 
       {/* Footer */}
       <div className="mx-6 mb-6 py-3 border-t border-gray-200 text-center">
-        <span className="text-[10px] text-gray-500">
+        <span className="text-xs text-gray-500">
           © 2026 Tim Pengendali Inflasi Daerah (TPID) Kota Batu • Badan Pusat Statistik Kota Batu
           • Dinas Koperasi, Usaha Mikro, Perindustrian dan Perdagangan Kota Batu
         </span>

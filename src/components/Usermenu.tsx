@@ -60,14 +60,14 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
         onClick={() => setOpen((p) => !p)}
         className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
       >
-        <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+        <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
           {initials}
         </div>
         <div className="text-left hidden sm:block">
           <div className="text-xs font-semibold text-gray-900 leading-tight max-w-[120px] truncate">
             {user.name}
           </div>
-          <div className="text-[10px] text-gray-400 leading-tight truncate">
+          <div className="text-xs text-gray-400 leading-tight truncate">
             {user.instansi ?? roleLabel[user.role]}
           </div>
         </div>
@@ -84,15 +84,15 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-bold text-gray-900 truncate">{user.name}</div>
-                <div className="text-[10px] text-gray-400 truncate">{user.email}</div>
-                <span className={`inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold ${badge.cls}`}>
+                <div className="text-xs text-gray-400 truncate">{user.email}</div>
+                <span className={`inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-bold ${badge.cls}`}>
                   {badge.icon}
                   {roleLabel[user.role]}
                 </span>
               </div>
             </div>
             {user.nip && (
-              <div className="mt-2 text-[10px] text-gray-400 font-mono">
+              <div className="mt-2 text-xs text-gray-400 font-mono">
                 NIP: {user.nip}
               </div>
             )}
@@ -109,7 +109,7 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
               </div>
               <div className="text-left">
                 <div className="font-semibold">Profil Saya</div>
-                <div className="text-[10px] text-gray-400">Lihat & edit informasi profil</div>
+                <div className="text-xs text-gray-400">Lihat & edit informasi profil</div>
               </div>
             </button>
 
@@ -123,7 +123,7 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
                 </div>
                 <div className="text-left">
                   <div className="font-semibold">Pengaturan Akun</div>
-                  <div className="text-[10px] text-gray-400">Keamanan, notifikasi & privasi</div>
+                  <div className="text-xs text-gray-400">Keamanan, notifikasi & privasi</div>
                 </div>
               </button>
             )}

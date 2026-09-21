@@ -195,7 +195,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
             <h3 className="text-sm font-bold text-gray-900">
               {mode === "add" ? "Tambah Pegawai Baru" : "Edit Data Pegawai"}
             </h3>
-            <p className="text-[10px] text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 mt-0.5">
               {mode === "add" ? "Daftarkan personil baru ke direktori TPID" : "Perbarui informasi pegawai terdaftar"}
             </p>
           </div>
@@ -215,7 +215,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
 
           {/* Nama */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
               Nama Lengkap & Gelar <span className="text-red-400">*</span>
             </label>
             <div className="relative">
@@ -231,7 +231,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
 
           {/* NIP */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
               NIP <span className="text-red-400">*</span>
             </label>
             <div className="relative">
@@ -248,7 +248,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
 
           {/* Email */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
               Email Dinas
             </label>
             <div className="relative">
@@ -265,7 +265,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
           {/* Instansi */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
                 Instansi / OPD <span className="text-red-400">*</span>
               </label>
               <div className="relative">
@@ -279,7 +279,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               </div>
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
                 Sub-instansi
               </label>
               <input
@@ -293,7 +293,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
 
           {/* Peran */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
               Peran Penugasan TPID <span className="text-red-400">*</span>
             </label>
             <div className="flex gap-2">
@@ -317,7 +317,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
 
           {/* Status */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
               Status Penugasan
             </label>
             <div className="flex gap-2">
@@ -405,7 +405,7 @@ export default function KelolaPegawai() {
   }
 
   return (
-    <div className="p-5 space-y-4 w-full">
+    <div className="p-4 sm:p-5 space-y-4 w-full">
       {/* Modal */}
       {modal && (
         <PegawaiModal
@@ -446,11 +446,11 @@ export default function KelolaPegawai() {
       )}
 
       {/* Page header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <ShieldCheck size={13} className="text-emerald-600" />
-            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">
+            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
               Satuan Tugas Pengendalian Inflasi Daerah (TPID) Kota Batu
             </span>
           </div>
@@ -464,13 +464,13 @@ export default function KelolaPegawai() {
         </div>
 
         {/* Stat cards */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row items-start gap-3 flex-shrink-0">
           <div className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-xl">
             <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center">
               <Users size={16} className="text-gray-600" />
             </div>
             <div>
-              <div className="text-[10px] text-gray-400">Total Personil TPID</div>
+              <div className="text-xs text-gray-400">Total Personil TPID</div>
               <div className="text-xl font-black text-gray-900">{pegawai.length} Anggota</div>
             </div>
           </div>
@@ -479,7 +479,7 @@ export default function KelolaPegawai() {
               <LayoutGrid size={16} className="text-emerald-600" />
             </div>
             <div>
-              <div className="text-[10px] text-gray-400">Instansi Terintegrasi</div>
+              <div className="text-xs text-gray-400">Instansi Terintegrasi</div>
               <div className="text-xl font-black text-emerald-700">{totalInstansi} OPD Pemkot</div>
             </div>
           </div>
@@ -489,16 +489,16 @@ export default function KelolaPegawai() {
       {/* Table card */}
       <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
           <div>
             <div className="text-sm font-bold text-gray-900">Direktori Personil Terdaftar TPID</div>
-            <p className="text-[10px] text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400 mt-0.5">
               Manajemen fungsional penugasan dan hak akses pengoperasian sistem IPH 2026
             </p>
           </div>
 
           {/* Badge */}
-          <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold rounded-full flex-shrink-0">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-full flex-shrink-0">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             {totalAktif} ASN / Satgas
           </span>
@@ -546,13 +546,14 @@ export default function KelolaPegawai() {
         </div>
 
         {/* Table */}
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               {["Nama Pegawai & NIP", "Asal Instansi", "Peran Penugasan TPID", "Status", "Aksi"].map((col) => (
                 <th
                   key={col}
-                  className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-wide px-5 py-3"
+                  className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-5 py-3"
                 >
                   {col}
                 </th>
@@ -572,12 +573,12 @@ export default function KelolaPegawai() {
                   {/* Nama */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full ${p.color} text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0`}>
+                      <div className={`w-9 h-9 rounded-full ${p.color} text-white flex items-center justify-center text-sm font-bold flex-shrink-0`}>
                         {p.initials}
                       </div>
                       <div>
                         <div className="text-xs font-bold text-gray-900">{p.name}</div>
-                        <div className="text-[10px] text-gray-400 font-mono mt-0.5">NIP {p.nip}</div>
+                        <div className="text-xs text-gray-400 font-mono mt-0.5">NIP {p.nip}</div>
                       </div>
                     </div>
                   </td>
@@ -588,7 +589,7 @@ export default function KelolaPegawai() {
                       <Building2 size={12} className="text-gray-400 flex-shrink-0" />
                       <div>
                         <div className="text-xs font-semibold text-gray-800">{p.instansi}</div>
-                        <div className="text-[10px] text-gray-400">{p.instansiSub}</div>
+                        <div className="text-xs text-gray-400">{p.instansiSub}</div>
                       </div>
                     </div>
                   </td>
@@ -597,13 +598,13 @@ export default function KelolaPegawai() {
                   <td className="px-5 py-4">
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-100 rounded-lg max-w-[220px]">
                       <span className="text-sm">{p.peranIcon}</span>
-                      <span className="text-[11px] font-semibold text-gray-700 truncate">{p.peran}</span>
+                      <span className="text-sm font-semibold text-gray-700 truncate">{p.peran}</span>
                     </div>
                   </td>
 
                   {/* Status */}
                   <td className="px-5 py-4">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusConfig[p.status].cls}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${statusConfig[p.status].cls}`}>
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                         p.status === "aktif"    ? "bg-emerald-500" :
                         p.status === "cuti"     ? "bg-amber-500"   :
@@ -635,10 +636,11 @@ export default function KelolaPegawai() {
             )}
           </tbody>
         </table>
+        </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50/50">
-          <span className="text-[11px] text-gray-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-gray-100 bg-gray-50/50">
+          <span className="text-sm text-gray-400">
             Menampilkan <strong>{Math.min((currentPage - 1) * perPage + 1, filtered.length)}–{Math.min(currentPage * perPage, filtered.length)}</strong> dari <strong>{filtered.length}</strong> Pegawai TPID Terdaftar
           </span>
           <div className="flex items-center gap-1">
@@ -653,7 +655,7 @@ export default function KelolaPegawai() {
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
-                className={`w-7 h-7 rounded text-[11px] font-semibold flex items-center justify-center transition-colors ${
+                className={`w-7 h-7 rounded text-sm font-semibold flex items-center justify-center transition-colors ${
                   currentPage === p ? "bg-emerald-600 text-white" : "text-gray-500 hover:bg-gray-100"
                 }`}
               >
@@ -672,14 +674,14 @@ export default function KelolaPegawai() {
       </div>
 
       {/* Footer: SK Legalitas */}
-      <div className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-5 py-3">
-        <div className="flex items-center gap-2.5">
+      <div className="flex flex-col lg:flex-row items-start justify-between gap-3 bg-white border border-gray-100 rounded-xl px-5 py-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <ShieldCheck size={14} className="text-emerald-600 flex-shrink-0" />
-          <span className="text-[11px] text-gray-500">
+          <span className="text-sm text-gray-500">
             Status Legalitas:{" "}
             <strong className="text-gray-800">SK Walikota No. 188.45/TPID/2026 terverifikasi</strong>
           </span>
-          <span className="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold rounded-full">
+          <span className="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-full">
             Masa Berlaku: TA 2026
           </span>
         </div>

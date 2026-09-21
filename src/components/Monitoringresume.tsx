@@ -119,14 +119,14 @@ const risalahPreview: RisalahPreview = {
 function VerifBadge({ status }: { status: VerifStatus }) {
   if (status === "selesai-terverifikasi") {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
         <CheckCircle2 size={9} />
         Selesai &amp; Terverifikasi
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-600 border border-red-200">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200">
       <AlertCircle size={9} />
       Belum Diisi – Menunggu Input
     </span>
@@ -140,11 +140,11 @@ export default function MonitoringResume() {
   const [selectedRapat, setSelectedRapat] = useState("18");
 
   return (
-    <div className="p-5 space-y-5 w-full">
+    <div className="p-4 sm:p-5 space-y-5 w-full">
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <CheckCircle2 size={14} className="text-emerald-600" />
-        <span className="text-[11px] text-gray-500 font-medium">
+        <span className="text-sm text-gray-500 font-medium">
           Pusat Tata Kelola Notulensi &amp; Dokumentasi Koordinasi
         </span>
       </div>
@@ -159,7 +159,7 @@ export default function MonitoringResume() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: "Selesai Diverifikasi", value: "16", icon: <CheckCircle2 size={16} className="text-emerald-500" />, cls: "border-l-2 border-l-emerald-400" },
           { label: "Menunggu Input Notulis", value: "2",  icon: <AlertCircle  size={16} className="text-red-500"     />, cls: "border-l-2 border-l-red-400"     },
@@ -167,7 +167,7 @@ export default function MonitoringResume() {
         ].map(({ label, value, icon, cls }) => (
           <div key={label} className={`bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between ${cls}`}>
             <div>
-              <div className="text-[11px] text-gray-400 mb-0.5">{label}</div>
+              <div className="text-sm text-gray-400 mb-0.5">{label}</div>
               <div className="text-3xl font-black text-gray-900">{value}</div>
             </div>
             {icon}
@@ -177,35 +177,36 @@ export default function MonitoringResume() {
 
       {/* Tabel Ikhtisar Notulensi */}
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <FileText size={14} className="text-emerald-600" />
               <span className="text-sm font-bold text-gray-900">Tabel Ikhtisar Status Notulensi Rapat</span>
             </div>
-            <p className="text-[11px] text-gray-400">
+            <p className="text-sm text-gray-400">
               Log komprehensif riwayat rapat koordinasi pengendalian inflasi Kota Batu Semester I – 2026.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-[11px] text-gray-600 hover:bg-gray-50">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
               Urutkan: Terbaru <ChevronDown size={10} />
             </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-[11px] text-gray-600 hover:bg-gray-50">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
               <SlidersHorizontal size={11} />
               Filter Status
             </button>
           </div>
         </div>
 
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[820px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               {["ID Rapat", "Tanggal", "Agenda Rapat Koordinasi", "Petugas Notulis", "Status Verifikasi", "Terakhir Disunting", ""].map(
                 (col) => (
                   <th
                     key={col}
-                    className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-wide px-4 py-3"
+                    className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3"
                   >
                     {col}
                   </th>
@@ -235,7 +236,7 @@ export default function MonitoringResume() {
                 </td>
                 <td className="px-4 py-4 max-w-[220px]">
                   <div className="text-xs font-semibold text-gray-900 mb-0.5">{row.agenda}</div>
-                  <div className="text-[10px] text-gray-400 leading-relaxed">{row.agendaSub}</div>
+                  <div className="text-xs text-gray-400 leading-relaxed">{row.agendaSub}</div>
                 </td>
                 <td className="px-4 py-4">
                   <span className="text-xs text-gray-700">{row.notulis}</span>
@@ -244,7 +245,7 @@ export default function MonitoringResume() {
                   <VerifBadge status={row.status} />
                 </td>
                 <td className="px-4 py-4">
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-sm text-gray-400">
                     {row.terakhirDisunting ?? "–"}
                   </span>
                 </td>
@@ -252,7 +253,7 @@ export default function MonitoringResume() {
                   {row.status === "selesai-terverifikasi" && (
                     <button
                       onClick={() => setSelectedRapat(row.rapat_id.replace("#RPT-", ""))}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-semibold hover:bg-emerald-700"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700"
                     >
                       Lihat R...
                     </button>
@@ -262,10 +263,11 @@ export default function MonitoringResume() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50/50">
-          <span className="text-[11px] text-gray-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-gray-100 bg-gray-50/50">
+          <span className="text-sm text-gray-400">
             Menampilkan 4 dari 19 Rapat Koordinasi Pengendalian Inflasi TPID
           </span>
           <div className="flex items-center gap-1">
@@ -276,7 +278,7 @@ export default function MonitoringResume() {
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
-                className={`w-7 h-7 rounded text-[11px] font-semibold flex items-center justify-center ${
+                className={`w-7 h-7 rounded text-sm font-semibold flex items-center justify-center ${
                   currentPage === p
                     ? "bg-emerald-600 text-white"
                     : "text-gray-500 hover:bg-gray-100"
@@ -295,40 +297,40 @@ export default function MonitoringResume() {
       {/* Pratinjau Risalah */}
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <FileText size={14} className="text-emerald-600" />
             <span className="text-sm font-bold text-gray-900">Pratinjau &amp; Lembar Risalah Terpilih</span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
               Live Preview
             </span>
           </div>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-[11px] text-gray-600 hover:bg-gray-50">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
             Rapat ID {selectedRapat} – 26 April 2026: Rakor Inflasi Ke...
             <ChevronDown size={10} />
           </button>
         </div>
 
         {/* Meta row */}
-        <div className="grid grid-cols-4 gap-4 px-5 py-3 bg-gray-50/50 border-b border-gray-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-5 py-3 bg-gray-50/50 border-b border-gray-100">
           <div>
-            <div className="text-[10px] text-gray-400 mb-0.5">Pemimpin Rapat:</div>
+            <div className="text-xs text-gray-400 mb-0.5">Pemimpin Rapat:</div>
             <div className="text-xs font-semibold text-gray-900">{risalahPreview.pemimpin}</div>
           </div>
           <div>
-            <div className="text-[10px] text-gray-400 mb-0.5">Petugas Notulis:</div>
+            <div className="text-xs text-gray-400 mb-0.5">Petugas Notulis:</div>
             <div className="text-xs font-semibold text-gray-900">{risalahPreview.notulis}</div>
           </div>
           <div>
-            <div className="text-[10px] text-gray-400 mb-0.5">Status Validasi:</div>
+            <div className="text-xs text-gray-400 mb-0.5">Status Validasi:</div>
             <div className="flex items-center gap-1">
               <CheckCircle2 size={10} className="text-emerald-500" />
               <span className="text-xs font-semibold text-emerald-700">{risalahPreview.statusValidasi}</span>
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-gray-400 mb-0.5">Indikator IPH Saat Rapat:</div>
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <div className="text-xs text-gray-400 mb-0.5">Indikator IPH Saat Rapat:</div>
+            <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
               {risalahPreview.indikatorIPH}
             </span>
           </div>
@@ -338,13 +340,13 @@ export default function MonitoringResume() {
         <div className="p-6 max-w-2xl mx-auto">
           {/* Kop */}
           <div className="text-center mb-5">
-            <div className="text-[11px] text-gray-500 font-medium tracking-wide mb-0.5">
+            <div className="text-sm text-gray-500 font-medium tracking-wide mb-0.5">
               PEMERINTAH KOTA BATU • SEKRETARIAT DAERAH
             </div>
             <div className="text-base font-black text-gray-900 tracking-wide">
               TIM PENGENDALI INFLASI DAERAH (TPID)
             </div>
-            <div className="text-[11px] text-gray-500 font-semibold tracking-widest mt-0.5">
+            <div className="text-sm text-gray-500 font-semibold tracking-widest mt-0.5">
               RISALAH RESMI / NOMOR: {risalahPreview.nomor}
             </div>
           </div>
@@ -361,7 +363,7 @@ export default function MonitoringResume() {
 
           {/* Poin Kesepakatan */}
           <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-4 mb-4">
-            <div className="text-[11px] font-black text-emerald-800 mb-3 tracking-wide">
+            <div className="text-sm font-black text-emerald-800 mb-3 tracking-wide">
               BUTIR POIN KESEPAKATAN &amp; ARAHAN STRATEGIS:
             </div>
             <ol className="space-y-2.5">
@@ -380,23 +382,23 @@ export default function MonitoringResume() {
           </div>
 
           {/* Catatan BPS */}
-          <p className="text-[10px] text-gray-400 italic leading-relaxed mb-6">
+          <p className="text-xs text-gray-400 italic leading-relaxed mb-6">
             {risalahPreview.catatanBPS}
           </p>
 
           {/* Footer */}
           <div className="flex items-end justify-between pt-4 border-t border-gray-100">
             <div>
-              <div className="text-[10px] text-gray-500 font-medium">
+              <div className="text-xs text-gray-500 font-medium">
                 Divalidasi Digital: {risalahPreview.divalidasiOleh}
               </div>
-              <div className="text-[10px] text-gray-400">
+              <div className="text-xs text-gray-400">
                 Token Keabsahan: {risalahPreview.token}
               </div>
             </div>
             <div className="text-right">
               <div className="text-xs font-bold text-gray-900">{risalahPreview.notulis}</div>
-              <div className="text-[10px] text-gray-400">Notulis Rapat TPID Kota Batu</div>
+              <div className="text-xs text-gray-400">Notulis Rapat TPID Kota Batu</div>
             </div>
           </div>
         </div>

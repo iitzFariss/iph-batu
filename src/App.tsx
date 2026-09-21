@@ -67,13 +67,29 @@ function PageContent({ page }: { page: PageId }) {
 
 function InternalApp() {
   const [activePage, setActivePage] = useState<PageId>("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const isDark = DARK_PAGES.includes(activePage);
+
+  const navigate = (id: PageId) => {
+    setActivePage(id);
+    setSidebarOpen(false);
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
-      <Sidebar activePage={activePage} onNavigate={(id) => setActivePage(id as PageId)} />
-      <div className={`flex-1 flex flex-col overflow-hidden ${isDark ? "bg-gray-950" : ""}`}>
-        {!isDark && <Header onNavigate={(page) => setActivePage(page as PageId)} />}
+      <Sidebar
+        activePage={activePage}
+        open={sidebarOpen}
+        onNavigate={(id) => navigate(id as PageId)}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <div className={`flex-1 flex flex-col overflow-hidden min-w-0 ${isDark ? "bg-gray-950" : ""}`}>
+        {!isDark && (
+          <Header
+            onNavigate={(page) => navigate(page as PageId)}
+            onOpenSidebar={() => setSidebarOpen(true)}
+          />
+        )}
         <main className="flex-1 overflow-y-auto">
           <PageContent page={activePage} />
         </main>

@@ -10,11 +10,14 @@ import {
   Settings,
   HelpCircle,
   Zap,
+  Menu,
 } from "lucide-react";
 
 interface SidebarProps {
   activePage: string;
+  open: boolean;
   onNavigate: (page: string) => void;
+  onClose: () => void;
 }
 
 const navItems = [
@@ -33,21 +36,38 @@ const bottomItems = [
   { id: "bantuan", label: "Bantuan Teknis", icon: HelpCircle },
 ];
 
-export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
+export default function Sidebar({ activePage, open, onNavigate, onClose }: SidebarProps) {
   return (
-    <aside className="w-56 bg-white border-r border-gray-100 flex flex-col flex-shrink-0">
-      {/* Brand */}
-      <div className="px-4 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
-            <TrendingUp size={16} className="text-white" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-gray-900 leading-tight">TPID Kota Batu</div>
-            <div className="text-[10px] text-gray-400 leading-tight">Sistem Pengendalian IPH</div>
+    <>
+      {/* Backdrop — tampil hanya di mobile saat drawer terbuka */}
+      {open && (
+        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex flex-col flex-shrink-0 transition-transform duration-200 lg:static lg:translate-x-0 lg:z-auto ${
+          open ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+        }`}
+      >
+        {/* Brand */}
+        <div className="px-4 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
+              <TrendingUp size={16} className="text-white" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-gray-900 leading-tight">TPID Kota Batu</div>
+              <div className="text-xs text-gray-400 leading-tight">Sistem Pengendalian IPH</div>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Tutup menu"
+              className="lg:hidden ml-auto p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"
+            >
+              <Menu size={18} />
+            </button>
           </div>
         </div>
-      </div>
 
       {/* Quick Action */}
       <div className="px-3 pt-3">
@@ -79,18 +99,19 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Bottom nav */}
-      <div className="px-3 pb-4 pt-2 border-t border-gray-100 space-y-0.5">
-        {bottomItems.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => onNavigate(id)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
-          >
-            <Icon size={14} className="flex-shrink-0" />
-            <span className="truncate">{label}</span>
-          </button>
-        ))}
-      </div>
-    </aside>
+        <div className="px-3 pb-4 pt-2 border-t border-gray-100 space-y-0.5">
+          {bottomItems.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => onNavigate(id)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+            >
+              <Icon size={14} className="flex-shrink-0" />
+              <span className="truncate">{label}</span>
+            </button>
+          ))}
+        </div>
+      </aside>
+    </>
   );
 }

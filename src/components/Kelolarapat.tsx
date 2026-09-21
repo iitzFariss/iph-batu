@@ -104,9 +104,9 @@ export default function KelolaRapat() {
   ];
 
   return (
-    <div className="p-5 space-y-5 w-full">
+    <div className="p-4 sm:p-5 space-y-5 w-full">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+      <div className="flex items-center gap-1.5 text-sm text-gray-400">
         <span className="hover:text-gray-600 cursor-pointer">Dashboard</span>
         <ChevronRight size={10} />
         <span className="hover:text-gray-600 cursor-pointer">Koordinasi &amp; Kegiatan</span>
@@ -138,7 +138,7 @@ export default function KelolaRapat() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: "Total Rapat Terjadwal", value: "18", sub: "Siklus TA 2026",        icon: <Calendar size={18} className="text-gray-400" />, accent: "" },
           { label: "Menunggu Resume",       value: "2",  sub: "Perlu Tindakan Cepat",  icon: <AlertTriangle size={18} className="text-amber-500" />, accent: "border-l-2 border-l-amber-400" },
@@ -146,9 +146,9 @@ export default function KelolaRapat() {
         ].map(({ label, value, sub, icon, accent }) => (
           <div key={label} className={`bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between ${accent}`}>
             <div>
-              <div className="text-[11px] text-gray-400 mb-0.5">{label}</div>
+              <div className="text-sm text-gray-400 mb-0.5">{label}</div>
               <div className="text-3xl font-black text-gray-900 leading-tight">{value}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>
+              <div className="text-xs text-gray-400 mt-0.5">{sub}</div>
             </div>
             <div>{icon}</div>
           </div>
@@ -162,7 +162,7 @@ export default function KelolaRapat() {
             <Calendar size={15} className="text-emerald-600" />
             <span className="text-sm font-bold text-gray-900">Jadwalkan Rapat Koordinasi Baru</span>
           </div>
-          <span className="text-[10px] font-mono text-gray-400 bg-gray-50 border border-gray-100 px-2 py-1 rounded">
+          <span className="text-xs font-mono text-gray-400 bg-gray-50 border border-gray-100 px-2 py-1 rounded">
             FORM-TPID-04
           </span>
         </div>
@@ -182,7 +182,7 @@ export default function KelolaRapat() {
           </div>
 
           {/* Tanggal & Waktu */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">Tanggal Rapat</label>
               <input
@@ -199,7 +199,7 @@ export default function KelolaRapat() {
                   defaultValue="09:30"
                   className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 pr-12"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 font-semibold">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-semibold">
                   WIB
                 </span>
               </div>
@@ -225,7 +225,7 @@ export default function KelolaRapat() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-semibold text-gray-700">Petugas Notulis / Resume</label>
-              <button className="text-[11px] text-emerald-600 font-semibold hover:text-emerald-700">
+              <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
                 + Tambah Personil
               </button>
             </div>
@@ -237,7 +237,7 @@ export default function KelolaRapat() {
                     className="flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-md"
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span className="text-[11px] text-emerald-800 font-medium">{name}</span>
+                    <span className="text-sm text-emerald-800 font-medium">{name}</span>
                     <button className="ml-0.5 text-emerald-400 hover:text-emerald-700">
                       <X size={10} />
                     </button>
@@ -284,7 +284,7 @@ export default function KelolaRapat() {
             <Calendar size={15} />
             Buat Jadwal Rapat
           </button>
-          <p className="text-center text-[10px] text-gray-400">
+          <p className="text-center text-xs text-gray-400">
             Radiogram akan secara otomatis diteruskan ke WhatsApp Group TPID Kota Batu.
           </p>
         </div>
@@ -295,7 +295,7 @@ export default function KelolaRapat() {
         <div className="flex items-start justify-between mb-3">
           <div>
             <h2 className="text-sm font-bold text-gray-900">Daftar Agenda Rapat Terjadwal</h2>
-            <p className="text-[11px] text-gray-400">
+            <p className="text-sm text-gray-400">
               Monitoring jadwal berkala, notulensi resume, dan distribusi hasil rapat koordinasi.
             </p>
           </div>
@@ -315,7 +315,7 @@ export default function KelolaRapat() {
             <button
               key={key}
               onClick={() => setFilterTab(key)}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${
                 filterTab === key
                   ? "bg-gray-900 text-white"
                   : key === "menunggu"
@@ -346,7 +346,7 @@ export default function KelolaRapat() {
                     {/* ID + date + time */}
                     <div className="flex items-center gap-2 mb-1.5">
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        className={`text-xs font-bold px-2 py-0.5 rounded ${
                           item.status === "belum-diisi"
                             ? "bg-red-100 text-red-700"
                             : "bg-gray-100 text-gray-600"
@@ -354,18 +354,18 @@ export default function KelolaRapat() {
                       >
                         {item.rapat_id}
                       </span>
-                      <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
                         <Calendar size={9} />
                         {item.tanggal}
                       </div>
                       {item.waktu && (
-                        <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                        <div className="flex items-center gap-1 text-xs text-gray-400">
                           <Clock size={9} />
                           {item.waktu}
                         </div>
                       )}
                       {item.terlambat && (
-                        <div className="flex items-center gap-1 text-[10px] text-amber-600 font-semibold">
+                        <div className="flex items-center gap-1 text-xs text-amber-600 font-semibold">
                           <AlertTriangle size={9} />
                           Terlambat {item.terlambat} Hari
                         </div>
@@ -383,16 +383,16 @@ export default function KelolaRapat() {
                             {item.personil.map((p, i) => (
                               <div
                                 key={i}
-                                className={`w-6 h-6 rounded-full ${p.color} text-white text-[9px] font-bold flex items-center justify-center border-2 border-white`}
+                                className={`w-6 h-6 rounded-full ${p.color} text-white text-[11px] font-bold flex items-center justify-center border-2 border-white`}
                               >
                                 {p.initials}
                               </div>
                             ))}
                           </div>
-                          <span className="text-[11px] text-gray-500">{item.personilLabel}</span>
+                          <span className="text-sm text-gray-500">{item.personilLabel}</span>
                         </>
                       ) : (
-                        <div className="flex items-center gap-1 text-[11px] text-gray-400">
+                        <div className="flex items-center gap-1 text-sm text-gray-400">
                           <Users size={11} />
                           {item.personilLabel}
                         </div>
@@ -402,7 +402,7 @@ export default function KelolaRapat() {
 
                   {/* Right: status + actions */}
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.cls}`}>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${cfg.cls}`}>
                       {cfg.icon}
                       {cfg.label}
                     </span>
@@ -410,11 +410,11 @@ export default function KelolaRapat() {
                     <div className="flex items-center gap-1.5">
                       {item.status !== "belum-diisi" && (
                         <>
-                          <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-[10px] text-gray-600 hover:bg-gray-50">
+                          <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">
                             <FileText size={9} />
                             Radiogram
                           </button>
-                          <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-[10px] text-gray-600 hover:bg-gray-50">
+                          <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">
                             <FileText size={9} />
                             Materi
                           </button>
@@ -422,19 +422,19 @@ export default function KelolaRapat() {
                       )}
 
                       {item.status === "selesai" && (
-                        <button className="flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded text-[10px] font-semibold hover:bg-emerald-700">
+                        <button className="flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700">
                           <FileText size={9} />
                           Lihat Notulensi
                         </button>
                       )}
                       {item.status === "mendatang" && (
-                        <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-[10px] text-gray-600 hover:bg-gray-50">
+                        <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">
                           <Pencil size={9} />
                           Ubah Agenda
                         </button>
                       )}
                       {item.status === "belum-diisi" && (
-                        <button className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white rounded text-[10px] font-semibold hover:bg-red-600">
+                        <button className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white rounded text-xs font-semibold hover:bg-red-600">
                           <FileText size={9} />
                           Input Notulensi
                         </button>
@@ -449,7 +449,7 @@ export default function KelolaRapat() {
 
         {/* Pagination */}
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
-          <span className="text-[11px] text-gray-400">Menampilkan 3 dari 18 agenda rapat</span>
+          <span className="text-sm text-gray-400">Menampilkan 3 dari 18 agenda rapat</span>
           <div className="flex items-center gap-1">
             <button className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:bg-gray-100">
               <ChevronLeft size={12} />
@@ -458,7 +458,7 @@ export default function KelolaRapat() {
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
-                className={`w-7 h-7 rounded text-[11px] font-semibold flex items-center justify-center ${
+                className={`w-7 h-7 rounded text-sm font-semibold flex items-center justify-center ${
                   currentPage === p ? "bg-emerald-600 text-white" : "text-gray-500 hover:bg-gray-100"
                 }`}
               >
@@ -479,11 +479,11 @@ export default function KelolaRapat() {
             <FileText size={14} className="text-emerald-600" />
             <span className="text-sm font-bold text-gray-900">Status Pengiriman Radiogram Terakhir</span>
           </div>
-          <button className="text-[11px] text-emerald-600 font-semibold hover:text-emerald-700">
+          <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
             Lihat Log Transmisi
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             {
               title: "Surat Undangan No. 005/142/TPID/2026",
@@ -504,8 +504,8 @@ export default function KelolaRapat() {
               <div className="flex-shrink-0 mt-0.5">{icon}</div>
               <div>
                 <div className="text-xs font-semibold text-gray-900 mb-0.5">{title}</div>
-                <div className="text-[10px] text-gray-400 mb-1.5">{sub}</div>
-                <div className={`text-[10px] font-bold ${statusCls}`}>Status: {status}</div>
+                <div className="text-xs text-gray-400 mb-1.5">{sub}</div>
+                <div className={`text-xs font-bold ${statusCls}`}>Status: {status}</div>
               </div>
             </div>
           ))}

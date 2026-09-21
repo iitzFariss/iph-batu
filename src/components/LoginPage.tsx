@@ -115,7 +115,7 @@ export default function LoginPage({ onGoRegister }: LoginPageProps) {
           </p>
 
           {/* Role selector */}
-          <div className="grid grid-cols-3 gap-2 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
             {roleOptions.map((opt) => {
               const isActive = selectedRole === opt.key;
               return (
@@ -130,10 +130,10 @@ export default function LoginPage({ onGoRegister }: LoginPageProps) {
                   }`}
                 >
                   <span className="text-xl">{opt.icon}</span>
-                  <span className={`text-[11px] font-bold leading-tight ${isActive ? opt.color : "text-gray-600"}`}>
+                  <span className={`text-sm font-bold leading-tight ${isActive ? opt.color : "text-gray-600"}`}>
                     {opt.label}
                   </span>
-                  <span className="text-[9px] text-gray-400 leading-tight">{opt.desc}</span>
+                  <span className="text-[11px] text-gray-400 leading-tight">{opt.desc}</span>
                 </button>
               );
             })}
@@ -143,8 +143,8 @@ export default function LoginPage({ onGoRegister }: LoginPageProps) {
           <div className={`flex items-start gap-2 p-3 rounded-xl mb-5 ${activeRole.bg} border ${activeRole.border}`}>
             <span className="text-base">{activeRole.icon}</span>
             <div>
-              <p className={`text-[11px] font-bold ${activeRole.color}`}>{activeRole.label}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">
+              <p className={`text-sm font-bold ${activeRole.color}`}>{activeRole.label}</p>
+              <p className="text-xs text-gray-500 mt-0.5">
                 {selectedRole === "admin" && "Akses penuh: manajemen pengguna, konfigurasi sistem, semua modul data."}
                 {selectedRole === "petugas" && "Akses: input rekap IPH, kelola rapat, monitoring resume, visualisasi data."}
                 {selectedRole === "masyarakat" && "Akses terbatas: hanya dapat melihat data harga komoditas dan tren IPH publik."}
@@ -226,27 +226,27 @@ export default function LoginPage({ onGoRegister }: LoginPageProps) {
           {/* Demo hint */}
           <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
+              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
                 Akun Demo — {activeRole.label}
               </span>
               <button
                 type="button"
                 onClick={fillDemo}
-                className="text-[10px] text-emerald-600 font-bold hover:text-emerald-700"
+                className="text-xs text-emerald-600 font-bold hover:text-emerald-700"
               >
                 Isi Otomatis →
               </button>
             </div>
-            <p className="text-[10px] text-gray-500 font-mono">
+            <p className="text-xs text-gray-500 font-mono">
               {demoHints[selectedRole].email}
             </p>
-            <p className="text-[10px] text-gray-500 font-mono">
+            <p className="text-xs text-gray-500 font-mono">
               {demoHints[selectedRole].password}
             </p>
           </div>
 
           {/* Register link */}
-          <p className="text-center text-[11px] text-gray-400 mt-5">
+          <p className="text-center text-sm text-gray-400 mt-5">
             Belum punya akun?{" "}
             <button
               type="button"
@@ -258,7 +258,7 @@ export default function LoginPage({ onGoRegister }: LoginPageProps) {
           </p>
         </div>
 
-        <p className="text-center text-[10px] text-gray-400 mt-6">
+        <p className="text-center text-xs text-gray-400 mt-6">
           © 2026 TPID Kota Batu • Bagian Perekonomian Setda
         </p>
       </div>

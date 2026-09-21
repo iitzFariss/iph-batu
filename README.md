@@ -76,3 +76,11 @@ export default defineConfig([
 ])
 
 ```
+.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+
+```

@@ -59,7 +59,7 @@ const verifMap: Record<ActivityStatus, VerifConfig> = {
 function StatusBadge({ status }: { status: CommodityStatus }) {
   const { label, cls } = statusMap[status];
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${cls}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${cls}`}>
       {status === "terkendali" && <TrendingDown size={9} className="mr-1" />}
       {status === "waspada"    && <TrendingUp   size={9} className="mr-1" />}
       {label}
@@ -83,7 +83,7 @@ function ChangeCell({ change }: { change: number }) {
 function VerifBadge({ status }: { status: ActivityStatus }) {
   const { label, cls, icon } = verifMap[status];
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${cls}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${cls}`}>
       {icon}
       {label}
     </span>
@@ -97,10 +97,10 @@ function HeroMetrics() {
     <div className="bg-white border border-gray-100 rounded-xl p-5 mb-4">
       <div className="flex items-center gap-1.5 mb-3">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-        <span className="text-[11px] text-gray-500">Sinkronisasi BPS • Minggu III April 2026 (Terverifikasi)</span>
+        <span className="text-sm text-gray-500">Sinkronisasi BPS • Minggu III April 2026 (Terverifikasi)</span>
       </div>
 
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
         {/* Left */}
         <div className="flex-1">
           <h1 className="text-xl font-bold text-gray-900 mb-0.5">
@@ -114,18 +114,18 @@ function HeroMetrics() {
             <div>
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-xs text-gray-500">Indeks Perkembangan Harga (IPH) Terkini</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
                   Deflasi Aman
                 </span>
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-black text-gray-900 tracking-tight">-0.42%</span>
-                <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                <div className="flex items-center gap-1 text-sm text-emerald-600 font-medium">
                   <TrendingDown size={12} />
                   Turun 0.17% dibanding pekan lalu
                 </div>
               </div>
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-sm text-gray-400 mt-1">
                 Kondisi harga 20 komoditas strategis di Pasar Besar Kota Batu dan Pasar Relokasi
                 terpantau stabil dalam koridor target.
               </p>
@@ -136,7 +136,7 @@ function HeroMetrics() {
         {/* Right */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="text-right">
-            <div className="text-[11px] text-gray-400 mb-1">Periode Aktif</div>
+            <div className="text-sm text-gray-400 mb-1">Periode Aktif</div>
             <div className="text-sm font-bold text-gray-900">18 – 24 April</div>
             <div className="text-sm font-bold text-gray-900">2026</div>
           </div>
@@ -146,24 +146,26 @@ function HeroMetrics() {
             Sinkron Data BPS
           </button>
 
-          <div className="h-12 w-px bg-gray-100" />
+          <div className="hidden md:flex items-center gap-3">
+            <div className="h-12 w-px bg-gray-100" />
 
-          <div className="text-center px-3">
-            <div className="text-[10px] text-gray-400 mb-0.5">Target Koridor Inflasi</div>
-            <div className="text-sm font-black text-gray-900">± 0.50%</div>
-            <div className="text-[10px] text-gray-400">Batas Waspada Daerah</div>
-          </div>
+            <div className="text-center px-3">
+              <div className="text-xs text-gray-400 mb-0.5">Target Koridor Inflasi</div>
+              <div className="text-sm font-black text-gray-900">± 0.50%</div>
+              <div className="text-xs text-gray-400">Batas Waspada Daerah</div>
+            </div>
 
-          <div className="text-center px-3">
-            <div className="text-[10px] text-gray-400 mb-0.5">Status Tekanan Harga</div>
-            <div className="text-sm font-black text-emerald-600">Terkendali</div>
-            <div className="text-[10px] text-gray-400">18 Komoditas Normal/Turun</div>
-          </div>
+            <div className="text-center px-3">
+              <div className="text-xs text-gray-400 mb-0.5">Status Tekanan Harga</div>
+              <div className="text-sm font-black text-emerald-600">Terkendali</div>
+              <div className="text-xs text-gray-400">18 Komoditas Normal/Turun</div>
+            </div>
 
-          <div className="text-center px-3">
-            <div className="text-[10px] text-gray-400 mb-0.5">Komoditas Perhatian</div>
-            <div className="text-sm font-black text-amber-600">Cabai Rawit</div>
-            <div className="text-[10px] text-amber-500">+0.18% W-to-W</div>
+            <div className="text-center px-3">
+              <div className="text-xs text-gray-400 mb-0.5">Komoditas Perhatian</div>
+              <div className="text-sm font-black text-amber-600">Cabai Rawit</div>
+              <div className="text-xs text-amber-500">+0.18% W-to-W</div>
+            </div>
           </div>
         </div>
       </div>
@@ -186,17 +188,17 @@ function WorkflowSteps() {
 
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
             <ArrowRight size={11} className="text-emerald-600" />
           </div>
           <span className="text-sm font-semibold text-gray-800">Alur Kerja Utama Tim TPID</span>
         </div>
-        <span className="text-[11px] text-gray-400">Pilih langkah operasional yang ingin dilakukan</span>
+        <span className="text-sm text-gray-400">Pilih langkah operasional yang ingin dilakukan</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {steps.map(({ n, title, desc }: WorkflowStep) => (
           <button
             key={n}
@@ -207,7 +209,7 @@ function WorkflowSteps() {
             </div>
             <div>
               <div className="text-xs font-semibold text-gray-900">{title}</div>
-              <div className="text-[10px] text-gray-400">{desc}</div>
+              <div className="text-xs text-gray-400">{desc}</div>
             </div>
           </button>
         ))}
@@ -222,23 +224,24 @@ function CommodityTable() {
       <div className="flex items-start justify-between mb-1">
         <div>
           <h2 className="text-sm font-bold text-gray-900">Komoditas Pangan Utama Kota Batu</h2>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-sm text-gray-400">
             Daftar pemantauan harga harian di Pasar Besar Kota Batu &amp; Pasar Relokasi
           </p>
         </div>
-        <span className="text-[10px] text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1">
+        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1">
           Minggu III April 2026
         </span>
       </div>
 
-      <table className="w-full mt-3">
+      <div className="overflow-x-auto -mx-4 px-4">
+        <table className="w-full mt-3 min-w-[560px]">
         <thead>
           <tr className="border-b border-gray-100">
             {(["Komoditas", "Harga Terkini", "Perubahan (W-to-W)", "Status IPH"] as const).map(
               (col, i) => (
                 <th
                   key={col}
-                  className={`text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 ${
+                  className={`text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 ${
                     i === 0 ? "text-left" : "text-right"
                   }`}
                 >
@@ -258,7 +261,7 @@ function CommodityTable() {
                   </div>
                   <div>
                     <div className="text-xs font-semibold text-gray-900">{c.name}</div>
-                    <div className="text-[10px] text-gray-400">{c.unit}</div>
+                    <div className="text-xs text-gray-400">{c.unit}</div>
                   </div>
                 </div>
               </td>
@@ -284,10 +287,11 @@ function CommodityTable() {
           ))}
         </tbody>
       </table>
+      </div>
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
-        <span className="text-[11px] text-gray-400">Memantau total 20 komoditas strategis</span>
-        <button className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold hover:text-emerald-700">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50 flex-wrap gap-2">
+        <span className="text-sm text-gray-400">Memantau total 20 komoditas strategis</span>
+        <button className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700">
           Lihat Tabel Lengkap Komoditas
           <ChevronRight size={11} />
         </button>
@@ -314,7 +318,7 @@ function SupplyPanel() {
       <div className="flex items-center gap-2 mb-3">
         <Calendar size={13} className="text-emerald-600" />
         <span className="text-sm font-bold text-gray-900">Pasokan Pasar Utama</span>
-        <span className="ml-auto text-[10px] text-emerald-600 font-semibold bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
+        <span className="ml-auto text-xs text-emerald-600 font-semibold bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
           Aman &gt; 14 Hari
         </span>
       </div>
@@ -339,7 +343,7 @@ function AgendaPanel() {
           <Clock size={13} className="text-gray-500" />
           <span className="text-sm font-bold text-gray-900">Jadwal Rapat &amp; Disposisi Penting</span>
         </div>
-        <span className="text-[10px] text-gray-400">Agenda Mendatang</span>
+        <span className="text-xs text-gray-400">Agenda Mendatang</span>
       </div>
 
       <div className="space-y-3">
@@ -354,14 +358,14 @@ function AgendaPanel() {
           >
             <div className="flex items-center justify-between mb-1.5">
               <span
-                className={`text-[10px] font-bold ${
+                className={`text-xs font-bold ${
                   item.type === "mendesak" ? "text-amber-600" : "text-gray-500"
                 }`}
               >
                 {item.type === "mendesak" ? "Disposisi Mendesak" : "Agenda Rutin Setda"}
               </span>
               <span
-                className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+                className={`text-xs font-semibold px-2 py-0.5 rounded ${
                   item.urgency === "wajib"
                     ? "bg-red-100 text-red-600"
                     : "bg-gray-100 text-gray-500"
@@ -372,7 +376,7 @@ function AgendaPanel() {
             </div>
 
             <div className="text-xs font-semibold text-gray-900 mb-1">{item.title}</div>
-            <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-2">
+            <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
               <Clock size={9} />
               {item.datetime}
             </div>
@@ -381,7 +385,7 @@ function AgendaPanel() {
               {item.actions.map((action: string, i: number) => (
                 <button
                   key={action}
-                  className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border transition-colors ${
                     i === item.actions.length - 1 && item.type === "mendesak"
                       ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700"
                       : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
@@ -415,24 +419,24 @@ function ActivityLogTable() {
           <h2 className="text-sm font-bold text-gray-900">
             Log Aktivitas Pembaruan Sistem &amp; Input Data Terkini
           </h2>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-sm text-gray-400">
             Audit trail pencatatan indeks perkembangan harga dan risalah TPID Kota Batu
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-500">Auto-sync: On</span>
+          <span className="text-xs text-gray-500">Auto-sync: On</span>
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full mt-3">
+      <div className="overflow-x-auto -mx-4 px-4">
+        <table className="w-full mt-3 min-w-[560px]">
           <thead>
             <tr className="border-b border-gray-100">
               {cols.map((col) => (
                 <th
                   key={col}
-                  className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4 whitespace-nowrap"
+                  className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4 whitespace-nowrap"
                 >
                   {col}
                 </th>
@@ -443,16 +447,16 @@ function ActivityLogTable() {
             {activityLogs.map((log: ActivityLog) => (
               <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="py-2.5 pr-4 whitespace-nowrap">
-                  <span className="text-[11px] text-gray-500">{log.datetime}</span>
+                  <span className="text-sm text-gray-500">{log.datetime}</span>
                 </td>
                 <td className="py-2.5 pr-4 whitespace-nowrap">
                   <span className="text-xs font-semibold text-gray-900">{log.officer}</span>
                 </td>
                 <td className="py-2.5 pr-4">
-                  <span className="text-[11px] text-gray-500">{log.agency}</span>
+                  <span className="text-sm text-gray-500">{log.agency}</span>
                 </td>
                 <td className="py-2.5 pr-4">
-                  <span className="text-[11px] text-gray-700">{log.description}</span>
+                  <span className="text-sm text-gray-700">{log.description}</span>
                 </td>
                 <td className="py-2.5">
                   <VerifBadge status={log.status} />
@@ -463,25 +467,25 @@ function ActivityLogTable() {
         </table>
       </div>
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
-        <span className="text-[11px] text-gray-400">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50 flex-wrap gap-2">
+        <span className="text-sm text-gray-400">
           Menampilkan 4 aktivitas terakhir dari 128 catatan pekan ini
         </span>
         <div className="flex items-center gap-1">
-          <button className="text-[11px] text-gray-400 px-2 py-1 rounded hover:bg-gray-50">
+          <button className="text-sm text-gray-400 px-2 py-1 rounded hover:bg-gray-50">
             Sebelumnya
           </button>
           {[1, 2, 3].map((p: number) => (
             <button
               key={p}
-              className={`w-6 h-6 text-[11px] rounded flex items-center justify-center font-medium ${
+              className={`w-6 h-6 text-sm rounded flex items-center justify-center font-medium ${
                 p === 1 ? "bg-gray-900 text-white" : "text-gray-400 hover:bg-gray-50"
               }`}
             >
               {p}
             </button>
           ))}
-          <button className="text-[11px] text-gray-400 px-2 py-1 rounded hover:bg-gray-50">
+          <button className="text-sm text-gray-400 px-2 py-1 rounded hover:bg-gray-50">
             Berikutnya
           </button>
         </div>
@@ -494,11 +498,11 @@ function ActivityLogTable() {
 
 export default function Dashboard() {
   return (
-    <div className="p-5 space-y-4 w-full">
+    <div className="p-4 sm:p-5 space-y-4 w-full">
       <HeroMetrics />
       <WorkflowSteps />
 
-      <div className="grid grid-cols-[1fr_280px] gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-4">
         <CommodityTable />
         <div className="flex flex-col gap-3">
           <SupplyPanel />

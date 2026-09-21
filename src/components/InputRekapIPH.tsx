@@ -371,7 +371,7 @@ export default function InputRekapIPH() {
 
                     <td className="px-4 py-2.5">
                       <span className="font-medium text-gray-800 block">{kom.nama}</span>
-                      <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded mt-0.5 font-medium ${KATEGORI_BADGE[kom.kategori]}`}>
+                      <span className={`inline-block text-xs px-1.5 py-0.5 rounded mt-0.5 font-medium ${KATEGORI_BADGE[kom.kategori]}`}>
                         {KATEGORI_LABEL[kom.kategori]}
                       </span>
                     </td>

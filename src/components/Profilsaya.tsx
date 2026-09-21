@@ -66,10 +66,10 @@ export default function ProfilSaya() {
   }
 
   return (
-    <div className="p-5 space-y-5 w-full">
+    <div className="p-4 sm:p-5 space-y-5 w-full">
       {/* Page header */}
       <div>
-        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-1">
+        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-1">
           <span>Pengaturan</span>
           <ChevronRight size={10} />
           <span className="text-gray-700 font-medium">Profil Saya</span>
@@ -88,7 +88,7 @@ export default function ProfilSaya() {
         </div>
       )}
 
-      <div className="grid grid-cols-[280px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5 items-start">
 
         {/* Left: avatar card */}
         <div className="space-y-4">
@@ -104,10 +104,10 @@ export default function ProfilSaya() {
             </div>
 
             <div className="text-sm font-black text-gray-900 mb-0.5">{user.name}</div>
-            <div className="text-[11px] text-gray-400 mb-2">{user.email}</div>
+            <div className="text-sm text-gray-400 mb-2">{user.email}</div>
 
             {/* Role badge */}
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${roleBadgeCls[user.role]}`}>
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-bold ${roleBadgeCls[user.role]}`}>
               <Shield size={10} />
               {roleLabel[user.role]}
             </span>
@@ -115,23 +115,23 @@ export default function ProfilSaya() {
             {/* NIP */}
             {user.nip && (
               <div className="mt-3 p-2 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide mb-0.5">NIP</div>
-                <div className="text-[11px] font-mono font-semibold text-gray-700">{user.nip}</div>
+                <div className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mb-0.5">NIP</div>
+                <div className="text-sm font-mono font-semibold text-gray-700">{user.nip}</div>
               </div>
             )}
 
             {/* Instansi */}
             {user.instansi && (
               <div className="mt-2 p-2 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="text-[9px] text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Instansi</div>
-                <div className="text-[11px] font-semibold text-gray-700">{user.instansi}</div>
+                <div className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mb-0.5">Instansi</div>
+                <div className="text-sm font-semibold text-gray-700">{user.instansi}</div>
               </div>
             )}
           </div>
 
           {/* Stats */}
           <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
-            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Statistik Aktivitas</div>
+            <div className="text-sm font-bold text-gray-500 uppercase tracking-wide">Statistik Aktivitas</div>
             {[
               { label: "Total Entri Data",   value: "47" },
               { label: "Rapat Dihadiri",     value: "18" },
@@ -139,7 +139,7 @@ export default function ProfilSaya() {
               { label: "Siaran Dikirim",     value: "8"  },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between">
-                <span className="text-[11px] text-gray-500">{label}</span>
+                <span className="text-sm text-gray-500">{label}</span>
                 <span className="text-xs font-black text-gray-900">{value}</span>
               </div>
             ))}
@@ -156,7 +156,7 @@ export default function ProfilSaya() {
               {!editMode ? (
                 <button
                   onClick={() => setEditMode(true)}
-                  className="px-3 py-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100"
+                  className="px-3 py-1.5 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100"
                 >
                   Edit Profil
                 </button>
@@ -164,13 +164,13 @@ export default function ProfilSaya() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setEditMode(false)}
-                    className="px-3 py-1.5 text-[11px] font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                    className="px-3 py-1.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
                   >
                     Batal
                   </button>
                   <button
                     onClick={handleSave}
-                    className="px-3 py-1.5 text-[11px] font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+                    className="px-3 py-1.5 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
                   >
                     Simpan
                   </button>
@@ -180,9 +180,9 @@ export default function ProfilSaya() {
 
             <div className="space-y-4">
               {/* Nama */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
                     Nama Lengkap
                   </label>
                   {editMode ? (
@@ -203,7 +203,7 @@ export default function ProfilSaya() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
                     Nomor Telepon
                   </label>
                   {editMode ? (
@@ -222,13 +222,13 @@ export default function ProfilSaya() {
 
               {/* Email - read only */}
               <div>
-                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
                   Email
                 </label>
                 <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded-lg border border-gray-100">
                   <Mail size={12} className="text-gray-400 flex-shrink-0" />
                   <span className="text-xs text-gray-600">{user.email}</span>
-                  <span className="ml-auto text-[9px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
+                  <span className="ml-auto text-[11px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
                     Tidak dapat diubah
                   </span>
                 </div>
@@ -237,13 +237,13 @@ export default function ProfilSaya() {
               {/* Instansi - read only */}
               {user.instansi && (
                 <div>
-                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
                     Instansi / OPD
                   </label>
                   <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded-lg border border-gray-100">
                     <Building2 size={12} className="text-gray-400 flex-shrink-0" />
                     <span className="text-xs text-gray-600">{user.instansi}</span>
-                    <span className="ml-auto text-[9px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
+                    <span className="ml-auto text-[11px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
                       Tidak dapat diubah
                     </span>
                   </div>
@@ -253,13 +253,13 @@ export default function ProfilSaya() {
               {/* NIP - read only */}
               {user.nip && (
                 <div>
-                  <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
                     NIP
                   </label>
                   <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded-lg border border-gray-100">
                     <BadgeCheck size={12} className="text-gray-400 flex-shrink-0" />
                     <span className="text-xs font-mono text-gray-600 tracking-wider">{user.nip}</span>
-                    <span className="ml-auto text-[9px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
+                    <span className="ml-auto text-[11px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
                       Tidak dapat diubah
                     </span>
                   </div>
@@ -268,7 +268,7 @@ export default function ProfilSaya() {
 
               {/* Bio */}
               <div>
-                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
                   Bio / Keterangan
                 </label>
                 {editMode ? (
@@ -289,7 +289,7 @@ export default function ProfilSaya() {
           <div className="bg-white border border-gray-100 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-gray-900">Aktivitas Terkini</h2>
-              <button className="text-[11px] text-emerald-600 font-semibold hover:text-emerald-700">
+              <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
                 Lihat Semua
               </button>
             </div>
@@ -303,7 +303,7 @@ export default function ProfilSaya() {
                     <div className="text-xs text-gray-700 leading-snug">{act.label}</div>
                     <div className="flex items-center gap-1 mt-0.5">
                       <Clock size={9} className="text-gray-400" />
-                      <span className="text-[10px] text-gray-400">{act.time}</span>
+                      <span className="text-xs text-gray-400">{act.time}</span>
                     </div>
                   </div>
                 </div>

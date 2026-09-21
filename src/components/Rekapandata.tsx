@@ -149,7 +149,7 @@ function IPHBadge({ value, status }: { value: number; status: IPHStatus }) {
         {cfg.icon}
         {sign}{value.toFixed(2)}%
       </div>
-      <span className={`text-[10px] font-semibold ${cfg.text}`}>{cfg.label}</span>
+      <span className={`text-xs font-semibold ${cfg.text}`}>{cfg.label}</span>
     </div>
   );
 }
@@ -157,7 +157,7 @@ function IPHBadge({ value, status }: { value: number; status: IPHStatus }) {
 function CommodityChip({ name, change, type }: { name: string; change: number; type: "deflasi" | "inflasi" }) {
   const isDeflasi = type === "deflasi";
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-medium ${
+    <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${
       isDeflasi ? "bg-gray-100 text-gray-700" : "bg-red-50 text-red-700"
     }`}>
       <span>{name}</span>
@@ -173,14 +173,14 @@ function RilisBadge({ status }: { status: RilisStatus }) {
     return (
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-50 border border-red-200">
         <div className="w-2 h-2 rounded-full bg-red-500" />
-        <span className="text-[10px] font-bold text-red-600">GTT Dispatched</span>
+        <span className="text-xs font-bold text-red-600">GTT Dispatched</span>
       </div>
     );
   }
   return (
     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
       <div className="w-2 h-2 rounded-full bg-emerald-500" />
-      <span className="text-[10px] font-semibold text-gray-600">Rilis Kemendagri</span>
+      <span className="text-xs font-semibold text-gray-600">Rilis Kemendagri</span>
     </div>
   );
 }
@@ -208,9 +208,9 @@ export default function RekapanData() {
   };
 
   return (
-    <div className="p-5 space-y-4 w-full">
+    <div className="p-4 sm:p-5 space-y-4 w-full">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-[11px] text-gray-400">
+      <div className="flex items-center gap-2 text-sm text-gray-400">
         <span className="hover:text-gray-600 cursor-pointer">TPID Terpadu</span>
         <ChevronRight size={10} />
         <span className="hover:text-gray-600 cursor-pointer">Basis Data Inflasi</span>
@@ -219,7 +219,7 @@ export default function RekapanData() {
       </div>
 
       {/* Page header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900 mb-1">
             Rekapan Data Indeks Perkembangan Harga (IPH)
@@ -232,7 +232,7 @@ export default function RekapanData() {
         {/* Stats row */}
         <div className="flex items-center gap-4 flex-shrink-0">
           <div className="text-center">
-            <div className="text-[10px] text-gray-400 mb-0.5">Posisi Terkini M–IV</div>
+            <div className="text-xs text-gray-400 mb-0.5">Posisi Terkini M–IV</div>
             <div className="flex items-center gap-1 justify-center">
               <TrendingDown size={14} className="text-emerald-600" />
               <span className="text-xl font-black text-emerald-600">-0.38%</span>
@@ -240,7 +240,7 @@ export default function RekapanData() {
           </div>
           <div className="h-10 w-px bg-gray-100" />
           <div className="text-center">
-            <div className="text-[10px] text-gray-400 mb-0.5">Status IPH Wilayah</div>
+            <div className="text-xs text-gray-400 mb-0.5">Status IPH Wilayah</div>
             <div className="flex items-center gap-1 justify-center">
               <TrendingDown size={12} className="text-emerald-600" />
               <span className="text-sm font-bold text-emerald-600">Terkendali</span>
@@ -248,16 +248,16 @@ export default function RekapanData() {
           </div>
           <div className="h-10 w-px bg-gray-100" />
           <div className="text-center">
-            <div className="text-[10px] text-gray-400 mb-0.5">Entri Tersinkron</div>
+            <div className="text-xs text-gray-400 mb-0.5">Entri Tersinkron</div>
             <div className="text-sm font-bold text-gray-900">52 Minggu</div>
-            <div className="text-[10px] text-gray-400">(100%)</div>
+            <div className="text-xs text-gray-400">(100%)</div>
           </div>
         </div>
       </div>
 
       {/* Toolbar */}
       <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Search */}
           <div className="relative flex-1">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -294,13 +294,14 @@ export default function RekapanData() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-gray-400 font-medium">Filter Kategori:</span>
+        <div className="overflow-x-auto">
+        <div className="flex flex-wrap items-center gap-2 min-w-[620px]">
+          <span className="text-sm text-gray-400 font-medium">Filter Kategori:</span>
           {tabs.map(({ key, label, count }) => (
             <button
               key={key}
               onClick={() => setFilterTab(key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${
                 filterTab === key
                   ? "bg-gray-900 text-white"
                   : key === "intervensi"
@@ -320,11 +321,13 @@ export default function RekapanData() {
             </button>
           ))}
         </div>
+        </div>
       </div>
 
       {/* Table */}
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="w-10 px-4 py-3">
@@ -340,7 +343,7 @@ export default function RekapanData() {
               ].map((col) => (
                 <th
                   key={col}
-                  className="text-left text-[10px] font-bold text-gray-500 uppercase tracking-wide px-3 py-3"
+                  className="text-left text-xs font-bold text-gray-500 uppercase tracking-wide px-3 py-3"
                 >
                   {col}
                 </th>
@@ -368,7 +371,7 @@ export default function RekapanData() {
                 {/* Periode */}
                 <td className="px-3 py-4">
                   <div className="text-sm font-bold text-gray-900 mb-0.5">{row.periode}</div>
-                  <div className="text-[10px] text-gray-400">
+                  <div className="text-xs text-gray-400">
                     Cutoff: {row.cutoffStart} – {row.cutoffEnd}
                   </div>
                 </td>
@@ -381,7 +384,7 @@ export default function RekapanData() {
                 {/* Deflasi */}
                 <td className="px-3 py-4">
                   {row.deflasi.length === 0 ? (
-                    <span className="text-[11px] text-gray-400 italic">Nihil komoditas dominan</span>
+                    <span className="text-sm text-gray-400 italic">Nihil komoditas dominan</span>
                   ) : (
                     <div className="flex flex-col gap-1">
                       {row.deflasi.map((c) => (
@@ -394,7 +397,7 @@ export default function RekapanData() {
                 {/* Inflasi */}
                 <td className="px-3 py-4">
                   {row.inflasi.length === 0 ? (
-                    <span className="text-[11px] text-gray-400 italic">Tidak ada komoditas naik</span>
+                    <span className="text-sm text-gray-400 italic">Tidak ada komoditas naik</span>
                   ) : (
                     <div className="flex flex-col gap-1">
                       {row.inflasi.map((c) => (
@@ -407,12 +410,12 @@ export default function RekapanData() {
                 {/* Verifikator */}
                 <td className="px-3 py-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
                       {row.verifikator.initials}
                     </div>
                     <div>
                       <div className="text-xs font-semibold text-gray-900">{row.verifikator.name}</div>
-                      <div className="text-[10px] text-gray-400">{row.verifikator.instansi}</div>
+                      <div className="text-xs text-gray-400">{row.verifikator.instansi}</div>
                     </div>
                   </div>
                 </td>
@@ -425,15 +428,16 @@ export default function RekapanData() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
-          <span className="text-[11px] text-gray-500">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+          <span className="text-sm text-gray-500">
             Menampilkan <strong>1–5</strong> dari <strong>52</strong> data rekapan
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-gray-400">Baris per halaman:</span>
-            <select className="text-[11px] border border-gray-200 rounded px-2 py-1 bg-white text-gray-700">
+            <span className="text-sm text-gray-400">Baris per halaman:</span>
+            <select className="text-sm border border-gray-200 rounded px-2 py-1 bg-white text-gray-700">
               <option>10</option>
               <option>25</option>
               <option>50</option>
@@ -447,7 +451,7 @@ export default function RekapanData() {
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
-                className={`w-7 h-7 rounded text-[11px] font-semibold flex items-center justify-center transition-colors ${
+                className={`w-7 h-7 rounded text-sm font-semibold flex items-center justify-center transition-colors ${
                   currentPage === p
                     ? "bg-emerald-600 text-white"
                     : "text-gray-500 hover:bg-gray-100"
@@ -456,8 +460,8 @@ export default function RekapanData() {
                 {p}
               </button>
             ))}
-            <span className="text-gray-400 text-[11px] px-1">…</span>
-            <button className="w-7 h-7 rounded text-[11px] font-semibold text-gray-500 hover:bg-gray-100 flex items-center justify-center">
+            <span className="text-gray-400 text-sm px-1">…</span>
+            <button className="w-7 h-7 rounded text-sm font-semibold text-gray-500 hover:bg-gray-100 flex items-center justify-center">
               6
             </button>
             <button className="w-7 h-7 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100">
@@ -468,7 +472,7 @@ export default function RekapanData() {
       </div>
 
       {/* Koreksi section */}
-      <div className="bg-white border border-gray-100 rounded-xl p-4 flex items-start justify-between gap-6">
+      <div className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col md:flex-row md:items-start justify-between gap-6">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
             <ShieldCheck size={18} className="text-amber-600" />

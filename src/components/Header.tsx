@@ -1,11 +1,25 @@
-import { Search, SlidersHorizontal, Download, Bell } from "lucide-react";
+import { Menu, Search, SlidersHorizontal, Download, Bell } from "lucide-react";
 import UserMenu from "./Usermenu";
 
-export default function Header({ onNavigate }: { onNavigate?: (page: string) => void }) {
+interface HeaderProps {
+  onNavigate?: (page: string) => void;
+  onOpenSidebar?: () => void;
+}
+
+export default function Header({ onNavigate, onOpenSidebar }: HeaderProps) {
   return (
-    <header className="bg-white border-b border-gray-100 px-6 py-2.5 flex items-center gap-4 flex-shrink-0">
+    <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 flex-shrink-0">
+      {/* Hamburger — mobile only */}
+      <button
+        onClick={onOpenSidebar}
+        aria-label="Buka menu navigasi"
+        className="lg:hidden p-2 -ml-2 rounded-lg text-gray-500 hover:bg-gray-100"
+      >
+        <Menu size={20} />
+      </button>
+
       {/* Nav tabs */}
-      <nav className="flex items-center gap-1">
+      <nav className="hidden md:flex items-center gap-1">
         {[
           { label: "TPID Kota Batu", active: false },
           { label: "Monitoring IPH", active: false },
@@ -23,8 +37,8 @@ export default function Header({ onNavigate }: { onNavigate?: (page: string) => 
         ))}
       </nav>
 
-      {/* Search */}
-      <div className="flex-1 relative">
+      {/* Search — full baris di mobile */}
+      <div className="relative order-last md:order-none w-full md:w-auto md:flex-1">
         <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           type="text"
@@ -34,7 +48,7 @@ export default function Header({ onNavigate }: { onNavigate?: (page: string) => 
       </div>
 
       {/* Right nav */}
-      <nav className="flex items-center gap-1">
+      <nav className="hidden xl:flex items-center gap-1">
         <button className="px-3 py-1.5 rounded text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200">
           Ringkasan Eksekutif
         </button>
@@ -49,14 +63,14 @@ export default function Header({ onNavigate }: { onNavigate?: (page: string) => 
       </nav>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
-        <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+      <div className="flex items-center gap-1.5 sm:gap-2 ml-auto md:ml-0">
+        <button className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
           <SlidersHorizontal size={12} />
           Filter Komoditas
         </button>
         <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
           <Download size={12} />
-          Unduh Rekap IPH
+          <span className="hidden sm:inline">Unduh Rekap IPH</span>
         </button>
         <button className="relative p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
           <Bell size={15} className="text-gray-500" />

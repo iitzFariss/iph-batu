@@ -76,12 +76,12 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
             </div>
             <div>
               <div className="text-sm font-black text-gray-900 leading-tight">TPID Kota Batu</div>
-              <div className="text-[9px] text-gray-400 leading-tight">Sistem Pengendalian Inflasi Daerah</div>
+              <div className="text-[11px] text-gray-400 leading-tight">Sistem Pengendalian Inflasi Daerah</div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1 text-[10px] text-gray-400 mr-2">
+            <div className="hidden sm:flex items-center gap-1 text-xs text-gray-400 mr-2">
               <MapPin size={10} />
               Kota Batu, Jawa Timur
             </div>
@@ -103,12 +103,12 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
       {/* ── Hero ── */}
       <section className="max-w-5xl mx-auto px-5 pt-14 pb-12">
-        <div className="grid grid-cols-[1fr_300px] gap-10 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-10 items-center">
 
           {/* Left copy */}
           <div>
             {/* Live badge */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-semibold text-emerald-700 mb-5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 mb-5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Data Terverifikasi BPS • {iphSnapshot.syncedAt}
             </div>
@@ -144,16 +144,16 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
           {/* Right: IPH card */}
           <div className="bg-gray-950 rounded-2xl p-5 text-white">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
+              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
                 IPH Terkini
               </span>
-              <div className="flex items-center gap-1 text-[10px] text-gray-500">
+              <div className="flex items-center gap-1 text-xs text-gray-500">
                 <RefreshCw size={9} />
                 Live
               </div>
             </div>
 
-            <div className="text-[11px] text-gray-500 mb-3">{iphSnapshot.periode}</div>
+            <div className="text-sm text-gray-500 mb-3">{iphSnapshot.periode}</div>
 
             <div className="flex items-baseline gap-2 mb-1">
               <span className={`text-5xl font-black ${isDeflasi ? "text-emerald-400" : "text-amber-400"}`}>
@@ -174,10 +174,10 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
             <div className="space-y-2">
               {commodityHighlights.map((c) => (
                 <div key={c.name} className="flex items-center justify-between">
-                  <span className="text-[11px] text-gray-400">{c.name}</span>
+                  <span className="text-sm text-gray-400">{c.name}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-gray-200">{c.price}{c.unit}</span>
-                    <span className={`text-[10px] font-bold ${
+                    <span className="text-sm font-semibold text-gray-200">{c.price}{c.unit}</span>
+                    <span className={`text-xs font-bold ${
                       c.change < 0 ? "text-blue-400" :
                       c.change > 0 ? "text-red-400" :
                       "text-gray-500"
@@ -191,7 +191,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
             <div className="mt-4 pt-3 border-t border-gray-800 flex items-center gap-1.5">
               <ShieldCheck size={10} className="text-emerald-500" />
-              <span className="text-[10px] text-gray-500">Terverifikasi BPS Kota Batu</span>
+              <span className="text-xs text-gray-500">Terverifikasi BPS Kota Batu</span>
             </div>
           </div>
         </div>
@@ -199,11 +199,11 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
       {/* ── Stats bar ── */}
       <section className="border-y border-gray-100 bg-gray-50">
-        <div className="max-w-5xl mx-auto px-5 py-5 grid grid-cols-4 divide-x divide-gray-200">
+        <div className="max-w-5xl mx-auto px-5 py-5 grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-200">
           {stats.map(({ value, label }) => (
             <div key={label} className="text-center px-4">
               <div className="text-2xl font-black text-gray-900">{value}</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">{label}</div>
+              <div className="text-sm text-gray-400 mt-0.5">{label}</div>
             </div>
           ))}
         </div>
@@ -212,7 +212,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
       {/* ── Features (for masyarakat) ── */}
       <section className="max-w-5xl mx-auto px-5 py-14">
         <div className="text-center mb-8">
-          <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest mb-2">
+          <p className="text-sm text-emerald-600 font-bold uppercase tracking-widest mb-2">
             Untuk Masyarakat Umum
           </p>
           <h2 className="text-xl font-black text-gray-900">
@@ -223,14 +223,14 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {features.map(({ icon, bg, title, desc }) => (
             <div key={title} className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-gray-200 hover:shadow-sm transition-all">
               <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center mb-3`}>
                 {icon}
               </div>
               <div className="text-sm font-bold text-gray-900 mb-1">{title}</div>
-              <p className="text-[11px] text-gray-500 leading-relaxed">{desc}</p>
+              <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
@@ -248,9 +248,9 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
       {/* ── Petugas CTA ── */}
       <section className="bg-gray-950 py-12">
-        <div className="max-w-5xl mx-auto px-5 flex items-center justify-between gap-8">
+        <div className="max-w-5xl mx-auto px-5 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
-            <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mb-1">
+            <p className="text-xs text-emerald-400 font-bold uppercase tracking-widest mb-1">
               Untuk Aparatur & Petugas
             </p>
             <h2 className="text-lg font-black text-white mb-1">
@@ -274,7 +274,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
       {/* ── Footer ── */}
       <footer className="bg-white border-t border-gray-100 py-6">
-        <div className="max-w-5xl mx-auto px-5 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center">
               <TrendingDown size={11} className="text-white" />
@@ -283,7 +283,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
               © 2026 TPID Kota Batu • Bagian Perekonomian Setda
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <ShieldCheck size={10} className="text-emerald-500" />
             Data resmi BPS Kota Batu
           </div>

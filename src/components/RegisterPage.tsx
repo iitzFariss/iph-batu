@@ -188,7 +188,7 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
             { n: 2, label: "Data Diri" },
           ].map(({ n, label }, i) => (
             <div key={n} className="flex items-center gap-2">
-              <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition-all ${
+              <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold transition-all ${
                 step === n
                   ? "bg-emerald-600 text-white"
                   : step > n
@@ -234,9 +234,9 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
                             <span className={`text-sm font-bold ${isActive ? card.color : "text-gray-700"}`}>
                               {card.label}
                             </span>
-                            <span className="text-[10px] text-gray-400">{card.desc}</span>
+                            <span className="text-xs text-gray-400">{card.desc}</span>
                             {isActive && (
-                              <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${card.activeBg}`}>
+                              <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-white ${card.activeBg}`}>
                                 Dipilih
                               </span>
                             )}
@@ -246,13 +246,13 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
                             {card.permissions.map((p) => (
                               <div key={p} className="flex items-start gap-1">
                                 <CheckCircle2 size={9} className="text-emerald-500 flex-shrink-0 mt-0.5" />
-                                <span className="text-[10px] text-gray-600">{p}</span>
+                                <span className="text-xs text-gray-600">{p}</span>
                               </div>
                             ))}
                             {card.restrictions.map((r) => (
                               <div key={r} className="flex items-start gap-1">
-                                <span className="text-[9px] text-red-400 flex-shrink-0 mt-0.5">✕</span>
-                                <span className="text-[10px] text-gray-400">{r}</span>
+                                <span className="text-[11px] text-red-400 flex-shrink-0 mt-0.5">✕</span>
+                                <span className="text-xs text-gray-400">{r}</span>
                               </div>
                             ))}
                           </div>
@@ -265,7 +265,7 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
                 {/* Admin note */}
                 <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl">
                   <BadgeCheck size={14} className="text-purple-500 flex-shrink-0" />
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-sm text-gray-500">
                     Akun <strong>Administrator</strong> hanya dapat dibuat oleh Admin yang sudah
                     ada. Hubungi pengelola sistem TPID.
                   </p>
@@ -302,7 +302,7 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
                 </button>
                 <div>
                   <h2 className="text-sm font-bold text-gray-900">Data Diri</h2>
-                  <p className="text-[10px] text-gray-400">
+                  <p className="text-xs text-gray-400">
                     Daftar sebagai: <strong>{selectedCard.icon} {selectedCard.label}</strong>
                   </p>
                 </div>
@@ -410,7 +410,7 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
                         />
                       ))}
                     </div>
-                    <span className="text-[10px] text-gray-500 font-medium w-20 text-right">
+                    <span className="text-xs text-gray-500 font-medium w-20 text-right">
                       {strengthLabel}
                     </span>
                   </div>
@@ -456,7 +456,7 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
                   onChange={(e) => { setAgree(e.target.checked); setError(""); }}
                   className="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
-                <span className="text-[11px] text-gray-500 leading-relaxed">
+                <span className="text-sm text-gray-500 leading-relaxed">
                   Saya menyetujui{" "}
                   <span className="text-emerald-600 font-semibold">syarat & ketentuan</span>{" "}
                   penggunaan Sistem TPID Kota Batu dan menyatakan data yang diberikan adalah benar.
@@ -497,7 +497,7 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
           )}
 
           {/* Back to login */}
-          <p className="text-center text-[11px] text-gray-400 mt-4">
+          <p className="text-center text-sm text-gray-400 mt-4">
             Sudah punya akun?{" "}
             <button
               type="button"
@@ -509,7 +509,7 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
           </p>
         </div>
 
-        <p className="text-center text-[10px] text-gray-400 mt-5">
+        <p className="text-center text-xs text-gray-400 mt-5">
           © 2026 TPID Kota Batu • Bagian Perekonomian Setda
         </p>
       </div>
