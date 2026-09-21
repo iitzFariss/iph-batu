@@ -173,7 +173,7 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-emerald-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         {/* Brand */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-5">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 shadow-lg mb-3">
             <TrendingUp size={22} className="text-white" />
           </div>
@@ -182,7 +182,7 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
         </div>
 
         {/* Step indicator */}
-        <div className="flex items-center gap-2 mb-5 justify-center">
+        <div className="flex items-center gap-2 mb-4 justify-center">
           {[
             { n: 1, label: "Pilih Peran" },
             { n: 2, label: "Data Diri" },

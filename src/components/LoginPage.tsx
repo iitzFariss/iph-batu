@@ -100,8 +100,8 @@ export default function LoginPage({ onGoRegister }: LoginPageProps) {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-emerald-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 shadow-lg mb-4">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 shadow-lg mb-3">
             <TrendingUp size={28} className="text-white" />
           </div>
           <h1 className="text-2xl font-black text-gray-900">TPID Kota Batu</h1>
@@ -246,7 +246,7 @@ export default function LoginPage({ onGoRegister }: LoginPageProps) {
           </div>
 
           {/* Register link */}
-          <p className="text-center text-sm text-gray-400 mt-5">
+          <p className="text-center text-sm text-gray-400 mt-4">
             Belum punya akun?{" "}
             <button
               type="button"
@@ -258,7 +258,7 @@ export default function LoginPage({ onGoRegister }: LoginPageProps) {
           </p>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-gray-400 mt-4">
           © 2026 TPID Kota Batu • Bagian Perekonomian Setda
         </p>
       </div>
