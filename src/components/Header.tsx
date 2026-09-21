@@ -1,5 +1,6 @@
-import { Menu, Search, SlidersHorizontal, Download, Bell } from "lucide-react";
+import { Menu, Search, SlidersHorizontal, Download, Bell, Sun, Moon } from "lucide-react";
 import UserMenu from "./Usermenu";
+import { useTheme } from "../context/ThemeContext";
 
 interface HeaderProps {
   onNavigate?: (page: string) => void;
@@ -7,6 +8,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onNavigate, onOpenSidebar }: HeaderProps) {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 flex-shrink-0">
       {/* Hamburger — mobile only */}
@@ -71,6 +74,18 @@ export default function Header({ onNavigate, onOpenSidebar }: HeaderProps) {
         <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
           <Download size={12} />
           <span className="hidden sm:inline">Unduh Rekap IPH</span>
+        </button>
+        <button
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Ganti ke mode terang" : "Ganti ke mode gelap"}
+          title={theme === "dark" ? "Mode terang" : "Mode gelap"}
+          className="relative p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          {theme === "dark" ? (
+            <Sun size={15} className="text-gray-500" />
+          ) : (
+            <Moon size={15} className="text-gray-500" />
+          )}
         </button>
         <button className="relative p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
           <Bell size={15} className="text-gray-500" />

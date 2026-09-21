@@ -21,3 +21,97 @@
   --text-5xl: 2.75rem;
   --text-5xl--line-height: 1;
 }
+
+/* ── Dark mode (toggle dari Header) ─────────────────────────────────────────
+   Kelas `.dark` dipasang di <html> oleh ThemeContext. Override palet abu-abu
+   aplikasi agar seluruh halaman internal ikut menjadi gelap. */
+.dark body { background-color: #04060a; }
+
+.dark .bg-white            { background-color: #0a0e15 !important; }
+.dark .bg-gray-50          { background-color: #060a10 !important; }
+.dark .bg-gray-100         { background-color: #111827 !important; }
+.dark .bg-gray-200         { background-color: #1c2432 !important; }
+.dark .bg-gray-50\/50      { background-color: rgba(17, 24, 39, 0.5)  !important; }
+.dark .bg-gray-50\/20      { background-color: rgba(17, 24, 39, 0.2)  !important; }
+
+.dark .border-gray-100     { border-color: #1b2330 !important; }
+.dark .border-gray-200     { border-color: #27303e !important; }
+.dark .border-gray-300     { border-color: #3c4757 !important; }
+
+.dark .divide-gray-50  > :not([hidden]) ~ :not([hidden]) { border-color: #111827 !important; }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1b2330 !important; }
+
+.dark .text-gray-400        { color: #8496ad !important; }
+.dark .text-gray-500        { color: #94a3b8 !important; }
+.dark .text-gray-600        { color: #a6b4c7 !important; }
+.dark .text-gray-700        { color: #cbd5e1 !important; }
+.dark .text-gray-800        { color: #e2e8f0 !important; }
+.dark .text-gray-900        { color: #f8fafc !important; }
+
+.dark .hover\:bg-gray-50:hover     { background-color: #0d131d  !important; }
+.dark .hover\:bg-gray-100:hover    { background-color: #141c29  !important; }
+.dark .hover\:bg-gray-50\/50:hover { background-color: rgba(17, 24, 39, 0.5) !important; }
+
+/* Chips berwarna (emerald/red/blue/amber/dll) → tint gelap agar tidak menyilaukan */
+.dark .bg-emerald-50  { background-color: rgba(16, 185, 129, 0.12) !important; }
+.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.20) !important; }
+.dark .bg-red-50      { background-color: rgba(239, 68, 68, 0.12) !important; }
+.dark .bg-red-100     { background-color: rgba(239, 68, 68, 0.18) !important; }
+.dark .bg-blue-50     { background-color: rgba(59, 130, 246, 0.12) !important; }
+.dark .bg-blue-100    { background-color: rgba(59, 130, 246, 0.18) !important; }
+.dark .bg-amber-50    { background-color: rgba(245, 158, 11, 0.12) !important; }
+.dark .bg-amber-100   { background-color: rgba(245, 158, 11, 0.18) !important; }
+.dark .bg-purple-50   { background-color: rgba(168, 85, 247, 0.12) !important; }
+.dark .bg-purple-100  { background-color: rgba(168, 85, 247, 0.18) !important; }
+.dark .bg-teal-50     { background-color: rgba(20, 184, 166, 0.12) !important; }
+.dark .bg-orange-50   { background-color: rgba(249, 115, 22, 0.12) !important; }
+.dark .bg-green-50    { background-color: rgba(34, 197, 94, 0.12) !important; }
+
+.dark .bg-emerald-50\/60 { background-color: rgba(16, 185, 129, 0.10) !important; }
+.dark .bg-emerald-50\/50 { background-color: rgba(16, 185, 129, 0.10) !important; }
+.dark .bg-emerald-50\/40 { background-color: rgba(16, 185, 129, 0.10) !important; }
+.dark .bg-emerald-50\/30 { background-color: rgba(16, 185, 129, 0.08) !important; }
+.dark .bg-amber-50\/50   { background-color: rgba(245, 158, 11, 0.10) !important; }
+.dark .bg-red-50\/50     { background-color: rgba(239, 68, 68, 0.10) !important; }
+.dark .bg-red-50\/30     { background-color: rgba(239, 68, 68, 0.08) !important; }
+.dark .bg-red-50\/20     { background-color: rgba(239, 68, 68, 0.08) !important; }
+
+.dark .border-emerald-200 { border-color: rgba(16, 185, 129, 0.35) !important; }
+.dark .border-emerald-100 { border-color: rgba(16, 185, 129, 0.20) !important; }
+.dark .border-red-200     { border-color: rgba(239, 68, 68, 0.35) !important; }
+.dark .border-red-100     { border-color: rgba(239, 68, 68, 0.20) !important; }
+.dark .border-blue-200    { border-color: rgba(59, 130, 246, 0.35) !important; }
+.dark .border-blue-100    { border-color: rgba(59, 130, 246, 0.20) !important; }
+.dark .border-amber-200   { border-color: rgba(245, 158, 11, 0.35) !important; }
+.dark .border-amber-100   { border-color: rgba(245, 158, 11, 0.20) !important; }
+.dark .border-purple-200  { border-color: rgba(168, 85, 247, 0.35) !important; }
+.dark .border-purple-100  { border-color: rgba(168, 85, 247, 0.20) !important; }
+
+/* Teks aksen → versi terang agar terbaca di latar gelap */
+.dark .text-emerald-800 { color: #a7f3d0 !important; }
+.dark .text-emerald-700 { color: #6ee7b7 !important; }
+.dark .text-emerald-600 { color: #6ee7b7 !important; }
+.dark .text-blue-800    { color: #bfdbfe !important; }
+.dark .text-blue-700    { color: #93c5fd !important; }
+.dark .text-blue-600    { color: #93c5fd !important; }
+.dark .text-red-700     { color: #fca5a5 !important; }
+.dark .text-red-600     { color: #fca5a5 !important; }
+.dark .text-red-500     { color: #f87171 !important; }
+.dark .text-amber-900   { color: #fde68a !important; }
+.dark .text-amber-800   { color: #fde68a !important; }
+.dark .text-amber-700   { color: #fde68a !important; }
+.dark .text-amber-600   { color: #fcd34d !important; }
+.dark .text-amber-500   { color: #fbbf24 !important; }
+.dark .text-purple-700  { color: #d8b4fe !important; }
+.dark .text-purple-600  { color: #d8b4fe !important; }
+.dark .text-teal-700    { color: #5eead4 !important; }
+.dark .text-orange-600  { color: #fdba74 !important; }
+.dark .text-green-600   { color: #86efac !important; }
+
+/* Latar abu gelap (tombol/filter aktif) jangan menyatu dengan kartu */
+.dark .bg-gray-900 { background-color: #26364a !important; }
+.dark .bg-gray-800 { background-color: #1e2b3c !important; }
+
+/* Input/select/textarea selalu berteks terang */
+.dark input, .dark select, .dark textarea { color: #f3f4f6; }
+.dark input::placeholder, .dark textarea::placeholder { color: #64748b; }
