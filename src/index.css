@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Variant dark mengikuti class `.dark` aplikasi, bukan preferensi OS,
+   supaya toggle light/dark konsisten di seluruh halaman. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Perbesar skala tipografi aplikasi agar lebih mudah dibaca */
 @theme {
   --text-xs: 0.875rem;
@@ -152,4 +156,86 @@
     scrollbar-color: #39445f #1a2235;
     scrollbar-width: thin;
   }
+}
+
+/* ── Animasi halaman 404 ─────────────────────────────────────────────────── */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-18px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  6%       { transform: rotate(-5deg); }
+  12%      { transform: rotate(5deg); }
+  18%      { transform: rotate(-4deg); }
+  24%      { transform: rotate(0deg); }
+  55%      { transform: rotate(0deg); }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes icon-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.30); }
+  50%      { box-shadow: 0 0 0 16px rgba(245, 158, 11, 0); }
+}
+
+@keyframes draw-line {
+  from { stroke-dashoffset: var(--dash, 900); }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes march {
+  to { stroke-dashoffset: -40; }
+}
+
+@keyframes pop-in {
+  0%   { transform: scale(0); }
+  80%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes x-shake {
+  0%   { transform: rotate(0deg); }
+  15%  { transform: rotate(-5deg); }
+  30%  { transform: rotate(5deg); }
+  45%  { transform: rotate(-3deg); }
+  60%  { transform: rotate(2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-float-y   { animation: float-y 6s ease-in-out infinite; }
+.animate-wiggle    { animation: wiggle 4s ease-in-out infinite; }
+.animate-icon-glow { animation: icon-glow 2.8s ease-out infinite; }
+
+.rise-in   { animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.rise-in-1 { animation-delay: 0.08s; }
+.rise-in-2 { animation-delay: 0.16s; }
+.rise-in-3 { animation-delay: 0.24s; }
+.rise-in-4 { animation-delay: 0.4s; }
+
+.svg-draw {
+  stroke-dasharray: 900;
+  stroke-dashoffset: 900;
+  animation: draw-line 2.4s cubic-bezier(0.6, 0.05, 0.28, 0.91) 0.3s forwards;
+}
+
+.svg-march {
+  stroke-dasharray: 6 4;
+  animation: march 3s linear infinite;
+}
+
+.svg-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 1.6s both;
+}
+
+.svg-x {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: x-shake 0.9s ease-in-out 2s both;
 }

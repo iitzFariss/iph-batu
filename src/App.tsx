@@ -44,7 +44,7 @@ export type PageId =
 const ADMIN_ONLY: PageId[] = ["kelola-pegawai", "analisis-teks"];
 
 // Halaman dark full-screen (tanpa header & sidebar wrapper)
-const DARK_PAGES: PageId[] = ["visualisasi-tren", "error-404", "error-500"];
+const DARK_PAGES: PageId[] = ["error-404", "error-500"];
 
 // ─── Page router ──────────────────────────────────────────────────────────────
 
