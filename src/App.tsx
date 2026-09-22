@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { ThemeProvider } from "./context/ThemeContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
@@ -101,8 +101,10 @@ function InternalApp() {
 
 function AppShell() {
   const { user, isAuthenticated } = useAuth();
+  const { isDark } = useTheme();
   const [authView, setAuthView] = useState<"landing" | "login" | "register">("landing");
 
+  // Halaman publik (landing, login, register) tidak pernah mengikuti tema aplikasi.
   if (!isAuthenticated || !user) {
     if (authView === "login") {
       return <LoginPage onGoRegister={() => setAuthView("register")} />;
@@ -118,11 +120,20 @@ function AppShell() {
     );
   }
 
+  // Dark mode hanya berlaku di dalam aplikasi yang sudah masuk.
   if (user.role === "masyarakat") {
-    return <MasyarakatView />;
+    return (
+      <div className={`${isDark ? "dark " : ""}h-full`}>
+        <MasyarakatView />
+      </div>
+    );
   }
 
-  return <InternalApp />;
+  return (
+    <div className={isDark ? "dark h-full" : "h-full"}>
+      <InternalApp />
+    </div>
+  );
 }
 
 export default function App() {

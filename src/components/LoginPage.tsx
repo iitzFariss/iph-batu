@@ -98,10 +98,10 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
   const activeRole = roleOptions.find((r) => r.key === selectedRole)!;
 
   return (
-    <div className="min-h-screen grid grid-cols-2">
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
 
       {/* ── Left panel: branding ── */}
-      <div className="bg-gray-950 flex flex-col justify-center px-16 py-12 relative overflow-hidden min-h-screen">
+      <div className="bg-gray-950 flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-8 lg:py-12 relative overflow-hidden lg:min-h-screen">
         {/* Background decoration */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/4 -left-20 w-96 h-96 rounded-full bg-emerald-600 opacity-10 blur-3xl" />
@@ -109,11 +109,11 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
         </div>
 
         {/* Brand + back */}
-        <div className="relative z-10 mb-12">
+        <div className="relative z-10 mb-8 lg:mb-12 overflow-hidden">
           {onGoBack && (
             <button
               onClick={onGoBack}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 mb-8 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 mb-6 lg:mb-8 transition-colors"
             >
               <ArrowLeft size={13} /> Kembali ke Beranda
             </button>
@@ -122,39 +122,38 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
             <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-900/40">
               <TrendingUp size={22} className="text-white" />
             </div>
-            <div>
-              <div className="text-lg font-black text-white">TPID Kota Batu</div>
-              <div className="text-xs text-gray-500">Sistem Pengendalian Inflasi Daerah</div>
+            <div className="min-w-0">
+              <div className="text-lg font-black text-white leading-tight">TPID Kota Batu</div>
+              <div className="text-xs text-gray-500 truncate">Sistem Pengendalian Inflasi Daerah</div>
             </div>
           </div>
         </div>
 
-        {/* Main copy — besar dan menonjol */}
-        <div className="relative z-10 mb-12">
-          <h2 className="text-6xl font-black text-white leading-[1.05] mb-6">
+        {/* Main copy */}
+        <div className="relative z-10 mb-8 lg:mb-12">
+          <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] lg:leading-[1.05] mb-4 lg:mb-6">
             Satu platform<br />
             untuk<br />
             kendalikan<br />
             <span className="text-emerald-400">inflasi daerah.</span>
           </h2>
-          <p className="text-lg text-gray-400 leading-relaxed">
-            Masuk untuk mengakses data IPH, kelola<br />
-            rapat koordinasi, dan distribusi siaran pers<br />
+          <p className="text-sm sm:text-base lg:text-lg text-gray-400 leading-relaxed">
+            Masuk untuk mengakses data IPH, kelola rapat koordinasi, dan distribusi siaran pers
             ke Kemendagri secara realtime.
           </p>
         </div>
 
         {/* IPH live card */}
-        <div className="relative z-10 mb-12">
-          <div className="flex items-start gap-5 bg-gray-900 border border-gray-800 rounded-2xl px-7 py-6 w-full">
+        <div className="relative z-10 mb-8 lg:mb-12">
+          <div className="flex items-start gap-4 sm:gap-5 bg-gray-900 border border-gray-800 rounded-2xl px-5 sm:px-7 py-5 sm:py-6 w-full">
             <div className="mt-2 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-2">
                 IPH Terkini • Minggu III April 2026
               </div>
-              <div className="flex items-baseline gap-3 mb-1">
-                <span className="text-5xl font-black text-emerald-400">-0.42%</span>
-                <span className="text-base text-emerald-500 font-semibold">Deflasi Terkendali</span>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1">
+                <span className="text-4xl sm:text-5xl font-black text-emerald-400">-0.42%</span>
+                <span className="text-sm sm:text-base text-emerald-500 font-semibold">Deflasi Terkendali</span>
               </div>
               <div className="text-xs text-gray-600">Terverifikasi BPS Kota Batu</div>
             </div>
@@ -166,7 +165,7 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
           <p className="text-[10px] text-gray-600 uppercase tracking-widest font-semibold mb-3">
             Akses tersedia untuk
           </p>
-          <div className="flex flex-wrap gap-3 mb-10">
+          <div className="flex flex-wrap gap-3 mb-8 lg:mb-10">
             {roleOptions.map((r) => (
               <span
                 key={r.key}
@@ -183,15 +182,15 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
       </div>
 
       {/* ── Right panel: form ── */}
-      <div className="bg-white flex flex-col justify-center px-16 py-12 overflow-y-auto border-l border-gray-100">
+      <div className="bg-white flex flex-col justify-center px-6 sm:px-12 lg:px-16 py-10 lg:py-12 overflow-y-auto border-t lg:border-t-0 lg:border-l border-gray-100">
         <div className="w-full max-w-lg mx-auto">
-          <h1 className="text-3xl font-black text-gray-900 mb-1">Masuk ke Sistem</h1>
-          <p className="text-base text-gray-400 mb-8">
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mb-1">Masuk ke Sistem</h1>
+          <p className="text-sm sm:text-base text-gray-400 mb-6 lg:mb-8">
             Pilih peran dan masukkan kredensial Anda
           </p>
 
           {/* Role selector */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
             {roleOptions.map((opt) => {
               const isActive = selectedRole === opt.key;
               return (
@@ -199,13 +198,13 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
                   key={opt.key}
                   type="button"
                   onClick={() => { setSelectedRole(opt.key); setEmail(""); setPassword(""); setError(""); }}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-center ${
+                  className={`flex flex-col items-center gap-2 p-3 sm:p-4 rounded-2xl border-2 transition-all text-center ${
                     isActive
                       ? `${opt.activeBorder} bg-white shadow-sm`
                       : `border-gray-100 hover:border-gray-200 hover:bg-gray-50`
                   }`}
                 >
-                  <span className="text-2xl">{opt.icon}</span>
+                  <span className="text-xl sm:text-2xl">{opt.icon}</span>
                   <span className={`text-xs font-bold leading-tight ${isActive ? opt.color : "text-gray-600"}`}>
                     {opt.label}
                   </span>

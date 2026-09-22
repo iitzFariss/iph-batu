@@ -9,7 +9,10 @@ import {
   MapPin,
   RefreshCw,
   CheckCircle2,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface LandingPageProps {
   onLogin: () => void;
@@ -69,11 +72,34 @@ const instansiList = [
   "Bulog Sub-Divre", "Bank Indonesia", "Satgas Pangan",
 ];
 
+const LANDING_THEME_KEY = "tpid-landing-theme";
+
+function useLandingTheme() {
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      return localStorage.getItem(LANDING_THEME_KEY) === "dark";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LANDING_THEME_KEY, isDark ? "dark" : "light");
+    } catch {
+      /* ignore */
+    }
+  }, [isDark]);
+
+  return { isDark, toggle: () => setIsDark((d) => !d) };
+}
+
 export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
   const isDeflasi = iphSnapshot.nilai < 0;
+  const { isDark, toggle } = useLandingTheme();
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className={`min-h-screen bg-white overflow-x-hidden ${isDark ? "dark" : ""}`}>
 
       {/* ── Navbar — full width ── */}
       <nav className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100">
@@ -103,6 +129,14 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
               <MapPin size={10} />
               Kota Batu, Jawa Timur
             </div>
+            <button
+              onClick={toggle}
+              aria-label={isDark ? "Ganti ke mode terang" : "Ganti ke mode gelap"}
+              title={isDark ? "Mode terang" : "Mode gelap"}
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
             <button
               onClick={onLogin}
               className="px-4 py-1.5 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"

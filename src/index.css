@@ -22,12 +22,16 @@
   --text-5xl--line-height: 1;
 }
 
-/* ── Dark mode (toggle dari Header) ─────────────────────────────────────────
-   Kelas `.dark` dipasang di <html> oleh ThemeContext. Override palet abu-abu
-   aplikasi agar seluruh halaman internal ikut menjadi gelap. */
-.dark body { background-color: #04060a; }
+/* ── Dark mode (toggle di Header / Landing) ───────────────────────────────
+   Kelas `.dark` dipasang pada wrapper aplikasi yang sudah login (App.tsx) dan
+   pada wrapper landing page. Halaman login/register sampling tetap terang.
+   Override palet abu-abu agar seluruh isi wrapper menjadi gelap. */
 
 .dark .bg-white            { background-color: #0a0e15 !important; }
+.dark .bg-white\/95        { background-color: rgba(10, 14, 21, 0.95) !important; }
+.dark .bg-white\/90        { background-color: rgba(10, 14, 21, 0.90) !important; }
+.dark .bg-white\/85        { background-color: rgba(10, 14, 21, 0.85) !important; }
+.dark .bg-white\/80        { background-color: rgba(10, 14, 21, 0.80) !important; }
 .dark .bg-gray-50          { background-color: #060a10 !important; }
 .dark .bg-gray-100         { background-color: #111827 !important; }
 .dark .bg-gray-200         { background-color: #1c2432 !important; }
