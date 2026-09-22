@@ -45,7 +45,7 @@ export default function Sidebar({ activePage, open, onNavigate, onClose }: Sideb
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex flex-col flex-shrink-0 transition-transform duration-200 lg:static lg:translate-x-0 lg:z-auto ${
+        className={`sidebar-surface fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex flex-col flex-shrink-0 transition-transform duration-200 lg:static lg:translate-x-0 lg:z-auto ${
           open ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >

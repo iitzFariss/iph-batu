@@ -342,14 +342,14 @@ export default function VisualisasiTren() {
                 {(["Minggu", "IPH", "Status", "Pemicu Utama"] as const).map((col) => (
                   <th
                     key={col}
-                    className="text-left text-xs font-semibold text-gray-500 uppercase pb-2 pr-3"
+                    className="text-left text-xs font-normal text-gray-500 uppercase pb-2 pr-3"
                   >
                     {col}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {weeklyRows.map((row: WeeklyRow) => (
                 <tr
                   key={row.minggu}

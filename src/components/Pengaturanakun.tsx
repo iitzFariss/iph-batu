@@ -181,7 +181,7 @@ export default function PengaturanAkun() {
           <ChevronRight size={10} />
           <span className="text-gray-700 font-medium">Pengaturan Akun</span>
         </div>
-        <h1 className="text-xl font-black text-gray-900">Pengaturan Akun</h1>
+        <h1 className="text-2xl font-black text-gray-900">Pengaturan Akun</h1>
         <p className="text-xs text-gray-400 mt-0.5">
           Kelola keamanan, notifikasi, dan preferensi akun Anda.
         </p>
@@ -396,7 +396,7 @@ export default function PengaturanAkun() {
               { key: "whatsapp",    label: "WhatsApp: Disposisi Cepat",                desc: "Pesan otomatis ke nomor terdaftar"               },
             ] as { key: keyof typeof notif; label: string; desc: string }[]
           ).map(({ key, label, desc }) => (
-            <div key={key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+            <div key={key} className="flex items-center justify-between py-3">
               <div>
                 <div className="text-xs font-semibold text-gray-800">{label}</div>
                 <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
@@ -424,7 +424,7 @@ export default function PengaturanAkun() {
               { key: "auditLog",     label: "Catat semua aksi di audit trail",            desc: "Wajib untuk akun petugas & admin"            },
             ] as { key: keyof typeof privacy; label: string; desc: string }[]
           ).map(({ key, label, desc }) => (
-            <div key={key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+            <div key={key} className="flex items-center justify-between py-3">
               <div>
                 <div className="text-xs font-semibold text-gray-800">{label}</div>
                 <div className="text-xs text-gray-400 mt-0.5">{desc}</div>

@@ -103,7 +103,7 @@ function HeroMetrics() {
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
         {/* Left */}
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-gray-900 mb-0.5">
+          <h1 className="text-2xl font-bold text-gray-900 mb-0.5">
             Dashboard Pengendalian Inflasi (IPH) Kota Batu
           </h1>
           <p className="text-xs text-gray-500 mb-4">
@@ -241,7 +241,7 @@ function CommodityTable() {
               (col, i) => (
                 <th
                   key={col}
-                  className={`text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 ${
+                  className={`text-xs font-normal text-gray-400 uppercase tracking-wide pb-2 ${
                     i === 0 ? "text-left" : "text-right"
                   }`}
                 >
@@ -251,7 +251,7 @@ function CommodityTable() {
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
+        <tbody>
           {commodities.map((c: Commodity) => (
             <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
               <td className="py-2.5">
@@ -325,7 +325,7 @@ function SupplyPanel() {
 
       <div className="space-y-2">
         {markets.map(({ name, status, color }: MarketStatus) => (
-          <div key={name} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+          <div key={name} className="flex items-center justify-between py-1.5">
             <span className="text-xs text-gray-600">{name}</span>
             <span className={`text-xs font-semibold ${color}`}>{status}</span>
           </div>
@@ -436,14 +436,14 @@ function ActivityLogTable() {
               {cols.map((col) => (
                 <th
                   key={col}
-                  className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-4 whitespace-nowrap"
+                  className="text-left text-xs font-normal text-gray-400 uppercase tracking-wide pb-2 pr-4 whitespace-nowrap"
                 >
                   {col}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody>
             {activityLogs.map((log: ActivityLog) => (
               <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="py-2.5 pr-4 whitespace-nowrap">

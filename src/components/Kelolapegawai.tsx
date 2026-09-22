@@ -553,14 +553,14 @@ export default function KelolaPegawai() {
               {["Nama Pegawai & NIP", "Asal Instansi", "Peran Penugasan TPID", "Status", "Aksi"].map((col) => (
                 <th
                   key={col}
-                  className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-5 py-3"
+                  className="text-left text-xs font-normal text-gray-400 uppercase tracking-wide px-5 py-3"
                 >
                   {col}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody>
             {paginated.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-10 text-sm text-gray-400">

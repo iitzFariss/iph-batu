@@ -343,14 +343,14 @@ export default function RekapanData() {
               ].map((col) => (
                 <th
                   key={col}
-                  className="text-left text-xs font-bold text-gray-500 uppercase tracking-wide px-3 py-3"
+                  className="text-left text-xs font-normal text-gray-500 uppercase tracking-wide px-3 py-3"
                 >
                   {col}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody>
             {rekapData.map((row) => (
               <tr
                 key={row.id}

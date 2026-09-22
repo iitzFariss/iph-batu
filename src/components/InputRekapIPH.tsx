@@ -344,21 +344,21 @@ export default function InputRekapIPH() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left px-4 py-3 text-gray-400 font-medium w-8">#</th>
-                <th className="text-left px-4 py-3 text-gray-400 font-medium min-w-[160px]">Komoditas</th>
-                <th className="text-center px-3 py-3 text-gray-400 font-medium w-16">Satuan</th>
-                <th className="text-left px-3 py-3 text-gray-400 font-medium min-w-[130px]">Harga Min (Rp)</th>
-                <th className="text-left px-3 py-3 text-gray-400 font-medium min-w-[130px]">Harga Maks (Rp)</th>
-                <th className="text-left px-3 py-3 text-gray-400 font-medium min-w-[130px]">
+                <th className="text-left px-4 py-3 text-gray-400 font-normal w-8">#</th>
+                <th className="text-left px-4 py-3 text-gray-400 font-normal min-w-[160px]">Komoditas</th>
+                <th className="text-center px-3 py-3 text-gray-400 font-normal w-16">Satuan</th>
+                <th className="text-left px-3 py-3 text-gray-400 font-normal min-w-[130px]">Harga Min (Rp)</th>
+                <th className="text-left px-3 py-3 text-gray-400 font-normal min-w-[130px]">Harga Maks (Rp)</th>
+                <th className="text-left px-3 py-3 text-gray-400 font-normal min-w-[130px]">
                   Harga Rata
                   <span className="ml-1 text-emerald-500 font-normal">(auto)</span>
                 </th>
-                <th className="text-left px-3 py-3 text-gray-400 font-medium min-w-[100px]">Stok</th>
-                <th className="text-left px-3 py-3 text-gray-400 font-medium min-w-[170px]">Pasar</th>
-                <th className="text-left px-3 py-3 text-gray-400 font-medium min-w-[150px]">Keterangan</th>
+                <th className="text-left px-3 py-3 text-gray-400 font-normal min-w-[100px]">Stok</th>
+                <th className="text-left px-3 py-3 text-gray-400 font-normal min-w-[170px]">Pasar</th>
+                <th className="text-left px-3 py-3 text-gray-400 font-normal min-w-[150px]">Keterangan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody>
               {visibleKomoditas.map((kom, idx) => {
                 const row = getRow(kom.id);
                 const isFilled = !!(row.hargaMin || row.hargaMax || row.hargaRata);

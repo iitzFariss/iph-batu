@@ -197,7 +197,7 @@ export default function AnalisisTeksSiaran() {
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-gray-900 mb-0.5">
+          <h1 className="text-2xl font-black text-gray-900 mb-0.5">
             Generator Siaran Pers &amp; Ringkasan Eksekutif TPID
           </h1>
           <p className="text-xs text-gray-500 max-w-xl">
@@ -371,13 +371,13 @@ export default function AnalisisTeksSiaran() {
               <thead className="bg-gray-50">
                 <tr>
                   {["Waktu Rilis", "Periode", "Nilai IPH", "Target Disposisi", "Status", "Aksi"].map((col) => (
-                    <th key={col} className="text-left text-xs font-bold text-gray-400 uppercase px-4 py-2.5">
+                    <th key={col} className="text-left text-xs font-normal text-gray-400 uppercase px-4 py-2.5">
                       {col}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody>
                 {transmisiRows.map((row, i) => (
                   <tr key={i} className="hover:bg-gray-50/50">
                     <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{row.waktu}</td>
@@ -437,7 +437,7 @@ export default function AnalisisTeksSiaran() {
                 Minggu III
               </span>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div className="">
               {commodities.map((c) => (
                 <div key={c.name} className="px-3.5 py-3">
                   <div className="flex items-center justify-between mb-1">
@@ -489,7 +489,7 @@ export default function AnalisisTeksSiaran() {
               />
             </button>
             {showPenerima && (
-              <div className="border-t border-gray-100 divide-y divide-gray-50">
+              <div className="border-t border-gray-100">
                 {penerimaSiaran.map((p) => (
                   <div key={p.name} className="flex items-center justify-between px-3.5 py-2.5">
                     <div className="flex items-center gap-2.5">

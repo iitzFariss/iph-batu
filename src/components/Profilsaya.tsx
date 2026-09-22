@@ -74,7 +74,7 @@ export default function ProfilSaya() {
           <ChevronRight size={10} />
           <span className="text-gray-700 font-medium">Profil Saya</span>
         </div>
-        <h1 className="text-xl font-black text-gray-900">Profil Saya</h1>
+        <h1 className="text-2xl font-black text-gray-900">Profil Saya</h1>
         <p className="text-xs text-gray-400 mt-0.5">
           Informasi akun dan riwayat aktivitas Anda di sistem TPID Kota Batu.
         </p>

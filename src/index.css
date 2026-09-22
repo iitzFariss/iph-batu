@@ -25,36 +25,52 @@
 /* ── Dark mode (toggle di Header / Landing) ───────────────────────────────
    Kelas `.dark` dipasang pada wrapper aplikasi yang sudah login (App.tsx) dan
    pada wrapper landing page. Halaman login/register sampling tetap terang.
-   Override palet abu-abu agar seluruh isi wrapper menjadi gelap. */
+   Struktur "ketinggian" latar (paling dalam → paling menonjol):
+     sidebar  #0f1623 → konten #1a2235 → card #212d42
+   Font putih 3 tier:
+     primer #E8EDF5 (data) · sekunder #8A96A8 (label) · tersier #556070 (meta) */
 
-.dark .bg-white            { background-color: #0a0e15 !important; }
-.dark .bg-white\/95        { background-color: rgba(10, 14, 21, 0.95) !important; }
-.dark .bg-white\/90        { background-color: rgba(10, 14, 21, 0.90) !important; }
-.dark .bg-white\/85        { background-color: rgba(10, 14, 21, 0.85) !important; }
-.dark .bg-white\/80        { background-color: rgba(10, 14, 21, 0.80) !important; }
-.dark .bg-gray-50          { background-color: #060a10 !important; }
-.dark .bg-gray-100         { background-color: #111827 !important; }
-.dark .bg-gray-200         { background-color: #1c2432 !important; }
-.dark .bg-gray-50\/50      { background-color: rgba(17, 24, 39, 0.5)  !important; }
-.dark .bg-gray-50\/20      { background-color: rgba(17, 24, 39, 0.2)  !important; }
+/* ── Latar: konten & card ── */
+.dark .bg-white            { background-color: #212d42 !important; }
+.dark .bg-white\/95        { background-color: rgba(33, 45, 66, 0.95) !important; }
+.dark .bg-white\/90        { background-color: rgba(33, 45, 66, 0.90) !important; }
+.dark .bg-white\/85        { background-color: rgba(33, 45, 66, 0.85) !important; }
+.dark .bg-white\/80        { background-color: rgba(33, 45, 66, 0.80) !important; }
+.dark .bg-gray-50          { background-color: #1a2235 !important; }
+.dark .bg-gray-100         { background-color: #1e2740 !important; }
+.dark .bg-gray-200         { background-color: #2a3450 !important; }
+.dark .bg-gray-50\/50      { background-color: rgba(26, 34, 53, 0.5)  !important; }
+.dark .bg-gray-50\/20      { background-color: rgba(26, 34, 53, 0.2)  !important; }
 
-.dark .border-gray-100     { border-color: #1b2330 !important; }
-.dark .border-gray-200     { border-color: #27303e !important; }
-.dark .border-gray-300     { border-color: #3c4757 !important; }
+/* ── Sidebar: direndahkan agar pungsi dari konten ── */
+.dark .sidebar-surface,
+.dark .sidebar-surface .bg-white { background-color: #0f1623 !important; }
 
-.dark .divide-gray-50  > :not([hidden]) ~ :not([hidden]) { border-color: #111827 !important; }
-.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1b2330 !important; }
+/* ── Border selaras dengan latar navy ── */
+.dark .border-gray-50      { border-color: #212d42 !important; }
+.dark .border-gray-100     { border-color: #2b3650 !important; }
+.dark .border-gray-200     { border-color: #39445f !important; }
+.dark .border-gray-300     { border-color: #4a5874 !important; }
 
-.dark .text-gray-400        { color: #8496ad !important; }
-.dark .text-gray-500        { color: #94a3b8 !important; }
-.dark .text-gray-600        { color: #a6b4c7 !important; }
-.dark .text-gray-700        { color: #cbd5e1 !important; }
-.dark .text-gray-800        { color: #e2e8f0 !important; }
-.dark .text-gray-900        { color: #f8fafc !important; }
+.dark .divide-gray-50  > :not([hidden]) ~ :not([hidden]) { border-color: #212d42 !important; }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #212d42 !important; }
 
-.dark .hover\:bg-gray-50:hover     { background-color: #0d131d  !important; }
-.dark .hover\:bg-gray-100:hover    { background-color: #141c29  !important; }
-.dark .hover\:bg-gray-50\/50:hover { background-color: rgba(17, 24, 39, 0.5) !important; }
+/* ── Font 3 tier ── */
+.dark .text-gray-400        { color: #556070 !important; }
+.dark .text-gray-500        { color: #8A96A8 !important; }
+.dark .text-gray-600        { color: #8A96A8 !important; }
+.dark .text-gray-700        { color: #8A96A8 !important; }
+.dark .text-gray-800        { color: #E8EDF5 !important; }
+.dark .text-gray-900        { color: #E8EDF5 !important; }
+.dark .text-gray-300        { color: #aeb9cb !important; }
+.dark .text-gray-200        { color: #c7d2e2 !important; }
+.dark .text-gray-100        { color: #E8EDF5 !important; }
+
+.dark .hover\:bg-gray-50:hover     { background-color: #253046 !important; }
+.dark .hover\:bg-gray-100:hover    { background-color: #2b3650 !important; }
+.dark .hover\:bg-gray-50\/50:hover { background-color: rgba(37, 48, 70, 0.5) !important; }
+.dark .sidebar-surface .hover\:bg-gray-50:hover     { background-color: #16202f !important; }
+.dark .sidebar-surface .hover\:bg-gray-100:hover    { background-color: #1a2536 !important; }
 
 /* Chips berwarna (emerald/red/blue/amber/dll) → tint gelap agar tidak menyilaukan */
 .dark .bg-emerald-50  { background-color: rgba(16, 185, 129, 0.12) !important; }
@@ -112,10 +128,28 @@
 .dark .text-orange-600  { color: #fdba74 !important; }
 .dark .text-green-600   { color: #86efac !important; }
 
-/* Latar abu gelap (tombol/filter aktif) jangan menyatu dengan kartu */
-.dark .bg-gray-900 { background-color: #26364a !important; }
-.dark .bg-gray-800 { background-color: #1e2b3c !important; }
+/* Latar abu gelap (tombol/filter aktif) — sedikit lebih terang dari card */
+.dark .bg-gray-900 { background-color: #33405c !important; }
+.dark .bg-gray-800 { background-color: #26324a !important; }
 
 /* Input/select/textarea selalu berteks terang */
-.dark input, .dark select, .dark textarea { color: #f3f4f6; }
-.dark input::placeholder, .dark textarea::placeholder { color: #64748b; }
+.dark input, .dark select, .dark textarea { color: #E8EDF5; }
+.dark input::placeholder, .dark textarea::placeholder { color: #556070; }
+
+/* Scrollbar ikut dark mode (Chrome/Edge/Safari) */
+.dark ::-webkit-scrollbar { width: 10px; height: 10px; }
+.dark ::-webkit-scrollbar-track { background: #1a2235; }
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #39445f;
+  border-radius: 8px;
+  border: 2px solid #1a2235;
+}
+.dark ::-webkit-scrollbar-thumb:hover { background-color: #4a5874; }
+
+/* Firefox */
+@supports (scrollbar-color: auto) {
+  .dark, .dark * {
+    scrollbar-color: #39445f #1a2235;
+    scrollbar-width: thin;
+  }
+}

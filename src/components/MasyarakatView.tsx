@@ -122,7 +122,7 @@ export default function MasyarakatView() {
             <p className="text-xs text-gray-400">Harga rata-rata survey pasar Kota Batu pekan ini</p>
           </div>
 
-          <div className="divide-y divide-gray-50">
+          <div className="">
             {publicCommodities.map((c) => (
               <div key={c.name} className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">

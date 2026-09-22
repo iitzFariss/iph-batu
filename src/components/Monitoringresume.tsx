@@ -294,7 +294,7 @@ export default function MonitoringResume() {
                 (col) => (
                   <th
                     key={col}
-                    className="text-left text-xs font-bold text-gray-400 uppercase tracking-wide px-4 py-3"
+                    className="text-left text-xs font-normal text-gray-400 uppercase tracking-wide px-4 py-3"
                   >
                     {col}
                   </th>
@@ -302,7 +302,7 @@ export default function MonitoringResume() {
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody>
             {rows.map((row) => (
               <tr
                 key={row.id}
