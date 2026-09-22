@@ -18,6 +18,7 @@ interface SidebarProps {
   open: boolean;
   onNavigate: (page: string) => void;
   onClose: () => void;
+  hiddenPages?: string[];
 }
 
 const navItems = [
@@ -36,7 +37,13 @@ const bottomItems = [
   { id: "bantuan", label: "Bantuan Teknis", icon: HelpCircle },
 ];
 
-export default function Sidebar({ activePage, open, onNavigate, onClose }: SidebarProps) {
+export default function Sidebar({
+  activePage,
+  open,
+  onNavigate,
+  onClose,
+  hiddenPages = [],
+}: SidebarProps) {
   return (
     <>
       {/* Backdrop — tampil hanya di mobile saat drawer terbuka */}
@@ -79,7 +86,9 @@ export default function Sidebar({ activePage, open, onNavigate, onClose }: Sideb
 
       {/* Navigation */}
       <nav className="flex-1 px-3 pt-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ id, label, icon: Icon }) => {
+        {navItems
+          .filter(({ id }) => !hiddenPages.includes(id))
+          .map(({ id, label, icon: Icon }) => {
           const isActive = activePage === id;
           return (
             <button

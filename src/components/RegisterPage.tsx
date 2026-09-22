@@ -18,6 +18,7 @@ import type { UserRole } from "../types/auth";
 
 interface RegisterPageProps {
   onGoLogin: () => void;
+  onGoBack?: () => void;
 }
 
 interface RoleCard {
@@ -71,7 +72,7 @@ const instansiOptions = [
   "Lainnya",
 ];
 
-export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
+export default function RegisterPage({ onGoLogin, onGoBack }: RegisterPageProps) {
   const { register } = useAuth();
 
   const [step, setStep]               = useState<1 | 2>(1);
@@ -172,6 +173,16 @@ export default function RegisterPage({ onGoLogin }: RegisterPageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-emerald-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
+        {/* Back */}
+        {onGoBack && (
+          <button
+            onClick={onGoBack}
+            className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-3 transition-colors"
+          >
+            <ArrowLeft size={13} /> Kembali ke Beranda
+          </button>
+        )}
+
         {/* Brand */}
         <div className="text-center mb-5">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 shadow-lg mb-3">

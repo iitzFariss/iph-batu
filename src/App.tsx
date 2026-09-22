@@ -17,6 +17,10 @@ import MasyarakatView from "./components/MasyarakatView";
 import LandingPage from "./components/LandingPage";
 import ProfilSaya from "./components/ProfilSaya";
 import PengaturanAkun from "./components/PengaturanAkun";
+import Error404 from "./components/Error404";
+import Error500 from "./components/Error500";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type PageId =
   | "dashboard"
@@ -30,87 +34,152 @@ export type PageId =
   | "profil-saya"
   | "pengaturan-akun"
   | "pengaturan"
-  | "bantuan";
+  | "bantuan"
+  | "error-404"
+  | "error-500";
 
-// Pages that use a dark full-screen layout (no shared header)
-const DARK_PAGES: PageId[] = [];
+// ─── Role-based access ────────────────────────────────────────────────────────
 
-function PageContent({ page }: { page: PageId }) {
+// Halaman yang hanya bisa diakses oleh admin
+const ADMIN_ONLY: PageId[] = ["kelola-pegawai", "analisis-teks"];
+
+// Halaman dark full-screen (tanpa header & sidebar wrapper)
+const DARK_PAGES: PageId[] = ["visualisasi-tren", "error-404", "error-500"];
+
+// ─── Page router ──────────────────────────────────────────────────────────────
+
+function PageContent({
+  page,
+  navigate,
+  role,
+}: {
+  page: PageId;
+  navigate: (id: PageId) => void;
+  role: string;
+}) {
+  // Blokir petugas dari halaman admin-only → tampilkan 404
+  if (role === "petugas" && ADMIN_ONLY.includes(page)) {
+    return <Error404 onGoHome={() => navigate("dashboard")} onGoBack={() => navigate("dashboard")} />;
+  }
+
   switch (page) {
     case "dashboard":
       return <Dashboard />;
-    case "rekapan-data":
-      return <RekapanData />;
     case "input-rekap":
       return <InputRekapIPH />;
-    case "visualisasi-tren":
-      return <VisualisasiTren />;
+    case "rekapan-data":
+      return <RekapanData />;
     case "kelola-rapat":
       return <KelolaRapat />;
     case "monitoring-resume":
       return <MonitoringResume />;
     case "kelola-pegawai":
       return <KelolaPegawai />;
+    case "visualisasi-tren":
+      return <VisualisasiTren />;
     case "analisis-teks":
       return <AnalisisTeksSiaran />;
     case "profil-saya":
       return <ProfilSaya />;
     case "pengaturan-akun":
       return <PengaturanAkun />;
+    case "error-404":
+      return (
+        <Error404
+          onGoHome={() => navigate("dashboard")}
+          onGoBack={() => navigate("dashboard")}
+        />
+      );
+    case "error-500":
+      return (
+        <Error500
+          onGoHome={() => navigate("dashboard")}
+          onRetry={() => navigate("dashboard")}
+        />
+      );
     default:
       return (
-        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-          Halaman <strong className="mx-1 text-gray-600">{page}</strong> belum tersedia
-        </div>
+        <Error404
+          onGoHome={() => navigate("dashboard")}
+          onGoBack={() => navigate("dashboard")}
+        />
       );
   }
 }
 
+// ─── Internal app (sudah login, bukan masyarakat) ─────────────────────────────
+
 function InternalApp() {
+  const { user } = useAuth();
   const [activePage, setActivePage] = useState<PageId>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isDark = DARK_PAGES.includes(activePage);
 
-  const navigate = (id: PageId) => {
+  const isDark = DARK_PAGES.includes(activePage);
+  const role = user?.role ?? "petugas";
+
+  // Menu yang disembunyikan dari petugas
+  const hiddenPages: PageId[] =
+    role === "petugas" ? ADMIN_ONLY : [];
+
+  function navigate(id: PageId) {
     setActivePage(id);
     setSidebarOpen(false);
-  };
+  }
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans overflow-hidden">
       <Sidebar
         activePage={activePage}
         open={sidebarOpen}
         onNavigate={(id) => navigate(id as PageId)}
         onClose={() => setSidebarOpen(false)}
+        hiddenPages={hiddenPages}
       />
-      <div className={`flex-1 flex flex-col overflow-hidden min-w-0 ${isDark ? "bg-gray-950" : ""}`}>
+      <div
+        className={`flex-1 flex flex-col overflow-hidden min-w-0 ${
+          isDark ? "bg-gray-950" : ""
+        }`}
+      >
         {!isDark && (
           <Header
-            onNavigate={(page) => navigate(page as PageId)}
+            onNavigate={(id) => navigate(id as PageId)}
             onOpenSidebar={() => setSidebarOpen(true)}
           />
         )}
         <main className="flex-1 overflow-y-auto">
-          <PageContent page={activePage} />
+          <PageContent page={activePage} navigate={navigate} role={role} />
         </main>
       </div>
     </div>
   );
 }
 
+// ─── App shell (routing auth) ─────────────────────────────────────────────────
+
 function AppShell() {
   const { user, isAuthenticated } = useAuth();
   const { isDark } = useTheme();
-  const [authView, setAuthView] = useState<"landing" | "login" | "register">("landing");
+  const [authView, setAuthView] = useState<"landing" | "login" | "register">(
+    "landing"
+  );
 
-  // Halaman publik (landing, login, register) tidak pernah mengikuti tema aplikasi.
+  // Belum login → tampilkan halaman publik (tanpa dark mode)
   if (!isAuthenticated || !user) {
     if (authView === "login") {
-      return <LoginPage onGoRegister={() => setAuthView("register")} />;
+      return (
+        <LoginPage
+          onGoRegister={() => setAuthView("register")}
+          onGoBack={() => setAuthView("landing")}
+        />
+      );
     }
     if (authView === "register") {
-      return <RegisterPage onGoLogin={() => setAuthView("login")} />;
+      return (
+        <RegisterPage
+          onGoLogin={() => setAuthView("login")}
+          onGoBack={() => setAuthView("landing")}
+        />
+      );
     }
     return (
       <LandingPage
@@ -120,7 +189,7 @@ function AppShell() {
     );
   }
 
-  // Dark mode hanya berlaku di dalam aplikasi yang sudah masuk.
+  // Masyarakat → tampilan read-only publik
   if (user.role === "masyarakat") {
     return (
       <div className={`${isDark ? "dark " : ""}h-full`}>
@@ -129,12 +198,15 @@ function AppShell() {
     );
   }
 
+  // Petugas / Admin → dashboard penuh
   return (
     <div className={isDark ? "dark h-full" : "h-full"}>
       <InternalApp />
     </div>
   );
 }
+
+// ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
   return (
