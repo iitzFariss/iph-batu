@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Plus, X } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +33,7 @@ type FormMeta = {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const KOMODITAS_LIST: Komoditas[] = [
+const DEFAULT_KOMODITAS: Komoditas[] = [
   { id: "beras-medium",   nama: "Beras Medium",          satuan: "kg",    kategori: "pangan-pokok" },
   { id: "beras-premium",  nama: "Beras Premium",          satuan: "kg",    kategori: "pangan-pokok" },
   { id: "jagung",         nama: "Jagung",                 satuan: "kg",    kategori: "pangan-pokok" },
@@ -106,6 +108,11 @@ const fromRupiah = (val: string) => val.replace(/\D/g, "");
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function InputRekapIPH() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [komoditas, setKomoditas] = useState<Komoditas[]>(DEFAULT_KOMODITAS);
+
   const [meta, setMeta] = useState<FormMeta>({
     tanggal:  now.toISOString().split("T")[0],
     mingguKe: "1",
@@ -115,18 +122,27 @@ export default function InputRekapIPH() {
   });
 
   const [rows, setRows] = useState<RekapRow[]>(
-    KOMODITAS_LIST.map((k) => emptyRow(k.id))
+    DEFAULT_KOMODITAS.map((k) => emptyRow(k.id))
   );
 
   const [activeTab, setActiveTab] = useState<Kategori | "semua">("semua");
   const [errors, setErrors]       = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
 
+  // state modal tambah komoditas (khusus admin)
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newKomoditas, setNewKomoditas] = useState<{ nama: string; satuan: string; kategori: Kategori }>({
+    nama: "",
+    satuan: "kg",
+    kategori: "pangan-pokok",
+  });
+  const [addError, setAddError] = useState("");
+
   // derived
   const visibleKomoditas =
     activeTab === "semua"
-      ? KOMODITAS_LIST
-      : KOMODITAS_LIST.filter((k) => k.kategori === activeTab);
+      ? komoditas
+      : komoditas.filter((k) => k.kategori === activeTab);
 
   const getRow = (id: string) => rows.find((r) => r.komoditasId === id)!;
 
@@ -176,10 +192,47 @@ export default function InputRekapIPH() {
       mingguKe: "1", bulan: String(now.getMonth() + 1),
       tahun: String(now.getFullYear()), petugas: "",
     });
-    setRows(KOMODITAS_LIST.map((k) => emptyRow(k.id)));
+    setKomoditas(DEFAULT_KOMODITAS);
+    setRows(DEFAULT_KOMODITAS.map((k) => emptyRow(k.id)));
     setErrors({});
     setSubmitted(false);
   };
+
+  // ── Handler tambah komoditas baru (admin) ─────────────────────────────────
+
+  const kategoriOptions = Object.keys(KATEGORI_LABEL) as Kategori[];
+
+  function openAddModal() {
+    setNewKomoditas({ nama: "", satuan: "kg", kategori: "pangan-pokok" });
+    setAddError("");
+    setShowAddModal(true);
+  }
+
+  function handleAddKomoditas() {
+    const nama = newKomoditas.nama.trim();
+    if (!nama) {
+      setAddError("Nama komoditas wajib diisi.");
+      return;
+    }
+    if (komoditas.some((k) => k.nama.toLowerCase() === nama.toLowerCase())) {
+      setAddError("Komoditas dengan nama tersebut sudah terdaftar.");
+      return;
+    }
+    const id = nama.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (komoditas.some((k) => k.id === id)) {
+      setAddError("Komoditas dengan nama mirip sudah terdaftar.");
+      return;
+    }
+    const kom: Komoditas = {
+      id,
+      nama,
+      satuan: newKomoditas.satuan.trim() || "kg",
+      kategori: newKomoditas.kategori,
+    };
+    setKomoditas((prev) => [...prev, kom]);
+    setRows((prev) => [...prev, emptyRow(kom.id)]);
+    setShowAddModal(false);
+  }
 
   // ── Success screen ─────────────────────────────────────────────────────────
 
@@ -231,9 +284,20 @@ export default function InputRekapIPH() {
           <h1 className="text-base font-bold text-gray-900">Input Rekap IPH</h1>
           <p className="text-xs text-gray-400 mt-0.5">Indeks Perkembangan Harga — TPID Kota Batu</p>
         </div>
-        <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-full px-3 py-1.5 text-xs text-gray-500 font-medium shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-          {filledCount} / {KOMODITAS_LIST.length} komoditas terisi
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-full px-3 py-1.5 text-xs text-gray-500 font-medium shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+            {filledCount} / {komoditas.length} komoditas terisi
+          </div>
+          {isAdmin && (
+            <button
+              onClick={openAddModal}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm"
+            >
+              <Plus size={12} />
+              Tambah Komoditas
+            </button>
+          )}
         </div>
       </div>
 
@@ -478,6 +542,94 @@ export default function InputRekapIPH() {
           </button>
         </div>
       </div>
+
+      {/* Modal: Tambah Komoditas (admin only) */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Tambah Komoditas Baru</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Daftarkan komoditas baru ke form rekap IPH TPID Kota Batu
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              {addError && (
+                <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl">
+                  <X size={11} className="text-red-500 flex-shrink-0" />
+                  <span className="text-xs text-red-600">{addError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Nama Komoditas <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newKomoditas.nama}
+                  onChange={(e) => { setNewKomoditas((f) => ({ ...f, nama: e.target.value })); setAddError(""); }}
+                  placeholder="Contoh: Kentang"
+                  className="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Satuan <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newKomoditas.satuan}
+                  onChange={(e) => setNewKomoditas((f) => ({ ...f, satuan: e.target.value }))}
+                  placeholder="kg / liter / ekor / ikat"
+                  className="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Kategori <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={newKomoditas.kategori}
+                  onChange={(e) => setNewKomoditas((f) => ({ ...f, kategori: e.target.value as Kategori }))}
+                  className="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700"
+                >
+                  {kategoriOptions.map((k) => (
+                    <option key={k} value={k}>{KATEGORI_LABEL[k]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleAddKomoditas}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+              >
+                <Plus size={12} />
+                Tambahkan Komoditas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

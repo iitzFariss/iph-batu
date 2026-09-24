@@ -18,15 +18,15 @@ import type { UserRole } from "../types/auth";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const roleLabel: Record<UserRole, string> = {
-  admin:      "Administrator",
-  petugas:    "Petugas TPID",
-  masyarakat: "Masyarakat",
+  admin:   "Administrator",
+  petugas: "Petugas TPID",
+  tamu:    "Tamu",
 };
 
 const roleBadgeCls: Record<UserRole, string> = {
-  admin:      "bg-purple-100 text-purple-700 border border-purple-200",
-  petugas:    "bg-emerald-100 text-emerald-700 border border-emerald-200",
-  masyarakat: "bg-blue-100 text-blue-700 border border-blue-200",
+  admin:   "bg-purple-100 text-purple-700 border border-purple-200",
+  petugas: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+  tamu:    "bg-sky-100 text-sky-700 border border-sky-200",
 };
 
 // ─── Mock activity log ────────────────────────────────────────────────────────

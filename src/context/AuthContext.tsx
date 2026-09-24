@@ -43,10 +43,10 @@ const MOCK_ACCOUNTS: MockAccount[] = [
   },
   {
     id: "4",
-    email: "masyarakat@gmail.com",
-    password: "masyarakat123",
-    name: "Budi Santoso",
-    role: "masyarakat",
+    email: "tamu@tpid-batu.go.id",
+    password: "tamu123",
+    name: "Tamu TPID",
+    role: "tamu",
   },
 ];
 
@@ -54,6 +54,7 @@ const MOCK_ACCOUNTS: MockAccount[] = [
 
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  loginAsGuest: () => Promise<{ success: boolean; message: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 }
@@ -110,23 +111,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, message: "Email sudah terdaftar." };
     }
 
-    // For demo: auto-login after register as masyarakat only
-    if (data.role !== "masyarakat") {
-      return {
-        success: true,
-        message:
-          "Pendaftaran berhasil. Akun petugas/admin memerlukan verifikasi oleh Administrator TPID sebelum dapat digunakan.",
-      };
-    }
+    return {
+      success: true,
+      message:
+        "Pendaftaran berhasil. Akun petugas memerlukan verifikasi oleh Administrator TPID sebelum dapat digunakan.",
+    };
+  }
+
+  async function loginAsGuest() {
+    await new Promise((r) => setTimeout(r, 500));
+
+    const guest = MOCK_ACCOUNTS.find((a) => a.role === "tamu");
+    if (!guest) return { success: false, message: "Akun tamu tidak tersedia." };
 
     const user: User = {
-      id: String(Date.now()),
-      name: data.name,
-      email: data.email,
-      role: "masyarakat",
+      id: guest.id,
+      name: guest.name,
+      email: guest.email,
+      role: guest.role,
     };
     setState({ user, isAuthenticated: true });
-    return { success: true, message: "Pendaftaran berhasil." };
+    return { success: true, message: "Berhasil masuk sebagai tamu." };
   }
 
   function logout() {
@@ -134,7 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ ...state, login, loginAsGuest, register, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

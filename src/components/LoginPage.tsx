@@ -46,27 +46,27 @@ const roleOptions: RoleOption[] = [
     icon: "👤",
   },
   {
-    key: "masyarakat",
-    label: "Masyarakat",
-    desc: "Lihat data harga & IPH publik",
-    color: "text-blue-700",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    activeBg: "bg-blue-600",
-    activeBorder: "border-blue-600",
-    icon: "🏘️",
+    key: "tamu",
+    label: "Tamu",
+    desc: "Akses cepat tanpa pendaftaran",
+    color: "text-sky-700",
+    bg: "bg-sky-50",
+    border: "border-sky-200",
+    activeBg: "bg-sky-600",
+    activeBorder: "border-sky-600",
+    icon: "🔑",
   },
 ];
 
 // Demo hint accounts per role
 const demoHints: Record<UserRole, { email: string; password: string }> = {
-  admin:       { email: "admin@tpid-batu.go.id",              password: "admin123"      },
-  petugas:     { email: "siti.rahmawati@bps-batu.go.id",      password: "petugas123"    },
-  masyarakat:  { email: "masyarakat@gmail.com",               password: "masyarakat123" },
+  admin:   { email: "admin@tpid-batu.go.id",         password: "admin123"   },
+  petugas: { email: "siti.rahmawati@bps-batu.go.id", password: "petugas123" },
+  tamu:    { email: "Tanpa kredensial",              password: "—"          },
 };
 
 export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
-  const { login } = useAuth();
+  const { login, loginAsGuest } = useAuth();
 
   const [selectedRole, setSelectedRole] = useState<UserRole>("petugas");
   const [email, setEmail]               = useState("");
@@ -86,6 +86,13 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
     const result = await login(email, password);
     setLoading(false);
     if (!result.success) setError(result.message);
+  }
+
+  async function handleGuest() {
+    setError("");
+    setLoading(true);
+    await loginAsGuest();
+    setLoading(false);
   }
 
   function fillDemo() {
@@ -222,25 +229,56 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
               <p className="text-xs text-gray-500 mt-0.5">
                 {selectedRole === "admin" && "Akses penuh: manajemen pengguna, konfigurasi sistem, semua modul data."}
                 {selectedRole === "petugas" && "Akses: input rekap IPH, kelola rapat, monitoring resume, visualisasi data."}
-                {selectedRole === "masyarakat" && "Akses terbatas: hanya dapat melihat data harga komoditas dan tren IPH publik."}
+                {selectedRole === "tamu" && "Masuk langsung tanpa kredensial — lihat dashboard dan data publik."}
               </p>
             </div>
           </div>
 
           {/* Form */}
+          {selectedRole === "tamu" ? (
+            <div className="space-y-5">
+              {error && (
+                <div className="flex items-center gap-2 p-3.5 bg-red-50 border border-red-200 rounded-xl">
+                  <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+                  <span className="text-sm text-red-600">{error}</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleGuest}
+                disabled={loading}
+                className={`w-full flex items-center justify-center gap-2 py-4 rounded-xl text-base font-bold transition-all ${
+                  loading
+                    ? "bg-gray-200 text-gray-400 cursor-wait"
+                    : "bg-sky-600 text-white hover:bg-sky-700 shadow-sm"
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    Memasuki sistem...
+                  </>
+                ) : (
+                  <>Masuk sebagai Tamu <ArrowRight size={16} /></>
+                )}
+              </button>
+              <p className="text-center text-sm text-gray-400">
+                Ingin akses penuh?{" "}
+                <button type="button" onClick={onGoRegister} className="text-emerald-600 font-bold hover:text-emerald-700">
+                  Daftar sebagai Petugas
+                </button>
+              </p>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {selectedRole === "masyarakat" ? "Email" : "Email Dinas / Instansi"}
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Email Dinas / Instansi</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(""); }}
                 placeholder={
-                  selectedRole === "admin"   ? "admin@tpid-batu.go.id" :
-                  selectedRole === "petugas" ? "nama@instansi.go.id"   :
-                  "email@gmail.com"
+                  selectedRole === "admin" ? "admin@tpid-batu.go.id" : "nama@instansi.go.id"
                 }
                 className="w-full px-4 py-3.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300 transition"
               />
@@ -292,8 +330,10 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
               )}
             </button>
           </form>
+          )}
 
           {/* Demo hint */}
+          {selectedRole !== "tamu" && (
           <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
@@ -306,13 +346,16 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
             <p className="text-xs text-gray-500 font-mono">{demoHints[selectedRole].email}</p>
             <p className="text-xs text-gray-500 font-mono">{demoHints[selectedRole].password}</p>
           </div>
+          )}
 
+          {selectedRole !== "tamu" && (
           <p className="text-center text-sm text-gray-400 mt-6">
             Belum punya akun?{" "}
             <button type="button" onClick={onGoRegister} className="text-emerald-600 font-bold hover:text-emerald-700">
               Daftar Sekarang
             </button>
           </p>
+          )}
         </div>
       </div>
     </div>

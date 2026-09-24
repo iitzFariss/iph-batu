@@ -13,7 +13,6 @@ import AnalisisTeksSiaran from "./components/Analisistekssiaran";
 import KelolaPegawai from "./components/Kelolapegawai";
 import LoginPage from "./components/LoginPage";
 import RegisterPage from "./components/RegisterPage";
-import MasyarakatView from "./components/MasyarakatView";
 import LandingPage from "./components/LandingPage";
 import ProfilSaya from "./components/ProfilSaya";
 import PengaturanAkun from "./components/PengaturanAkun";
@@ -41,7 +40,34 @@ export type PageId =
 // ─── Role-based access ────────────────────────────────────────────────────────
 
 // Halaman yang hanya bisa diakses oleh admin
-const ADMIN_ONLY: PageId[] = ["kelola-pegawai", "analisis-teks"];
+const ADMIN_ONLY: PageId[] = ["kelola-pegawai"];
+
+// Halaman yang bisa diakses petugas / pegawai
+const PETUGAS_ALLOWED: PageId[] = [
+  "dashboard",
+  "rekapan-data",
+  "monitoring-resume",
+  "visualisasi-tren",
+  "analisis-teks",
+];
+
+// Semua halaman (untuk memblokir akses tamu selain dashboard)
+const ALL_PAGES: PageId[] = [
+  "dashboard",
+  "input-rekap",
+  "rekapan-data",
+  "kelola-rapat",
+  "monitoring-resume",
+  "kelola-pegawai",
+  "visualisasi-tren",
+  "analisis-teks",
+  "profil-saya",
+  "pengaturan-akun",
+  "pengaturan",
+  "bantuan",
+  "error-404",
+  "error-500",
+];
 
 // Halaman dark full-screen (tanpa header & sidebar wrapper)
 const DARK_PAGES: PageId[] = ["error-404", "error-500"];
@@ -57,8 +83,18 @@ function PageContent({
   navigate: (id: PageId) => void;
   role: string;
 }) {
-  // Blokir petugas dari halaman admin-only → tampilkan 404
-  if (role === "petugas" && ADMIN_ONLY.includes(page)) {
+  // Blokir petugas & tamu dari halaman admin-only → tampilkan 404
+  if (role !== "admin" && ADMIN_ONLY.includes(page)) {
+    return <Error404 onGoHome={() => navigate("dashboard")} onGoBack={() => navigate("dashboard")} />;
+  }
+
+  // Tamu hanya boleh melihat dashboard
+  if (role === "tamu" && page !== "dashboard") {
+    return <Error404 onGoHome={() => navigate("dashboard")} onGoBack={() => navigate("dashboard")} />;
+  }
+
+  // Petugas hanya boleh melihat halaman yang diizinkan
+  if (role === "petugas" && !PETUGAS_ALLOWED.includes(page)) {
     return <Error404 onGoHome={() => navigate("dashboard")} onGoBack={() => navigate("dashboard")} />;
   }
 
@@ -107,7 +143,7 @@ function PageContent({
   }
 }
 
-// ─── Internal app (sudah login, bukan masyarakat) ─────────────────────────────
+// ─── Internal app (sudah login) ───────────────────────────────────────────────
 
 function InternalApp() {
   const { user } = useAuth();
@@ -117,9 +153,13 @@ function InternalApp() {
   const isDark = DARK_PAGES.includes(activePage);
   const role = user?.role ?? "petugas";
 
-  // Menu yang disembunyikan dari petugas
+  // Menu yang disembunyikan per role
   const hiddenPages: PageId[] =
-    role === "petugas" ? ADMIN_ONLY : [];
+    role === "admin"
+      ? []
+      : role === "tamu"
+      ? ALL_PAGES.filter((p) => p !== "dashboard")
+      : ALL_PAGES.filter((p) => !PETUGAS_ALLOWED.includes(p));
 
   function navigate(id: PageId) {
     setActivePage(id);
@@ -128,13 +168,15 @@ function InternalApp() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans overflow-hidden">
-      <Sidebar
-        activePage={activePage}
-        open={sidebarOpen}
-        onNavigate={(id) => navigate(id as PageId)}
-        onClose={() => setSidebarOpen(false)}
-        hiddenPages={hiddenPages}
-      />
+      {role !== "tamu" && (
+        <Sidebar
+          activePage={activePage}
+          open={sidebarOpen}
+          onNavigate={(id) => navigate(id as PageId)}
+          onClose={() => setSidebarOpen(false)}
+          hiddenPages={hiddenPages}
+        />
+      )}
       <div
         className={`flex-1 flex flex-col overflow-hidden min-w-0 ${
           isDark ? "bg-gray-950" : ""
@@ -143,7 +185,7 @@ function InternalApp() {
         {!isDark && (
           <Header
             onNavigate={(id) => navigate(id as PageId)}
-            onOpenSidebar={() => setSidebarOpen(true)}
+            onOpenSidebar={role === "tamu" ? undefined : () => setSidebarOpen(true)}
           />
         )}
         <main className="flex-1 overflow-y-auto">
@@ -189,16 +231,7 @@ function AppShell() {
     );
   }
 
-  // Masyarakat → tampilan read-only publik
-  if (user.role === "masyarakat") {
-    return (
-      <div className={`${isDark ? "dark " : ""}h-full`}>
-        <MasyarakatView />
-      </div>
-    );
-  }
-
-  // Petugas / Admin → dashboard penuh
+  // Semua role (admin / petugas / tamu) → dashboard penuh
   return (
     <div className={isDark ? "dark h-full" : "h-full"}>
       <InternalApp />

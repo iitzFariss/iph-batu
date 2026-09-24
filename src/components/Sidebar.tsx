@@ -109,7 +109,9 @@ export default function Sidebar({
 
       {/* Bottom nav */}
         <div className="px-3 pb-4 pt-2 border-t border-gray-100 space-y-0.5">
-          {bottomItems.map(({ id, label, icon: Icon }) => (
+          {bottomItems
+            .filter(({ id }) => !hiddenPages.includes(id))
+            .map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => onNavigate(id)}

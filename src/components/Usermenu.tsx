@@ -15,15 +15,15 @@ interface UserMenuProps {
 }
 
 const roleLabel: Record<UserRole, string> = {
-  admin:      "Administrator",
-  petugas:    "Petugas TPID",
-  masyarakat: "Masyarakat",
+  admin:   "Administrator",
+  petugas: "Petugas TPID",
+  tamu:    "Tamu",
 };
 
 const roleBadge: Record<UserRole, { cls: string; icon: React.ReactNode }> = {
-  admin:      { cls: "bg-purple-100 text-purple-700 border border-purple-200", icon: <Shield size={9} />  },
-  petugas:    { cls: "bg-emerald-100 text-emerald-700 border border-emerald-200", icon: <Users size={9} /> },
-  masyarakat: { cls: "bg-blue-100 text-blue-700 border border-blue-200",       icon: <User size={9} />   },
+  admin:   { cls: "bg-purple-100 text-purple-700 border border-purple-200", icon: <Shield size={9} />  },
+  petugas: { cls: "bg-emerald-100 text-emerald-700 border border-emerald-200", icon: <Users size={9} /> },
+  tamu:    { cls: "bg-sky-100 text-sky-700 border border-sky-200",       icon: <User size={9} />   },
 };
 
 export default function UserMenu({ onNavigate }: UserMenuProps) {
@@ -100,20 +100,22 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
 
           {/* Menu items */}
           <div className="py-1">
-            <button
-              onClick={() => navigate("profil-saya")}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <User size={12} className="text-gray-500" />
-              </div>
-              <div className="text-left">
-                <div className="font-semibold">Profil Saya</div>
-                <div className="text-xs text-gray-400">Lihat & edit informasi profil</div>
-              </div>
-            </button>
+            {user.role !== "tamu" && (
+              <button
+                onClick={() => navigate("profil-saya")}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <User size={12} className="text-gray-500" />
+                </div>
+                <div className="text-left">
+                  <div className="font-semibold">Profil Saya</div>
+                  <div className="text-xs text-gray-400">Lihat & edit informasi profil</div>
+                </div>
+              </button>
+            )}
 
-            {user.role !== "masyarakat" && (
+            {user.role !== "tamu" && (
               <button
                 onClick={() => navigate("pengaturan-akun")}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-50 transition-colors"

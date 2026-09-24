@@ -10,7 +10,7 @@ import {
   Building2,
   User,
   Lock,
-  Mail,
+  Mail, 
   BadgeCheck,
 } from "lucide-react";
 import { useAuth, type RegisterData } from "../context/AuthContext";
@@ -45,17 +45,6 @@ const roleCards: RoleCard[] = [
     activeBg: "bg-emerald-600",
     activeBorder: "border-emerald-500",
   },
-  {
-    key: "masyarakat",
-    label: "Masyarakat",
-    desc: "Warga umum / publik",
-    permissions: ["Lihat data harga komoditas", "Lihat tren IPH publik", "Akses ringkasan eksekutif"],
-    restrictions: ["Tidak dapat input/edit data", "Tidak dapat kelola rapat", "Tidak dapat akses laporan internal"],
-    icon: "🏘️",
-    color: "text-blue-700",
-    activeBg: "bg-blue-600",
-    activeBorder: "border-blue-500",
-  },
 ];
 
 // Instansi options for petugas
@@ -76,7 +65,7 @@ export default function RegisterPage({ onGoLogin, onGoBack }: RegisterPageProps)
   const { register } = useAuth();
 
   const [step, setStep]               = useState<1 | 2>(1);
-  const [role, setRole]               = useState<UserRole>("masyarakat");
+  const [role, setRole]               = useState<UserRole>("petugas");
   const [name, setName]               = useState("");
   const [email, setEmail]             = useState("");
   const [instansi, setInstansi]       = useState("");

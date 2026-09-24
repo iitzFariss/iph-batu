@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { TrendingDown, Home, RefreshCw, ServerCrash } from "lucide-react";
 
 interface Error500Props {
@@ -36,7 +37,9 @@ function CrashedChart500() {
 }
 
 export default function Error500({ onGoHome, onRetry }: Error500Props) {
-  const errorId = `ERR-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+  const [errorId] = useState(() => {
+    return `ERR-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+  });
 
   function handleRetry() {
     if (onRetry) {
@@ -47,22 +50,22 @@ export default function Error500({ onGoHome, onRetry }: Error500Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
       {/* Top bar */}
-      <nav className="border-b border-gray-800 px-8 h-14 flex items-center justify-between flex-shrink-0">
+      <nav className="border-b border-gray-200 px-8 h-14 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
             <TrendingDown size={14} className="text-white" />
           </div>
           <div>
-            <div className="text-sm font-black text-white leading-tight">TPID Kota Batu</div>
+            <div className="text-sm font-black text-gray-900 leading-tight">TPID Kota Batu</div>
             <div className="text-[9px] text-gray-500 leading-tight">Sistem Pengendalian Inflasi Daerah</div>
           </div>
         </div>
         {/* Status indicator */}
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-950/50 border border-red-900/50 rounded-lg">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-[10px] text-red-400 font-semibold">Sistem Terganggu</span>
+          <span className="text-[10px] text-red-600 font-semibold">Sistem Terganggu</span>
         </div>
       </nav>
 
@@ -76,15 +79,15 @@ export default function Error500({ onGoHome, onRetry }: Error500Props) {
           </div>
 
           {/* Icon */}
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-900/30 border border-red-800/50 mb-6 -mt-16 relative z-10">
-            <ServerCrash size={32} className="text-red-400" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-100 border border-red-200 mb-6 -mt-16 relative z-10">
+            <ServerCrash size={32} className="text-red-500" />
           </div>
 
           {/* Text */}
-          <h1 className="text-3xl font-black text-white mb-3">
+          <h1 className="text-3xl font-black text-gray-900 mb-3">
             Terjadi Kesalahan Server
           </h1>
-          <p className="text-base font-semibold text-red-400 mb-3">
+          <p className="text-base font-semibold text-red-600 mb-3">
             Sistem sedang mengalami gangguan. Tim teknis TPID sedang menangani.
           </p>
           <p className="text-sm text-gray-500 leading-relaxed mb-10 max-w-md mx-auto">
@@ -109,7 +112,7 @@ export default function Error500({ onGoHome, onRetry }: Error500Props) {
             </button>
             <button
               onClick={onGoHome}
-              className="flex items-center gap-2 px-6 py-3 border border-gray-700 text-gray-300 text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-6 py-3 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-100 transition-colors"
             >
               <Home size={14} />
               Kembali ke Dashboard
@@ -117,19 +120,19 @@ export default function Error500({ onGoHome, onRetry }: Error500Props) {
           </div>
 
           {/* Status card */}
-          <div className="inline-flex items-start gap-4 bg-gray-900 border border-gray-800 rounded-2xl px-6 py-5 text-left max-w-sm w-full">
+          <div className="inline-flex items-start gap-4 bg-white border border-gray-200 rounded-2xl px-6 py-5 text-left max-w-sm w-full">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0 mt-1.5" />
             <div className="min-w-0">
-              <div className="text-xs font-bold text-gray-300 mb-1">Status Sistem TPID</div>
+              <div className="text-xs font-bold text-gray-900 mb-1">Status Sistem TPID</div>
               <div className="text-[11px] text-gray-500 leading-relaxed mb-2.5">
                 Gangguan terdeteksi pada server IPH. Tim teknis telah
                 dinotifikasi secara otomatis dan sedang dalam penanganan.
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-600 font-mono bg-gray-800 px-2 py-0.5 rounded">
+                <span className="text-[10px] text-gray-600 font-mono bg-gray-100 px-2 py-0.5 rounded">
                   {errorId}
                 </span>
-                <span className="text-[10px] text-gray-700">ID Laporan Error</span>
+                <span className="text-[10px] text-gray-400">ID Laporan Error</span>
               </div>
             </div>
           </div>
@@ -137,9 +140,9 @@ export default function Error500({ onGoHome, onRetry }: Error500Props) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-800 px-8 py-4 flex items-center justify-between">
-        <span className="text-[11px] text-gray-700">© 2026 TPID Kota Batu • Bagian Perekonomian Setda</span>
-        <span className="text-[11px] text-gray-700">Kode Error: HTTP 500</span>
+      <div className="border-t border-gray-200 px-8 py-4 flex items-center justify-between">
+        <span className="text-[11px] text-gray-400">© 2026 TPID Kota Batu • Bagian Perekonomian Setda</span>
+        <span className="text-[11px] text-gray-400">Kode Error: HTTP 500</span>
       </div>
     </div>
   );

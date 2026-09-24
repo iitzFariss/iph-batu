@@ -55,7 +55,7 @@ const features = [
     border: "border-emerald-100",
     title: "Tren IPH Publik",
     desc: "Grafik indeks perkembangan harga yang mudah dibaca, diperbarui tiap pekan.",
-    points: ["Visualisasi tren 12 bulan", "Dibandingkan koridor target"],
+    points: ["Visualisasi tren 12 bulan", "Dibandingkan periode sebelumnya"],
   },
   {
     icon: <FileText size={20} className="text-purple-600" />,
@@ -147,7 +147,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
               onClick={onRegister}
               className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
             >
-              Daftar Gratis
+              Daftar Petugas
             </button>
           </div>
         </div>
@@ -178,10 +178,10 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
             <div className="flex items-center gap-4 mb-10">
               <button
-                onClick={onRegister}
+                onClick={onLogin}
                 className="flex items-center gap-2 px-7 py-3.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
               >
-                Lihat Data Publik
+                Masuk sebagai Tamu
                 <ArrowRight size={15} />
               </button>
               <button
@@ -299,19 +299,19 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
           <div className="flex items-end justify-between mb-10">
             <div>
               <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest mb-2">
-                Untuk Masyarakat Umum
+                Informasi Publik Terbuka
               </p>
               <h2 className="text-2xl font-black text-gray-900">
                 Informasi harga pangan,<br />transparan dan terbuka.
               </h2>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-400 mb-3">Daftar gratis — tidak perlu akun instansi.</p>
+              <p className="text-sm text-gray-400 mb-3">Tanpa pendaftaran — cukup masuk sebagai tamu.</p>
               <button
-                onClick={onRegister}
+                onClick={onLogin}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors"
               >
-                Mulai Sekarang <ArrowRight size={14} />
+                Masuk sebagai Tamu <ArrowRight size={14} />
               </button>
             </div>
           </div>

@@ -433,7 +433,7 @@ export default function PengaturanAkun() {
                 checked={privacy[key]}
                 onChange={() => {
                   // auditLog cannot be turned off for petugas/admin
-                  if (key === "auditLog" && user.role !== "masyarakat") return;
+                  if (key === "auditLog" && user.role !== "tamu") return;
                   setPrivacy({ ...privacy, [key]: !privacy[key] });
                 }}
               />
@@ -443,7 +443,7 @@ export default function PengaturanAkun() {
       </SectionCard>
 
       {/* ── Danger Zone ── */}
-      {user.role === "masyarakat" && (
+      {user.role === "tamu" && (
         <div className="bg-white border border-red-200 rounded-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-red-100 bg-red-50/50">
             <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
