@@ -12,6 +12,9 @@ import {
   ChevronRight,
   ShieldCheck,
   Lock,
+  Pencil,
+  Plus,
+  X,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -22,8 +25,6 @@ type IPHStatus =
   | "perlu-intervensi"
   | "stabil-terkendali"
   | "deflasi-signifikan";
-
-type RilisStatus = "rilis-kemendagri" | "gtt-dispatched";
 
 interface CommodityTag {
   name: string;
@@ -39,8 +40,6 @@ interface RekapRow {
   statusIPH: IPHStatus;
   deflasi: CommodityTag[];
   inflasi: CommodityTag[];
-  verifikator: { initials: string; name: string; instansi: string };
-  statusRilis: RilisStatus;
 }
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
@@ -58,8 +57,6 @@ const rekapData: RekapRow[] = [
       { name: "Daging Ayam",  change: -0.12 },
     ],
     inflasi: [{ name: "Cabai Rawit", change: 0.18 }],
-    verifikator: { initials: "SR", name: "Siti Rahmawati, S.E.", instansi: "BPS Kota Batu" },
-    statusRilis: "rilis-kemendagri",
   },
   {
     id: "2",
@@ -73,8 +70,6 @@ const rekapData: RekapRow[] = [
       { name: "Bawang Merah", change: 0.14 },
       { name: "Telur Ayam",   change: 0.09 },
     ],
-    verifikator: { initials: "BW", name: "Bambang Wijaya", instansi: "Diskumperindag" },
-    statusRilis: "rilis-kemendagri",
   },
   {
     id: "3",
@@ -88,8 +83,6 @@ const rekapData: RekapRow[] = [
       { name: "Cabai Rawit", change: 0.54 },
       { name: "Daging Sapi", change: 0.22 },
     ],
-    verifikator: { initials: "SR", name: "Siti Rahmawati, S.E.", instansi: "BPS Kota Batu" },
-    statusRilis: "gtt-dispatched",
   },
   {
     id: "4",
@@ -103,8 +96,6 @@ const rekapData: RekapRow[] = [
       { name: "Gula Pasir",    change: -0.05 },
     ],
     inflasi: [{ name: "Bawang Putih", change: 0.04 }],
-    verifikator: { initials: "AN", name: "Achmad Nur, S.T.", instansi: "Bagian Perekonomian" },
-    statusRilis: "rilis-kemendagri",
   },
   {
     id: "5",
@@ -118,8 +109,6 @@ const rekapData: RekapRow[] = [
       { name: "Beras Medium",  change: -0.24 },
     ],
     inflasi: [],
-    verifikator: { initials: "SR", name: "Siti Rahmawati, S.E.", instansi: "BPS Kota Batu" },
-    statusRilis: "rilis-kemendagri",
   },
 ];
 
@@ -144,12 +133,11 @@ function IPHBadge({ value, status }: { value: number; status: IPHStatus }) {
   const cfg = iphConfigMap[status];
   const sign = value > 0 ? "+" : "";
   return (
-    <div className={`inline-flex flex-col items-center px-3 py-1.5 rounded-lg ${cfg.bg}`}>
+    <div className={`inline-flex items-center px-3 py-1.5 rounded-lg ${cfg.bg}`}>
       <div className={`flex items-center gap-1 text-sm font-black ${cfg.text}`}>
         {cfg.icon}
         {sign}{value.toFixed(2)}%
       </div>
-      <span className={`text-xs font-semibold ${cfg.text}`}>{cfg.label}</span>
     </div>
   );
 }
@@ -168,24 +156,196 @@ function CommodityChip({ name, change, type }: { name: string; change: number; t
   );
 }
 
-function RilisBadge({ status }: { status: RilisStatus }) {
-  if (status === "gtt-dispatched") {
-    return (
-      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-50 border border-red-200">
-        <div className="w-2 h-2 rounded-full bg-red-500" />
-        <span className="text-xs font-bold text-red-600">GTT Dispatched</span>
-      </div>
-    );
-  }
+type FilterTab = "semua" | "deflasi" | "inflasi" | "intervensi";
+
+// ─── Modal Edit ───────────────────────────────────────────────────────────────
+
+function EditRekapModal({ row, onSave, onClose }: {
+  row: RekapRow;
+  onSave: (updated: RekapRow) => void;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState<RekapRow>(row);
+  const [error, setError] = useState("");
+
+  const setPeriode = (val: string) => setDraft((p) => ({ ...p, periode: val }));
+  const setCutoffStart = (val: string) => setDraft((p) => ({ ...p, cutoffStart: val }));
+  const setCutoffEnd = (val: string) => setDraft((p) => ({ ...p, cutoffEnd: val }));
+  const setNilaiIPH = (val: string) => {
+    const n = val.replace(",", ".");
+    const num = parseFloat(n);
+    setDraft((p) => ({
+      ...p,
+      nilaiIPH: isNaN(num) ? p.nilaiIPH : num,
+      statusIPH: num < 0 ? "deflasi-terkendali" : num >= 1 ? "perlu-intervensi" : "inflasi-ringan",
+    }));
+  };
+
+  const setTag = (
+    group: "deflasi" | "inflasi",
+    idx: number,
+    field: keyof CommodityTag,
+    val: string
+  ) => {
+    setDraft((p) => ({
+      ...p,
+      [group]: p[group].map((t, i) => {
+        if (i !== idx) return t;
+        if (field === "name") return { ...t, name: val };
+        const num = parseFloat(val.replace(",", "."));
+        return { ...t, change: isNaN(num) ? t.change : num };
+      }),
+    }));
+  };
+
+  const addTag = (group: "deflasi" | "inflasi") =>
+    setDraft((p) => ({ ...p, [group]: [...p[group], { name: "", change: 0 }] }));
+
+  const removeTag = (group: "deflasi" | "inflasi", idx: number) =>
+    setDraft((p) => ({ ...p, [group]: p[group].filter((_, i) => i !== idx) }));
+
+  const handleSave = () => {
+    if (!draft.periode.trim()) {
+      setError("Periode tidak boleh kosong");
+      return;
+    }
+    onSave(draft);
+  };
+
+  const numCls = "w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums";
+
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
-      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-      <span className="text-xs font-semibold text-gray-600">Rilis Kemendagri</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
+          <div>
+            <h3 className="text-sm font-bold text-gray-900">Edit Rekapan Periode</h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Perbaiki data rekap yang telah dimasukkan sebelumnya
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 overflow-y-auto space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
+              <AlertTriangle size={12} className="flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1 sm:col-span-2">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Periode</label>
+              <input
+                type="text"
+                value={draft.periode}
+                onChange={(e) => setPeriode(e.target.value)}
+                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Cutoff Awal</label>
+              <input
+                type="text"
+                value={draft.cutoffStart}
+                onChange={(e) => setCutoffStart(e.target.value)}
+                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Cutoff Akhir</label>
+              <input
+                type="text"
+                value={draft.cutoffEnd}
+                onChange={(e) => setCutoffEnd(e.target.value)}
+                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">
+                Nilai IPH Gabungan (%)
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={draft.nilaiIPH}
+                onChange={(e) => setNilaiIPH(e.target.value)}
+                className={numCls}
+              />
+            </div>
+          </div>
+
+          {(["deflasi", "inflasi"] as const).map((group) => (
+            <div key={group} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  {group === "deflasi" ? "Andil Penurunan (Deflasi)" : "Andil Kenaikan (Inflasi)"}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => addTag(group)}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50"
+                >
+                  <Plus size={11} />
+                  Tambah
+                </button>
+              </div>
+              <div className="space-y-2">
+                {draft[group].map((tag, idx) => (
+                  <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center">
+                    <input
+                      type="text"
+                      placeholder="Nama komoditas"
+                      value={tag.name}
+                      onChange={(e) => setTag(group, idx, "name", e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="%"
+                        value={tag.change}
+                        onChange={(e) => setTag(group, idx, "change", e.target.value)}
+                        className="w-24 px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeTag(group, idx)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+          >
+            Batal
+          </button>
+          <button
+            onClick={handleSave}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+          >
+            Simpan Perubahan
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
-
-type FilterTab = "semua" | "deflasi" | "inflasi" | "intervensi";
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -193,6 +353,8 @@ export default function RekapanData() {
   const [filterTab, setFilterTab] = useState<FilterTab>("semua");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [rows, setRows] = useState<RekapRow[]>(rekapData);
+  const [editingRow, setEditingRow] = useState<RekapRow | null>(null);
 
   const tabs: { key: FilterTab; label: string; count?: number }[] = [
     { key: "semua",      label: "Semua Periode",      count: 52 },
@@ -205,6 +367,11 @@ export default function RekapanData() {
     setSelectedRows((prev) =>
       prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
     );
+  };
+
+  const handleSaveEdit = (updated: RekapRow) => {
+    setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+    setEditingRow(null);
   };
 
   return (
@@ -338,12 +505,13 @@ export default function RekapanData() {
                 "Nilai IPH Gabungan",
                 "Komoditas Andil Penurunan (Deflasi)",
                 "Komoditas Andil Kenaikan (Inflasi)",
-                "Petugas Verifikator",
-                "Status Rilis",
-              ].map((col) => (
+                "",
+              ].map((col, i) => (
                 <th
-                  key={col}
-                  className="text-left text-xs font-normal text-gray-500 uppercase tracking-wide px-3 py-3"
+                  key={i}
+                  className={`text-left text-xs font-normal text-gray-500 uppercase tracking-wide px-3 py-3 ${
+                    i === 4 ? "w-16 text-right" : ""
+                  }`}
                 >
                   {col}
                 </th>
@@ -351,7 +519,7 @@ export default function RekapanData() {
             </tr>
           </thead>
           <tbody>
-            {rekapData.map((row) => (
+            {rows.map((row) => (
               <tr
                 key={row.id}
                 className={`hover:bg-gray-50/50 transition-colors ${
@@ -407,22 +575,15 @@ export default function RekapanData() {
                   )}
                 </td>
 
-                {/* Verifikator */}
-                <td className="px-3 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                      {row.verifikator.initials}
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-gray-900">{row.verifikator.name}</div>
-                      <div className="text-xs text-gray-400">{row.verifikator.instansi}</div>
-                    </div>
-                  </div>
-                </td>
-
-                {/* Status Rilis */}
-                <td className="px-3 py-4">
-                  <RilisBadge status={row.statusRilis} />
+                {/* Aksi */}
+                <td className="px-3 py-4 text-right">
+                  <button
+                    onClick={() => setEditingRow(row)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 border border-gray-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+                  >
+                    <Pencil size={11} />
+                    Ubah
+                  </button>
                 </td>
               </tr>
             ))}
@@ -498,6 +659,14 @@ export default function RekapanData() {
           </button>
         </div>
       </div>
+
+      {editingRow && (
+        <EditRekapModal
+          row={editingRow}
+          onSave={handleSaveEdit}
+          onClose={() => setEditingRow(null)}
+        />
+      )}
     </div>
   );
 }
