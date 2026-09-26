@@ -23,6 +23,7 @@ import {
 interface TrendPoint {
   label: string;
   iph: number;
+  penutupan?: boolean;
 }
 
 interface WeeklyRow {
@@ -31,39 +32,74 @@ interface WeeklyRow {
   status: "waspada" | "stabil" | "deflasi" | "proyeksi";
   pemicu: string;
   highlighted?: boolean;
+  penutupan?: boolean;
 }
 
 interface CommodityShare {
   name: string;
-  pct: number;
+  count: number;
   color: string;
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
+type YearTabValue = "2024" | "2025" | "2026";
+
 const trendData: TrendPoint[] = [
   { label: "M1 Mar", iph: 0.0   },
   { label: "M2 Mar", iph: 0.88  },
   { label: "M3 Mar", iph: 1.28  },
-  { label: "M4 Mar", iph: 0.62  },
+  { label: "M4 Mar", iph: 0.62, penutupan: true   },
   { label: "M1 Apr", iph: 0.48  },
   { label: "M2 Apr", iph: 0.15  },
   { label: "M3 Apr", iph: -0.42 },
 ];
 
+const trendData2024: TrendPoint[] = [
+  { label: "M1 Mar", iph: 0.25  },
+  { label: "M2 Mar", iph: 0.55  },
+  { label: "M3 Mar", iph: 0.85  },
+  { label: "M4 Mar", iph: 0.40, penutupan: true   },
+  { label: "M1 Apr", iph: 0.30  },
+  { label: "M2 Apr", iph: 0.10  },
+  { label: "M3 Apr", iph: 0.02  },
+];
+
+const trendData2025: TrendPoint[] = [
+  { label: "M1 Mar", iph: 0.10  },
+  { label: "M2 Mar", iph: 0.68  },
+  { label: "M3 Mar", iph: 1.05  },
+  { label: "M4 Mar", iph: 0.38, penutupan: true   },
+  { label: "M1 Apr", iph: 0.29  },
+  { label: "M2 Apr", iph: 0.17  },
+  { label: "M3 Apr", iph: 0.08  },
+];
+
+const trendDataByYear: Record<YearTabValue, TrendPoint[]> = {
+  "2024": trendData2024,
+  "2025": trendData2025,
+  "2026": trendData,
+};
+
+const yearColors: Record<YearTabValue, string> = {
+  "2024": "#8b5cf6",
+  "2025": "#f59e0b",
+  "2026": "#10b981",
+};
+
 const weeklyRows: WeeklyRow[] = [
   { minggu: "Minggu I Apr",         iph:  0.48,  status: "waspada",  pemicu: "Daging Ayam Ras, Cabai Rawit"   },
   { minggu: "Minggu II Apr",        iph:  0.05,  status: "stabil",   pemicu: "Beras Medium, Minyakita"        },
   { minggu: "Minggu III Apr",       iph: -0.42,  status: "deflasi",  pemicu: "Bawang Merah, Telur Ayam", highlighted: true },
-  { minggu: "Minggu IV Apr (Est)",  iph: -0.28,  status: "proyeksi", pemicu: "Panen Raya Hortikultura"        },
+  { minggu: "Minggu IV Apr (Est)",  iph: -0.28,  status: "proyeksi", pemicu: "Panen Raya Hortikultura", penutupan: true  },
 ];
 
 const commodityShares: CommodityShare[] = [
-  { name: "Cabai Rawit Merah",           pct: 65, color: "#ef4444" },
-  { name: "Beras Medium (SPHP & Lokal)", pct: 48, color: "#f97316" },
-  { name: "Minyak Goreng Kemasan",       pct: 36, color: "#eab308" },
-  { name: "Telur Ayam Ras",              pct: 28, color: "#22c55e" },
-  { name: "Bawang Merah",                pct: 22, color: "#8b5cf6" },
+  { name: "Cabai Rawit Merah",           count: 11, color: "#ef4444" },
+  { name: "Beras Medium (SPHP & Lokal)", count: 8,  color: "#f97316" },
+  { name: "Minyak Goreng Kemasan",       count: 6,  color: "#eab308" },
+  { name: "Telur Ayam Ras",              count: 5,  color: "#22c55e" },
+  { name: "Bawang Merah",                count: 4,  color: "#8b5cf6" },
 ];
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
@@ -71,6 +107,8 @@ const commodityShares: CommodityShare[] = [
 
 interface TooltipPayloadItem {
   value?: number | string | null;
+  name?: string | number;
+  color?: string;
 }
 
 interface CustomTooltipProps {
@@ -81,16 +119,26 @@ interface CustomTooltipProps {
 
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
-  const raw = payload[0]?.value;
-  const val = typeof raw === "number" ? raw : 0;
-  const isDeflasi = val < 0;
   return (
-    <div className="bg-white text-gray-900 text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-200">
+    <div className="bg-white text-gray-900 text-xs rounded-lg px-3 py-2 shadow-lg border border-gray-200 space-y-0.5">
       <div className="font-bold text-gray-500 mb-0.5">{label}</div>
-      <div className={`text-sm font-black ${isDeflasi ? "text-emerald-600" : "text-amber-600"}`}>
-        {val > 0 ? "+" : ""}
-        {val.toFixed(2)}% {isDeflasi ? "Deflasi" : "Inflasi"}
-      </div>
+      {payload.map((item, i) => {
+        const raw = item.value;
+        const val = typeof raw === "number" ? raw : 0;
+        const isDeflasi = val < 0;
+        return (
+          <div key={i} className="flex items-center gap-1.5">
+            <div className="w-2 h-0.5 rounded" style={{ backgroundColor: item.color }} />
+            <span className="text-gray-600">
+              {typeof item.name === "string" ? item.name.replace(" IPH", "") : item.name}
+            </span>
+            <span className={`font-black ${isDeflasi ? "text-emerald-600" : "text-amber-600"}`}>
+              {val > 0 ? "+" : ""}
+              {val.toFixed(2)}% {isDeflasi ? "Deflasi" : "Inflasi"}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -123,10 +171,20 @@ function WeeklyStatusBadge({ status }: { status: WeeklyStatus }) {
 type YearTab = "2024" | "2025" | "2026";
 
 export default function VisualisasiTren() {
-  const [activeYear, setActiveYear] = useState<YearTab>("2026");
+  const [selectedYears, setSelectedYears] = useState<YearTab[]>(["2026"]);
   const [showOnlyPenutupan, setShowOnlyPenutupan] = useState(false);
 
   const years: YearTab[] = ["2024", "2025", "2026"];
+
+  const toggleYear = (y: YearTab) => {
+    setSelectedYears((prev) => {
+      if (prev.includes(y)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((item) => item !== y);
+      }
+      return [...prev, y];
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -164,9 +222,9 @@ export default function VisualisasiTren() {
           {years.map((y) => (
             <button
               key={y}
-              onClick={() => setActiveYear(y)}
+              onClick={() => toggleYear(y)}
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                activeYear === y
+                selectedYears.includes(y)
                   ? "bg-emerald-600 text-white"
                   : "text-gray-500 hover:text-gray-800"
               }`}
@@ -175,25 +233,24 @@ export default function VisualisasiTren() {
             </button>
           ))}
         </div>
+        <span className="text-xs text-gray-400">Pilih tahun (boleh lebih dari satu)</span>
 
-        <label className="flex items-center gap-2 cursor-pointer">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={showOnlyPenutupan}
-            onClick={() => setShowOnlyPenutupan((p) => !p)}
-            className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${
-              showOnlyPenutupan ? "bg-emerald-600" : "bg-gray-300"
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showOnlyPenutupan}
+          onClick={() => setShowOnlyPenutupan((p) => !p)}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <span
+            className={`w-9 h-5 rounded-full transition-colors flex items-center p-0.5 flex-shrink-0 ${
+              showOnlyPenutupan ? "bg-emerald-600 justify-end" : "bg-gray-300 justify-start"
             }`}
           >
-            <span
-              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                showOnlyPenutupan ? "translate-x-4" : "translate-x-0.5"
-              }`}
-            />
-          </button>
+            <span className="w-4 h-4 rounded-full bg-white shadow transition-transform" />
+          </span>
           <span className="text-xs text-gray-500">Tampilkan hanya minggu penutupan</span>
-        </label>
+        </button>
 
         <div className="ml-auto flex items-center gap-2">
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-100">
@@ -229,11 +286,13 @@ export default function VisualisasiTren() {
               Pergerakan kumulatif 20 komoditas strategis Kota Batu per minggu (Baseline 0.00%)
             </p>
           </div>
-          <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0">
-            <div className="flex items-center gap-1.5">
-              <div className="w-6 h-0.5 bg-emerald-500 rounded" />
-              <span>BPS Terverifikasi</span>
-            </div>
+          <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0 flex-wrap">
+            {selectedYears.map((y) => (
+              <div key={y} className="flex items-center gap-1.5">
+                <div className="w-4 h-0.5 rounded" style={{ backgroundColor: yearColors[y] }} />
+                <span>Tahun {y}</span>
+              </div>
+            ))}
             <div className="flex items-center gap-1.5">
               <div className="w-6 border-t-2 border-dashed border-red-400" />
               <span>Batas Waspada (+1.50%)</span>
@@ -248,10 +307,12 @@ export default function VisualisasiTren() {
         {/* Recharts Line Chart */}
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trendData} margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
+            <LineChart margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis
                 dataKey="label"
+                type="category"
+                allowDuplicatedCategory={false}
                 tick={{ fill: "#9ca3af", fontSize: 10 }}
                 axisLine={{ stroke: "#e5e7eb" }}
                 tickLine={false}
@@ -287,14 +348,21 @@ export default function VisualisasiTren() {
                   position: "insideTopRight",
                 }}
               />
-              <Line
-                type="monotone"
-                dataKey="iph"
-                stroke="#10b981"
-                strokeWidth={2.5}
-                dot={{ fill: "#10b981", r: 4, strokeWidth: 2, stroke: "#064e3b" }}
-                activeDot={{ r: 6, fill: "#34d399" }}
-              />
+              {selectedYears.map((y) => (
+                <Line
+                  key={y}
+                  type="monotone"
+                  dataKey="iph"
+                  name={`${y} IPH`}
+                  data={showOnlyPenutupan
+                    ? trendDataByYear[y].filter((p) => p.penutupan)
+                    : trendDataByYear[y]}
+                  stroke={yearColors[y]}
+                  strokeWidth={2.5}
+                  dot={{ fill: yearColors[y], r: 4, strokeWidth: 2, stroke: "#fff" }}
+                  activeDot={{ r: 6 }}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -350,7 +418,9 @@ export default function VisualisasiTren() {
               </tr>
             </thead>
             <tbody>
-              {weeklyRows.map((row: WeeklyRow) => (
+              {weeklyRows
+                .filter((r) => (showOnlyPenutupan ? r.penutupan : true))
+                .map((row: WeeklyRow) => (
                 <tr
                   key={row.minggu}
                   className={`${row.highlighted ? "bg-emerald-50" : ""} ${
@@ -410,25 +480,25 @@ export default function VisualisasiTren() {
             <div>
               <h3 className="text-sm font-bold text-gray-900">Andil Komoditas Terhadap Fluktuasi</h3>
               <p className="text-xs text-gray-500">
-                Frekuensi sebagai pemicu utama fluktuasi harga (2026)
+                Jumlah kemunculan sebagai pemicu utama fluktuasi harga (2026)
               </p>
             </div>
             <BarChart3 size={16} className="text-gray-500" />
           </div>
 
           <div className="space-y-3">
-            {commodityShares.map(({ name, pct, color }: CommodityShare) => (
+            {commodityShares.map(({ name, count, color }: CommodityShare) => (
               <div key={name}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-gray-700 font-medium">{name}</span>
                   <span className="text-sm font-black" style={{ color }}>
-                    {pct}%
+                    {count} kali
                   </span>
                 </div>
                 <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
-                    style={{ width: `${pct}%`, backgroundColor: color }}
+                    style={{ width: `${(count / Math.max(...commodityShares.map((c) => c.count))) * 100}%`, backgroundColor: color }}
                   />
                 </div>
               </div>

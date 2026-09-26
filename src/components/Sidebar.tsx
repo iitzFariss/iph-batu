@@ -9,7 +9,6 @@ import {
   Radio,
   Settings,
   HelpCircle,
-  Zap,
   Menu,
 } from "lucide-react";
 
@@ -77,12 +76,6 @@ export default function Sidebar({
         </div>
 
       {/* Quick Action */}
-      <div className="px-3 pt-3">
-        <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-xs font-semibold border border-emerald-200">
-          <Zap size={13} />
-          Disposisi Cepat
-        </button>
-      </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 pt-3 space-y-0.5 overflow-y-auto">

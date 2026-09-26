@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { PUBLIC_DASHBOARD_HASH } from "./lib/publicDashboard";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
@@ -150,8 +151,12 @@ function InternalApp() {
   const [activePage, setActivePage] = useState<PageId>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Link publik (#/publik): hanya dashboard — persis seperti tampilan masyarakat/tamu.
+  const isPublicView = typeof window !== "undefined"
+    && window.location.hash === PUBLIC_DASHBOARD_HASH;
+
   const isDark = DARK_PAGES.includes(activePage);
-  const role = user?.role ?? "petugas";
+  const role = isPublicView ? "tamu" : (user?.role ?? "petugas");
 
   // Menu yang disembunyikan per role
   const hiddenPages: PageId[] =
@@ -199,14 +204,36 @@ function InternalApp() {
 // ─── App shell (routing auth) ─────────────────────────────────────────────────
 
 function AppShell() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loginAsGuest } = useAuth();
   const { isDark } = useTheme();
   const [authView, setAuthView] = useState<"landing" | "login" | "register">(
     "landing"
   );
 
+  // Link publik (#/publik): otomatis masuk sebagai tamu → dashboard yang
+  // sama persis dengan yang dilihat masyarakat.
+  const isPublicView =
+    typeof window !== "undefined" &&
+    window.location.hash === PUBLIC_DASHBOARD_HASH;
+
+  useEffect(() => {
+    if (isPublicView && !isAuthenticated) {
+      loginAsGuest();
+    }
+    // hanya jalankan sekali saat terbuka
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Belum login → tampilkan halaman publik (tanpa dark mode)
+  // Kecuali link publik dashboard (#/publik) yang langsung auto login.
   if (!isAuthenticated || !user) {
+    if (isPublicView) {
+      return (
+        <div className={isDark ? "dark h-full" : "h-full"}>
+          <InternalApp />
+        </div>
+      );
+    }
     if (authView === "login") {
       return (
         <LoginPage

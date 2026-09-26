@@ -12,9 +12,9 @@ import {
   Clock,
   ChevronRight,
   Users,
-  BarChart2,
-  ImageIcon,
+  Link2,
 } from "lucide-react";
+import { buildPublicDashboardLink } from "../lib/publicDashboard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -151,8 +151,10 @@ export default function AnalisisTeksSiaran() {
   const [activeTab, setActiveTab]       = useState<ActiveTab>("bahasa-resmi");
   const [showPenerima, setShowPenerima] = useState(false);
   const [copied, setCopied]             = useState(false);
+  const [linkCopied, setLinkCopied]     = useState(false);
   const [sending, setSending]           = useState(false);
   const [sendingGrafik, setSendingGrafik] = useState(false);
+  const [dashboardLink] = useState(() => buildPublicDashboardLink());
 
   const tabs: { key: ActiveTab; label: string }[] = [
     { key: "bahasa-resmi",  label: "Bahasa Resmi"  },
@@ -176,6 +178,12 @@ export default function AnalisisTeksSiaran() {
   function handleSend() {
     setSending(true);
     setTimeout(() => setSending(false), 2000);
+  }
+
+  function handleCopyLink() {
+    navigator.clipboard?.writeText(dashboardLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   }
 
   function handleSendGrafik() {
@@ -307,7 +315,7 @@ export default function AnalisisTeksSiaran() {
                   {sending ? "Mengirim..." : `Kirim Teks (${tabLabel[activeTab]})`}
                 </button>
 
-                {/* Kirim grafik + teks */}
+                {/* Kirim link dashboard + teks */}
                 <button
                   onClick={handleSendGrafik}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
@@ -316,11 +324,10 @@ export default function AnalisisTeksSiaran() {
                       : "bg-purple-600 text-white hover:bg-purple-700"
                   }`}
                 >
-                  <ImageIcon size={12} />
-                  <BarChart2 size={12} />
+                  <Link2 size={12} />
                   {sendingGrafik
-                    ? "Menyiapkan Grafik..."
-                    : `Kirim Grafik + Teks (${tabLabel[activeTab]}) via WA`}
+                    ? "Membuat Link..."
+                    : `Kirim Link Dashboard + Teks (${tabLabel[activeTab]}) via WA`}
                 </button>
               </div>
 
@@ -332,6 +339,10 @@ export default function AnalisisTeksSiaran() {
                 >
                   <Copy size={11} />
                   {copied ? "Tersalin!" : "Salin Teks"}
+                </button>
+                <button onClick={handleCopyLink} className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50">
+                  <Link2 size={11} />
+                  {linkCopied ? "Link Disalin!" : "Salin Link Dashboard"}
                 </button>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50">
                   <Download size={11} />
@@ -345,8 +356,10 @@ export default function AnalisisTeksSiaran() {
 
               {/* Hint */}
               <p className="text-xs text-gray-400">
-                "Kirim Grafik + Teks" akan melampirkan visualisasi matriks andil komoditas
-                bersama draf teks <strong>{tabLabel[activeTab]}</strong> ke WhatsApp Dinas.
+                "Kirim Link Dashboard" akan mengirim link{" "}
+                <span className="font-mono text-gray-500 break-all">{dashboardLink}</span> bersama
+                draf teks <strong>{tabLabel[activeTab]}</strong> ke WhatsApp Dinas. Link dibuka
+                sebagai dashboard publik — tampilannya sama seperti yang dilihat masyarakat.
               </p>
             </div>
 

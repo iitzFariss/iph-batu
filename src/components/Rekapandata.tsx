@@ -405,20 +405,6 @@ export default function RekapanData() {
               <span className="text-xl font-black text-emerald-600">-0.38%</span>
             </div>
           </div>
-          <div className="h-10 w-px bg-gray-100" />
-          <div className="text-center">
-            <div className="text-xs text-gray-400 mb-0.5">Status IPH Wilayah</div>
-            <div className="flex items-center gap-1 justify-center">
-              <TrendingDown size={12} className="text-emerald-600" />
-              <span className="text-sm font-bold text-emerald-600">Terkendali</span>
-            </div>
-          </div>
-          <div className="h-10 w-px bg-gray-100" />
-          <div className="text-center">
-            <div className="text-xs text-gray-400 mb-0.5">Entri Tersinkron</div>
-            <div className="text-sm font-bold text-gray-900">52 Minggu</div>
-            <div className="text-xs text-gray-400">(100%)</div>
-          </div>
         </div>
       </div>
 
