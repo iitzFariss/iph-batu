@@ -397,7 +397,7 @@ export default function RekapanData() {
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-4 flex-shrink-0">
           <div className="text-center">
             <div className="text-xs text-gray-400 mb-0.5">Posisi Terkini M–IV</div>
             <div className="flex items-center gap-1 justify-center">

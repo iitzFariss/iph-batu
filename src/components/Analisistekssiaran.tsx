@@ -380,7 +380,8 @@ export default function AnalisisTeksSiaran() {
                 Lihat Semua Arsip
               </button>
             </div>
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50">
                 <tr>
                   {["Waktu Rilis", "Periode", "Nilai IPH", "Target Disposisi", "Status", "Aksi"].map((col) => (
@@ -415,6 +416,7 @@ export default function AnalisisTeksSiaran() {
                 ))}
               </tbody>
             </table>
+          </div>
           </div>
         </div>
 

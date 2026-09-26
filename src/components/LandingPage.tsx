@@ -103,7 +103,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
       {/* ── Navbar — full width ── */}
       <nav className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="w-full px-16 h-14 flex items-center justify-between">
+        <div className="w-full px-4 sm:px-8 lg:px-16 h-14 flex items-center justify-between">
           {/* Brand */}
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
@@ -124,7 +124,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
           </div>
 
           {/* Right actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden md:flex items-center gap-1 text-[10px] text-gray-400">
               <MapPin size={10} />
               Kota Batu, Jawa Timur
@@ -139,13 +139,13 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
             </button>
             <button
               onClick={onLogin}
-              className="px-4 py-1.5 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-3 sm:px-4 py-1.5 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
             >
               Masuk
             </button>
             <button
               onClick={onRegister}
-              className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+              className="px-3 sm:px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap"
             >
               Daftar Petugas
             </button>
@@ -155,16 +155,16 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
       {/* ── Hero — full bleed dengan split layout ── */}
       <section className="w-full bg-white">
-        <div className="w-full px-16 py-16 grid grid-cols-2 gap-20 items-center">
+        <div className="w-full px-4 sm:px-8 lg:px-16 py-12 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-center">
 
           {/* Left: copy — dipusatkan & diperbesar */}
-          <div className="flex flex-col justify-center pl-8">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 mb-8 w-fit">
+          <div className="flex flex-col justify-center lg:pl-8">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 mb-8 w-fit flex-wrap">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               Data Terverifikasi BPS • {iphSnapshot.syncedAt}
             </div>
 
-            <h1 className="text-5xl font-black text-gray-900 leading-[1.1] mb-5">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] mb-5">
               Pantau Stabilitas<br />
               Harga Pangan<br />
               <span className="text-emerald-600">Kota Batu.</span>
@@ -176,17 +176,17 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
               Kota Batu secara transparan.
             </p>
 
-            <div className="flex items-center gap-4 mb-10">
+            <div className="flex flex-wrap items-center gap-4 mb-10">
               <button
                 onClick={onLogin}
-                className="flex items-center gap-2 px-7 py-3.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+                className="flex items-center gap-2 px-7 py-3.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex-1 sm:flex-none justify-center"
               >
                 Masuk sebagai Tamu
                 <ArrowRight size={15} />
               </button>
               <button
                 onClick={onLogin}
-                className="flex items-center gap-2 px-7 py-3.5 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-7 py-3.5 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors flex-1 sm:flex-none justify-center"
               >
                 Masuk sebagai Petugas
               </button>
@@ -278,14 +278,16 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
       {/* ── Stats bar — full width ── */}
       <section className="w-full bg-gray-950 border-y border-gray-800">
-        <div className="w-full px-16 py-6 grid grid-cols-4">
+        <div className="w-full px-4 sm:px-8 lg:px-16 py-6 grid grid-cols-2 lg:grid-cols-4 gap-y-6">
           {stats.map(({ value, label, desc }, i) => (
             <div
               key={label}
-              className={`text-center px-8 ${i < 3 ? "border-r border-gray-800" : ""}`}
+              className={`text-center px-4 sm:px-8 ${
+                i % 2 === 0 && i < 2 ? "border-r border-gray-800" : ""
+              } ${i < 3 ? "lg:border-r" : ""}`}
             >
-              <div className="text-3xl font-black text-white mb-0.5">{value}</div>
-              <div className="text-sm font-semibold text-gray-300">{label}</div>
+              <div className="text-2xl sm:text-3xl font-black text-white mb-0.5">{value}</div>
+              <div className="text-xs sm:text-sm font-semibold text-gray-300">{label}</div>
               <div className="text-[10px] text-gray-600 mt-0.5">{desc}</div>
             </div>
           ))}
@@ -293,19 +295,19 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
       </section>
 
       {/* ── Features — full width 3-col ── */}
-      <section className="w-full bg-white py-14">
-        <div className="w-full px-16">
+      <section className="w-full bg-white py-12 lg:py-14">
+        <div className="w-full px-4 sm:px-8 lg:px-16">
           {/* Header */}
-          <div className="flex items-end justify-between mb-10">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
             <div>
               <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest mb-2">
                 Informasi Publik Terbuka
               </p>
-              <h2 className="text-2xl font-black text-gray-900">
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900">
                 Informasi harga pangan,<br />transparan dan terbuka.
               </h2>
             </div>
-            <div className="text-right">
+            <div className="lg:text-right">
               <p className="text-sm text-gray-400 mb-3">Tanpa pendaftaran — cukup masuk sebagai tamu.</p>
               <button
                 onClick={onLogin}
@@ -317,11 +319,11 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
           </div>
 
           {/* Feature cards — fills full width */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {features.map(({ icon, bg, border, title, desc, points }) => (
               <div
                 key={title}
-                className={`bg-white border-2 ${border} rounded-2xl p-7 hover:shadow-md transition-all group`}
+                className={`bg-white border-2 ${border} rounded-2xl p-6 sm:p-7 hover:shadow-md transition-all group`}
               >
                 <div className={`w-11 h-11 rounded-2xl ${bg} flex items-center justify-center mb-5`}>
                   {icon}
@@ -343,13 +345,13 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
       </section>
 
       {/* ── Petugas CTA — full bleed dark ── */}
-      <section className="w-full bg-gray-950 py-14">
-        <div className="w-full px-16 grid grid-cols-2 gap-16 items-center">
+      <section className="w-full bg-gray-950 py-10 lg:py-14">
+        <div className="w-full px-4 sm:px-8 lg:px-16 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           <div>
             <p className="text-[11px] text-emerald-400 font-bold uppercase tracking-widest mb-3">
               Untuk Aparatur & Petugas TPID
             </p>
-            <h2 className="text-2xl font-black text-white mb-4 leading-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-white mb-4 leading-tight">
               Akses penuh sistem<br />pengendalian inflasi daerah.
             </h2>
             <p className="text-sm text-gray-400 leading-relaxed max-w-lg">
@@ -383,9 +385,9 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
       {/* ── Footer — full width ── */}
       <footer className="w-full bg-white border-t border-gray-100 py-6">
-        <div className="w-full px-16 flex items-center justify-between">
+        <div className="w-full px-4 sm:px-8 lg:px-16 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center flex-shrink-0">
               <TrendingDown size={11} className="text-white" />
             </div>
             <span className="text-xs text-gray-500 font-medium">

@@ -226,10 +226,10 @@ export default function InputRekapIPH() {
   // ── Main form ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6 space-y-5 bg-gray-50 min-h-full">
+    <div className="p-4 sm:p-6 space-y-5 bg-gray-50 min-h-full">
 
       {/* Page header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h1 className="text-base font-bold text-gray-900">Input Rekap IPH</h1>
           <p className="text-xs text-gray-400 mt-0.5">

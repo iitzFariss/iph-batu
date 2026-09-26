@@ -1,10 +1,13 @@
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
 import {
@@ -16,6 +19,7 @@ import {
 import {
   commodities,
   commodityFrequency,
+  iphTrend,
   type Commodity,
 } from "../data/Mockdata";
 import WeeklyDataTable from "./WeeklyDataTable";
@@ -65,7 +69,7 @@ function ChangeCell({ change }: { change: number }) {
 function HeroMetrics() {
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-5 mb-4">
-      <div className="flex items-center gap-1.5 mb-3">
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
         <span className="text-sm text-gray-500">Sinkronisasi BPS • </span>
         <span className="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
@@ -90,6 +94,78 @@ function HeroMetrics() {
             <span className="text-4xl font-black text-gray-900 tracking-tight">-0.42%</span>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TrendChart() {
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl p-4">
+      <div className="flex items-start justify-between mb-1 flex-wrap gap-2">
+        <div>
+          <h2 className="text-sm font-bold text-gray-900">
+            Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
+          </h2>
+          <p className="text-sm text-gray-400">
+            Pergerakan kumulatif komoditas strategis Kota Batu per minggu (Baseline 0.00%)
+          </p>
+        </div>
+        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1">
+          2026
+        </span>
+      </div>
+
+      <div className="h-64 mt-3">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={iphTrend} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: "#9ca3af", fontSize: 10 }}
+              axisLine={{ stroke: "#e5e7eb" }}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fill: "#9ca3af", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}%`}
+              domain={[-1.0, 1.6]}
+            />
+            <Tooltip
+              contentStyle={{
+                borderRadius: 8,
+                border: "1px solid #e5e7eb",
+                fontSize: 12,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              }}
+              formatter={(value) => [
+                `${(value as number) > 0 ? "+" : ""}${(value as number).toFixed(2)}%`,
+                "IPH",
+              ]}
+            />
+            <ReferenceLine
+              y={0}
+              stroke="#d1d5db"
+              strokeWidth={1}
+              label={{
+                value: "0.00%",
+                fill: "#6b7280",
+                fontSize: 10,
+                position: "insideTopLeft",
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey="iph"
+              stroke="#10b981"
+              strokeWidth={2.5}
+              dot={{ fill: "#10b981", r: 3, strokeWidth: 1, stroke: "#fff" }}
+              activeDot={{ r: 5 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -238,6 +314,7 @@ export default function Dashboard() {
 
       <div className="space-y-4">
         <CommodityTable />
+        <TrendChart />
         <FrequencyChart />
         <WeeklyDataTable />
       </div>
