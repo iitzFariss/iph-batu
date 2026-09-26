@@ -111,7 +111,7 @@ function TrendChart() {
             Pergerakan kumulatif komoditas strategis Kota Batu per minggu (Baseline 0.00%)
           </p>
         </div>
-        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1">
+        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
           2026
         </span>
       </div>
@@ -174,14 +174,14 @@ function TrendChart() {
 function FrequencyChart() {
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
-      <div className="flex items-start justify-between mb-1">
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
         <div>
           <h2 className="text-sm font-bold text-gray-900">Frekuensi Kemunculan Komoditas</h2>
           <p className="text-sm text-gray-400">
             Berapa kali komoditas muncul dalam pemantauan pekan ini (2026)
           </p>
         </div>
-        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1">
+        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
           2026
         </span>
       </div>
@@ -192,10 +192,13 @@ function FrequencyChart() {
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
               dataKey="name"
-              tick={{ fill: "#9ca3af", fontSize: 10 }}
+              tick={{ fill: "#9ca3af", fontSize: 9 }}
               axisLine={{ stroke: "#e5e7eb" }}
               tickLine={false}
               interval={0}
+              angle={-35}
+              textAnchor="end"
+              height={46}
             />
             <YAxis
               allowDecimals={false}
@@ -229,14 +232,14 @@ function CommodityTable() {
 
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
-      <div className="flex items-start justify-between mb-1">
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
         <div>
           <h2 className="text-sm font-bold text-gray-900">Komoditas Pangan Utama Kota Batu</h2>
           <p className="text-sm text-gray-400">
             3 komoditas dengan kenaikan tertinggi pekan ini di Pasar Besar Kota Batu
           </p>
         </div>
-        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1">
+        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
           Minggu III April 2026
         </span>
       </div>

@@ -31,7 +31,7 @@ export default function Error404({ onGoHome, onGoBack }: Error404Props) {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
       {/* Top bar */}
-      <nav className="border-b border-gray-200 px-8 h-14 flex items-center justify-between flex-shrink-0">
+      <nav className="border-b border-gray-200 px-4 sm:px-8 h-14 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
             <TrendingDown size={14} className="text-white" />
@@ -52,12 +52,12 @@ export default function Error404({ onGoHome, onGoBack }: Error404Props) {
       </nav>
 
       {/* Content */}
-      <div className="flex-1 flex items-center justify-center px-8 py-16">
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-8 py-8 sm:py-16">
         <div className="max-w-xl w-full text-center">
 
           {/* Big code */}
           <div className="rise-in">
-            <div className="text-[180px] font-black leading-none text-amber-400 opacity-10 select-none animate-float-y">
+            <div className="text-[96px] sm:text-[180px] font-black leading-none text-amber-400 opacity-10 select-none animate-float-y">
               404
             </div>
           </div>
@@ -87,10 +87,10 @@ export default function Error404({ onGoHome, onGoBack }: Error404Props) {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-center gap-3 mb-10 rise-in-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-10 rise-in-3">
             <button
               onClick={onGoHome}
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors"
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors w-full sm:w-auto"
             >
               <Home size={14} />
               Kembali ke Dashboard
@@ -98,7 +98,7 @@ export default function Error404({ onGoHome, onGoBack }: Error404Props) {
             {onGoBack && (
               <button
                 onClick={onGoBack}
-                className="flex items-center gap-2 px-6 py-3 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-100 transition-colors w-full sm:w-auto"
               >
                 <ArrowLeft size={14} />
                 Halaman Sebelumnya
@@ -111,7 +111,7 @@ export default function Error404({ onGoHome, onGoBack }: Error404Props) {
             <p className="text-[10px] text-gray-500 uppercase tracking-widest font-semibold mb-3">
               Atau pergi ke
             </p>
-            <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-sm mx-auto">
               {[
                 { label: "Dashboard",        desc: "Beranda utama sistem"   },
                 { label: "Rekapan Data",     desc: "Arsip data IPH"         },
@@ -132,7 +132,7 @@ export default function Error404({ onGoHome, onGoBack }: Error404Props) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 px-8 py-4 flex items-center justify-between">
+      <div className="border-t border-gray-200 px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center sm:justify-between gap-1 text-center sm:text-left">
         <span className="text-[11px] text-gray-400">© 2026 TPID Kota Batu • Bagian Perekonomian Setda</span>
         <span className="text-[11px] text-gray-400">Kode Error: HTTP 404</span>
       </div>

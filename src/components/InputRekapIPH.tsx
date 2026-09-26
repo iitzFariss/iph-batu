@@ -169,8 +169,8 @@ export default function InputRekapIPH() {
   if (submitted) {
     const indikator = parseNum(form.indikator);
     return (
-      <div className="flex items-center justify-center min-h-full bg-gray-50 p-8">
-        <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center max-w-md w-full shadow-sm">
+      <div className="flex items-center justify-center min-h-full bg-gray-50 p-4 sm:p-8">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 sm:p-8 text-center max-w-md w-full shadow-sm">
           <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-5">
             <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -204,7 +204,7 @@ export default function InputRekapIPH() {
             )}
           </div>
 
-          <div className="flex flex-wrap justify-center gap-3">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
             <button
               onClick={handleReset}
               className="px-5 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
@@ -453,7 +453,7 @@ export default function InputRekapIPH() {
       {/* Modal: Tambah Komoditas */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden">
             <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
               <div>
                 <h3 className="text-sm font-bold text-gray-900">Tambah Komoditas Baru</h3>
@@ -469,7 +469,7 @@ export default function InputRekapIPH() {
               </button>
             </div>
 
-            <div className="px-5 py-4 space-y-3">
+            <div className="px-5 py-4 space-y-3 overflow-y-auto">
               {addError && (
                 <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl">
                   <X size={11} className="text-red-500 flex-shrink-0" />
@@ -513,23 +513,23 @@ export default function InputRekapIPH() {
       )}
 
       {/* Footer actions */}
-      <div className="flex items-center justify-between pt-1 pb-6">
+      <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 pt-1 pb-6">
         <button
           onClick={handleReset}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors self-start sm:self-auto"
         >
           Reset Form
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => console.log("Draft disimpan", form)}
-            className="px-4 py-2 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex-1 sm:flex-none"
           >
             Simpan Draft
           </button>
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors flex-1 sm:flex-none"
           >
             Simpan &amp; Kirim Rekap
           </button>

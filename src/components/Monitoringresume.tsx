@@ -439,16 +439,16 @@ export default function MonitoringResume() {
         </div>
 
         {/* Risalah document */}
-        <div className="p-6 max-w-2xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           {/* Kop */}
           <div className="text-center mb-5">
-            <div className="text-sm text-gray-500 font-medium tracking-wide mb-0.5">
+            <div className="text-xs sm:text-sm text-gray-500 font-medium tracking-wide mb-0.5">
               PEMERINTAH KOTA BATU • SEKRETARIAT DAERAH
             </div>
-            <div className="text-base font-black text-gray-900 tracking-wide">
+            <div className="text-sm sm:text-base font-black text-gray-900 tracking-wide">
               TIM PENGENDALI INFLASI DAERAH (TPID)
             </div>
-            <div className="text-sm text-gray-500 font-semibold tracking-widest mt-0.5">
+            <div className="text-xs sm:text-sm text-gray-500 font-semibold tracking-wide sm:tracking-widest mt-0.5">
               RISALAH RESMI / NOMOR: {previewData.nomor}
             </div>
           </div>
@@ -491,16 +491,16 @@ export default function MonitoringResume() {
           </p>
 
           {/* Footer */}
-          <div className="flex items-end justify-between pt-4 border-t border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-4 border-t border-gray-100">
             <div>
               <div className="text-xs text-gray-500 font-medium">
                 Divalidasi Digital: {previewData.divalidasiOleh}
               </div>
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-gray-400 break-all">
                 Token Keabsahan: {previewData.token}
               </div>
             </div>
-            <div className="text-right">
+            <div className="sm:text-right">
               <div className="text-xs font-bold text-gray-900">{previewData.notulis}</div>
               <div className="text-xs text-gray-400">Notulis Rapat TPID Kota Batu</div>
             </div>
@@ -637,17 +637,17 @@ export default function MonitoringResume() {
             </div>
 
             {/* Footer modal */}
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
               <button
                 onClick={closeResumeModal}
-                className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 w-full sm:w-auto"
               >
                 Batal
               </button>
               <button
                 onClick={saveResume}
                 disabled={saving || !form.ringkasan.trim() || poins.every((p) => !p.trim())}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto"
               >
                 <FilePlus size={12} />
                 Simpan Resume Rapat

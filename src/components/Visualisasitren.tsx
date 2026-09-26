@@ -276,7 +276,7 @@ export default function VisualisasiTren() {
       </div>
 
       {/* Chart card */}
-      <div className="mx-4 sm:mx-6 mt-4 bg-white border border-gray-200 rounded-2xl p-5">
+      <div className="mx-4 sm:mx-6 mt-4 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
           <div>
             <h2 className="text-base font-black text-gray-900 mb-0.5">
@@ -329,24 +329,32 @@ export default function VisualisasiTren() {
                 y={0}
                 stroke="#d1d5db"
                 strokeWidth={1}
-                label={{
-                  value: "0.00% Titik Keseimbangan Normal",
-                  fill: "#6b7280",
-                  fontSize: 10,
-                  position: "insideTopLeft",
-                }}
+                label={
+                  window.innerWidth < 640
+                    ? { value: "0.00%", fill: "#6b7280", fontSize: 9, position: "insideBottomLeft" }
+                    : {
+                        value: "0.00% Titik Keseimbangan Normal",
+                        fill: "#6b7280",
+                        fontSize: 10,
+                        position: "insideBottomLeft",
+                      }
+                }
               />
               <ReferenceLine
                 y={1.5}
                 stroke="#ef4444"
                 strokeDasharray="4 3"
                 strokeWidth={1.5}
-                label={{
-                  value: "Ambang Waspada Kemendagri (+1.50%)",
-                  fill: "#ef4444",
-                  fontSize: 9,
-                  position: "insideTopRight",
-                }}
+                label={
+                  window.innerWidth < 640
+                    ? { value: "+1.50%", fill: "#ef4444", fontSize: 9, position: "insideTopRight" }
+                    : {
+                        value: "Ambang Waspada Kemendagri (+1.50%)",
+                        fill: "#ef4444",
+                        fontSize: 9,
+                        position: "insideTopRight",
+                      }
+                }
               />
               {selectedYears.map((y) => (
                 <Line
@@ -368,7 +376,7 @@ export default function VisualisasiTren() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-4 pt-4 border-t border-gray-100">
           {(
             [
               { label: "IPH Minggu III April", value: "-0.42%",     sub: "Deflasi Ringan",  color: "text-emerald-600" },
@@ -377,11 +385,11 @@ export default function VisualisasiTren() {
               { label: "Stabilitas Pasar",     value: "Terkendali", sub: "(0.31)",          color: "text-emerald-600" },
             ] as const
           ).map(({ label, value, sub, color }) => (
-            <div key={label} className="text-center">
-              <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">{label}</div>
-              <div className={`text-lg font-black ${color}`}>
+            <div key={label} className="text-center min-w-0">
+              <div className="text-[11px] sm:text-xs text-gray-500 mb-1 uppercase tracking-wide leading-tight">{label}</div>
+              <div className={`text-base sm:text-lg font-black leading-tight ${color}`}>
                 {value}
-                {sub && <span className="text-xs font-normal text-gray-400 ml-1">{sub}</span>}
+                {sub && <span className="text-[10px] sm:text-xs font-normal text-gray-400 ml-1">{sub}</span>}
               </div>
             </div>
           ))}
@@ -404,8 +412,9 @@ export default function VisualisasiTren() {
             </span>
           </div>
 
-          <table className="w-full">
-            <thead>
+          <div className="overflow-x-auto -mx-4 px-4">
+            <table className="w-full min-w-[520px]">
+              <thead>
               <tr className="border-b border-gray-200">
                 {(["Minggu", "IPH", "Status", "Pemicu Utama"] as const).map((col) => (
                   <th
@@ -464,7 +473,8 @@ export default function VisualisasiTren() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-500">20 komoditas terverifikasi</span>
@@ -516,7 +526,7 @@ export default function VisualisasiTren() {
       </div>
 
       {/* Footer */}
-      <div className="mx-6 mb-6 py-3 border-t border-gray-200 text-center">
+      <div className="mx-4 sm:mx-6 mb-6 py-3 border-t border-gray-200 text-center">
         <span className="text-xs text-gray-500">
           © 2026 Tim Pengendali Inflasi Daerah (TPID) Kota Batu • Badan Pusat Statistik Kota Batu
           • Dinas Koperasi, Usaha Mikro, Perindustrian dan Perdagangan Kota Batu

@@ -377,7 +377,7 @@ export default function RekapanData() {
   return (
     <div className="p-4 sm:p-5 space-y-4 w-full">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-400">
+      <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-400">
         <span className="hover:text-gray-600 cursor-pointer">TPID Terpadu</span>
         <ChevronRight size={10} />
         <span className="hover:text-gray-600 cursor-pointer">Basis Data Inflasi</span>
@@ -433,17 +433,17 @@ export default function RekapanData() {
             Filter Lanjutan
           </button>
 
-          <div className="flex-1" />
-
           {/* Export */}
-          <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
+          <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 flex-1 sm:flex-none justify-center">
             <FileDown size={13} className="text-red-500" />
             Export PDF Resmi
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+          <button className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex-1 sm:flex-none justify-center">
             <Sheet size={13} />
             Download CSV / Excel
           </button>
+          </div>
         </div>
 
         {/* Filter tabs */}

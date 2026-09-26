@@ -106,16 +106,16 @@ export default function KelolaRapat() {
   return (
     <div className="p-4 sm:p-5 space-y-5 w-full">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-gray-400">
+      <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-gray-400">
         <span className="hover:text-gray-600 cursor-pointer">Dashboard</span>
-        <ChevronRight size={10} />
+        <ChevronRight size={10} className="flex-shrink-0" />
         <span className="hover:text-gray-600 cursor-pointer">Koordinasi &amp; Kegiatan</span>
-        <ChevronRight size={10} />
+        <ChevronRight size={10} className="flex-shrink-0" />
         <span className="text-gray-700 font-medium">Kelola Rapat TPID</span>
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-gray-900 mb-1">
             Kelola Jadwal &amp; Agenda Rapat TPID
@@ -125,14 +125,14 @@ export default function KelolaRapat() {
             resume, dan distribusi radiogram.
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50">
+        <div className="flex items-center gap-2 flex-shrink-0 w-full lg:w-auto">
+          <button className="flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex-1 lg:flex-none">
             <RefreshCw size={12} className="text-emerald-600" />
-            Sinkron Google Calendar
+            <span>Sinkron Google Calendar</span>
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50">
+          <button className="flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex-1 lg:flex-none">
             <Printer size={12} />
-            Cetak Jadwal Mingguan
+            <span>Cetak Jadwal Mingguan</span>
           </button>
         </div>
       </div>
@@ -292,10 +292,10 @@ export default function KelolaRapat() {
 
       {/* Daftar Agenda */}
       <div className="bg-white border border-gray-100 rounded-xl p-5">
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
           <div>
             <h2 className="text-sm font-bold text-gray-900">Daftar Agenda Rapat Terjadwal</h2>
-            <p className="text-sm text-gray-400">
+            <p className="text-xs sm:text-sm text-gray-400">
               Monitoring jadwal berkala, notulensi resume, dan distribusi hasil rapat koordinasi.
             </p>
           </div>
@@ -304,18 +304,19 @@ export default function KelolaRapat() {
             <input
               type="text"
               placeholder="Filter topik rapat..."
-              className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 w-44"
+              className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 w-full sm:w-44"
             />
           </div>
         </div>
 
         {/* Filter tabs */}
-        <div className="flex items-center gap-1.5 mb-4">
+        <div className="overflow-x-auto -mx-5 px-5">
+          <div className="flex items-center gap-1.5 mb-4 w-max">
           {tabs.map(({ key, label, count }) => (
             <button
               key={key}
               onClick={() => setFilterTab(key)}
-              className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap shrink-0 ${
                 filterTab === key
                   ? "bg-gray-900 text-white"
                   : key === "menunggu"
@@ -326,6 +327,7 @@ export default function KelolaRapat() {
               {label} ({count})
             </button>
           ))}
+          </div>
         </div>
 
         {/* Agenda cards */}
@@ -341,12 +343,12 @@ export default function KelolaRapat() {
                     : "border-gray-100 hover:border-gray-200"
                 } transition-colors`}
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     {/* ID + date + time */}
-                    <div className="flex items-center gap-2 mb-1.5">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
                       <span
-                        className={`text-xs font-bold px-2 py-0.5 rounded ${
+                        className={`text-xs font-bold px-2 py-0.5 rounded min-w-0 ${
                           item.status === "belum-diisi"
                             ? "bg-red-100 text-red-700"
                             : "bg-gray-100 text-gray-600"
@@ -401,13 +403,13 @@ export default function KelolaRapat() {
                   </div>
 
                   {/* Right: status + actions */}
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <div className="flex flex-row sm:flex-col sm:items-end items-center justify-between gap-2 flex-shrink-0 w-full sm:w-auto">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${cfg.cls}`}>
                       {cfg.icon}
                       {cfg.label}
                     </span>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
                       {item.status !== "belum-diisi" && (
                         <>
                           <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">
@@ -448,8 +450,8 @@ export default function KelolaRapat() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
-          <span className="text-sm text-gray-400">Menampilkan 3 dari 18 agenda rapat</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-4 border-t border-gray-50">
+          <span className="text-xs sm:text-sm text-gray-400">Menampilkan 3 dari 18 agenda rapat</span>
           <div className="flex items-center gap-1">
             <button className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:bg-gray-100">
               <ChevronLeft size={12} />
@@ -474,12 +476,12 @@ export default function KelolaRapat() {
 
       {/* Status Pengiriman Radiogram */}
       <div className="bg-white border border-gray-100 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             <FileText size={14} className="text-emerald-600" />
-            <span className="text-sm font-bold text-gray-900">Status Pengiriman Radiogram Terakhir</span>
+            <span className="text-xs sm:text-sm font-bold text-gray-900">Status Pengiriman Radiogram Terakhir</span>
           </div>
-          <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
+          <button className="text-xs sm:text-sm text-emerald-600 font-semibold hover:text-emerald-700 self-start sm:self-auto">
             Lihat Log Transmisi
           </button>
         </div>
