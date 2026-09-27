@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {
       success: true,
       message:
-        "Pendaftaran berhasil. Akun petugas memerlukan verifikasi oleh Administrator TPID sebelum dapat digunakan.",
+        "Pendaftaran berhasil. Akun petugas Anda akan diverifikasi dan diaktifkan oleh Administrator TPID melalui menu Kelola Pegawai sebelum dapat digunakan.",
     };
   }
 

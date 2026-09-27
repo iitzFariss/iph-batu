@@ -38,7 +38,7 @@ const roleCards: RoleCard[] = [
     key: "petugas",
     label: "Petugas TPID",
     desc: "Aparatur pemerintah / OPD",
-    permissions: ["Input & verifikasi data IPH", "Kelola rapat & notulensi", "Visualisasi tren", "Kirim siaran pers"],
+    permissions: ["Rekapan data & monitoring IPH", "Verifikasi notulensi rapat", "Visualisasi tren", "Analisis & distribusi siaran pers"],
     restrictions: ["Tidak dapat mengelola akun pengguna"],
     icon: "👤",
     color: "text-emerald-700",

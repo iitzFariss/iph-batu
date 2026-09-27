@@ -37,7 +37,7 @@ const roleOptions: RoleOption[] = [
   {
     key: "petugas",
     label: "Petugas TPID",
-    desc: "Input data & verifikasi IPH",
+    desc: "Monitoring data & verifikasi IPH",
     color: "text-emerald-700",
     bg: "bg-emerald-50",
     border: "border-emerald-200",
@@ -228,7 +228,7 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
               <p className={`text-sm font-bold ${activeRole.color}`}>{activeRole.label}</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {selectedRole === "admin" && "Akses penuh: manajemen pengguna, konfigurasi sistem, semua modul data."}
-                {selectedRole === "petugas" && "Akses: input rekap IPH, kelola rapat, monitoring resume, visualisasi data."}
+                {selectedRole === "petugas" && "Akses: rekapan & monitoring data IPH, verifikasi notulensi rapat, visualisasi tren, dan analisis siaran pers."}
                 {selectedRole === "tamu" && "Masuk langsung tanpa kredensial — lihat dashboard dan data publik."}
               </p>
             </div>
