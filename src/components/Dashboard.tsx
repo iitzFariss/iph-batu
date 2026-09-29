@@ -117,13 +117,14 @@ function TrendChart() {
         </span>
       </div>
 
-      <div className="h-64 mt-3">
+      <div className="overflow-x-auto mt-3 pb-1">
+        <div className="min-w-[760px] h-96">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={iphTrend} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fill: "#9ca3af", fontSize: 10 }}
+              tick={{ fill: "#9ca3af", fontSize: 15 }}
               axisLine={{ stroke: "#e5e7eb" }}
               tickLine={false}
             />
@@ -167,6 +168,7 @@ function TrendChart() {
             />
           </LineChart>
         </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );

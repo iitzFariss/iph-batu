@@ -255,7 +255,7 @@ export default function VisualisasiTren() {
 
         <div className="ml-auto flex items-center gap-2">
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-100">
-            <Share2 size={12} />
+            <Share2 size={15} />
           </button>
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-100">
             Opsi Ekspor &amp; Data
@@ -306,15 +306,16 @@ export default function VisualisasiTren() {
         </div>
 
         {/* Recharts Line Chart */}
-        <div className="h-64">
+        <div className="overflow-x-auto pb-1">
+        <div className="min-w-[820px] h-96 sm:h-[28rem]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart margin={{ top: 10, right: 20, bottom: 0, left: 10 }}>
+            <LineChart margin={{ top: 10, right: 16, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis
                 dataKey="label"
                 type="category"
                 allowDuplicatedCategory={false}
-                tick={{ fill: "#9ca3af", fontSize: 10 }}
+                tick={{ fill: "#9ca3af", fontSize: 12 }}
                 axisLine={{ stroke: "#e5e7eb" }}
                 tickLine={false}
               />
@@ -374,6 +375,7 @@ export default function VisualisasiTren() {
               ))}
             </LineChart>
           </ResponsiveContainer>
+        </div>
         </div>
 
         {/* Stats row */}
