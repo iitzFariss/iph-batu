@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Target produksi: PostgreSQL (BPS). Ganti provider + DATABASE_URL di .env
+// menjadi "postgresql" untuk produksi. Model di bawah kompatibel keduanya
+// (string-based enum agar portable; bila Postgres, bisa di-migrasi ke enum native).
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth ───────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  emailNorm String   @unique // email lowercase for case-insensitive lookup
+  password  String
+  role      String   @default("petugas") // admin | petugas | tamu
+  status    String   @default("pending") // pending | aktif | nonaktif
+  instansiId String?
+  instansi  Instansi? @relation(fields: [instansiId], references: [id], onDelete: SetNull)
+  nip       String?
+  phone     String?
+  bio       String?
+  auditLog  Boolean  @default(true)
+  preferences String @default("{}") // JSON string
+  lastLoginAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  sessions Session[]
+  pegawai  Pegawai?
+  rekaps   Rekap[]   @relation("RekapCreatedBy")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash String
+  device    String?
+  ip        String?
+  userAgent String?
+  lastActiveAt DateTime @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+}
+
+// ─── Master data ────────────────────────────────────────────────────────
+model Instansi {
+  id     String @id @default(cuid())
+  nama   String @unique
+  createdAt DateTime @default(now())
+
+  users User[]
+  pegawais Pegawai[]
+}
+
+model Komoditas {
+  id        String   @id @default(cuid())
+  nama      String   @unique
+  namaNorm  String   @unique // lowercase for case-insensitive dedupe
+  unit      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  details RekapDetail[]
+}
+
+model Pegawai {
+  id          String   @id @default(cuid())
+  name        String
+  nip         String   @unique
+  instansiId  String?
+  instansi    Instansi? @relation(fields: [instansiId], references: [id], onDelete: SetNull)
+  instansiSub String?
+  peran       String
+  peranIcon   String?
+  email       String?
+  status      String   @default("aktif") // aktif | nonaktif | cuti
+  userId      String?  @unique
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Rekap IPH ──────────────────────────────────────────────────────────
+model Rekap {
+  id           String   @id @default(cuid())
+  tahun        Int
+  bulan        Int // 1..12
+  mingguIndeks Int // 1..5
+  indikator    Float
+  status       String   @default("submitted") // draft | submitted
+  createdById  String
+  createdBy    User     @relation("RekapCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  details RekapDetail[]
+
+  @@unique([tahun, bulan, mingguIndeks])
+}
+
+model RekapDetail {
+  id          String    @id @default(cuid())
+  rekapId     String
+  rekap       Rekap     @relation(fields: [rekapId], references: [id], onDelete: Cascade)
+  komoditasId String
+  komoditas   Komoditas @relation(fields: [komoditasId], references: [id])
+  nilai       Float // andil (persen poin)
+  isFluktuasi Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
