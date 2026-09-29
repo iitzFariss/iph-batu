@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Shield,
   Bell,
@@ -10,11 +10,11 @@ import {
   ChevronRight,
   Monitor,
   Smartphone,
-  Globe,
   Trash2,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { api, ApiError } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,12 +23,14 @@ interface ToggleProps {
   onChange: () => void;
 }
 
-interface SessionItem {
+interface SessionRow {
+  id: string;
   device: string;
-  location: string;
-  lastActive: string;
-  current: boolean;
-  icon: React.ReactNode;
+  ip: string;
+  userAgent: string;
+  lastActiveAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -80,31 +82,25 @@ function SectionCard({
   );
 }
 
-// ─── Mock session data ────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const sessions: SessionItem[] = [
-  {
-    device: "Chrome · Windows 11",
-    location: "Kota Batu, Jawa Timur",
-    lastActive: "Sekarang",
-    current: true,
-    icon: <Monitor size={14} className="text-emerald-600" />,
-  },
-  {
-    device: "Chrome · Android",
-    location: "Kota Batu, Jawa Timur",
-    lastActive: "2 jam lalu",
-    current: false,
-    icon: <Smartphone size={14} className="text-gray-500" />,
-  },
-  {
-    device: "Firefox · macOS",
-    location: "Malang, Jawa Timur",
-    lastActive: "1 hari lalu",
-    current: false,
-    icon: <Globe size={14} className="text-gray-500" />,
-  },
-];
+function formatLastActive(iso: string): string {
+  const t = new Date(iso);
+  const diffMs = Date.now() - t.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Sekarang";
+  if (mins < 60) return `${mins} menit lalu`;
+  if (mins < 1440) return `${Math.floor(mins / 60)} jam lalu`;
+  return `${Math.floor(mins / 1440)} hari lalu`;
+}
+
+function deviceLabel(userAgent: string | null, device: string): string {
+  if (!userAgent) return device;
+  if (/Mobi|Android|iPhone/i.test(userAgent)) return `${device} · Perangkat Seluler`;
+  if (/Mac OS/.test(userAgent) && !/Windows/i.test(userAgent)) return `${device} · macOS`;
+  if (/Windows/i.test(userAgent)) return `${device} · Windows`;
+  return `${device} · Linux`;
+}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -134,12 +130,46 @@ export default function PengaturanAkun() {
     auditLog:      true,
   });
 
+  // Sessions
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+
   // Danger zone confirm
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    api
+      .get<{ rows: SessionRow[] }>("/auth/sessions")
+      .then(({ rows }) => setSessions(rows))
+      .catch(() => null);
+    api
+      .get<{ preferences?: Record<string, boolean> }>("/auth/me")
+      .then(({ preferences }) => {
+        if (!preferences) return;
+        setNotif((prev) => ({ ...prev, ...preferences }));
+        setPrivacy((prev) => ({ ...prev, ...preferences }));
+      })
+      .catch(() => null);
+  }, []);
 
   if (!user) return null;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
+
+  function persistPrefs(next: Record<string, boolean>) {
+    api.post("/auth/preferences", { preferences: next }).catch(() => null);
+  }
+
+  function toggleNotif(key: keyof typeof notif) {
+    const next = { ...notif, [key]: !notif[key] };
+    setNotif(next);
+    persistPrefs({ ...next, ...privacy });
+  }
+
+  function togglePrivacy(key: keyof typeof privacy) {
+    const next = { ...privacy, [key]: !privacy[key] };
+    setPrivacy(next);
+    persistPrefs({ ...notif, ...next });
+  }
 
   function handlePassSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -150,12 +180,38 @@ export default function PengaturanAkun() {
     if (passForm.newPass !== passForm.confirm) { setPassError("Konfirmasi kata sandi tidak cocok."); return; }
 
     setPassLoading(true);
-    setTimeout(() => {
-      setPassLoading(false);
-      setPassSaved(true);
-      setPassForm({ current: "", newPass: "", confirm: "" });
-      setTimeout(() => setPassSaved(false), 3000);
-    }, 900);
+    api
+      .post("/auth/change-password", {
+        passwordSaatIni: passForm.current,
+        passwordBaru: passForm.newPass,
+      })
+      .then(() => {
+        setPassSaved(true);
+        setPassForm({ current: "", newPass: "", confirm: "" });
+        setTimeout(() => setPassSaved(false), 3000);
+      })
+      .catch((e) => {
+        setPassError(e instanceof ApiError ? e.message : "Gagal memperbarui kata sandi.");
+      })
+      .finally(() => setPassLoading(false));
+  }
+
+  async function revokeSession(id: string) {
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    await api.post("/auth/sessions/revoke", { id }).catch(() => null);
+  }
+
+  async function revokeAllOthers() {
+    const others = sessions.filter((s) => !s.isCurrent);
+    setSessions(sessions.filter((s) => s.isCurrent));
+    for (const s of others) {
+      await api.post("/auth/sessions/revoke", { id: s.id }).catch(() => null);
+    }
+  }
+
+  async function deleteAccount() {
+    await api.delete("/auth/me").catch(() => null);
+    await logout();
   }
 
   const passStrength = (() => {
@@ -336,45 +392,57 @@ export default function PengaturanAkun() {
         icon={<Monitor size={15} className="text-gray-600" />}
       >
         <div className="space-y-3">
-          {sessions.map((s, i) => (
-            <div
-              key={i}
-              className={`flex items-center justify-between p-3 rounded-xl border ${
-                s.current
-                  ? "border-emerald-200 bg-emerald-50/50"
-                  : "border-gray-100 bg-gray-50/50"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  s.current ? "bg-emerald-100" : "bg-gray-100"
-                }`}>
-                  {s.icon}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-gray-900">{s.device}</span>
-                    {s.current && (
-                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
-                        Sesi Ini
-                      </span>
-                    )}
+          {sessions.length === 0 ? (
+            <div className="text-xs text-gray-400 py-3 text-center">Belum ada sesi aktif.</div>
+          ) : (
+            sessions.map((s) => (
+              <div
+                key={s.id}
+                className={`flex items-center justify-between p-3 rounded-xl border ${
+                  s.isCurrent
+                    ? "border-emerald-200 bg-emerald-50/50"
+                    : "border-gray-100 bg-gray-50/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    s.isCurrent ? "bg-emerald-100" : "bg-gray-100"
+                  }`}>
+                    {s.isCurrent
+                      ? <Monitor size={14} className="text-emerald-600" />
+                      : <Smartphone size={14} className="text-gray-500" />}
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5">
-                    {s.location} · {s.lastActive}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-gray-900">{deviceLabel(s.userAgent, s.device)}</span>
+                      {s.isCurrent && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                          Sesi Ini
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      IP {s.ip} · {formatLastActive(s.lastActiveAt)}
+                    </div>
                   </div>
                 </div>
+                {!s.isCurrent && (
+                  <button
+                    onClick={() => revokeSession(s.id)}
+                    className="text-xs text-red-500 font-semibold hover:text-red-700 flex items-center gap-1"
+                  >
+                    <LogOut size={10} />
+                    Akhiri
+                  </button>
+                )}
               </div>
-              {!s.current && (
-                <button className="text-xs text-red-500 font-semibold hover:text-red-700 flex items-center gap-1">
-                  <LogOut size={10} />
-                  Akhiri
-                </button>
-              )}
-            </div>
-          ))}
+            ))
+          )}
         </div>
-        <button className="mt-3 text-sm text-red-500 font-semibold hover:text-red-700 flex items-center gap-1">
+        <button
+          onClick={revokeAllOthers}
+          className="mt-3 text-sm text-red-500 font-semibold hover:text-red-700 flex items-center gap-1"
+        >
           <LogOut size={11} />
           Akhiri Semua Sesi Lain
         </button>
@@ -403,7 +471,7 @@ export default function PengaturanAkun() {
               </div>
               <Toggle
                 checked={notif[key]}
-                onChange={() => setNotif({ ...notif, [key]: !notif[key] })}
+                onChange={() => toggleNotif(key)}
               />
             </div>
           ))}
@@ -434,7 +502,7 @@ export default function PengaturanAkun() {
                 onChange={() => {
                   // auditLog cannot be turned off for petugas/admin
                   if (key === "auditLog" && user.role !== "tamu") return;
-                  setPrivacy({ ...privacy, [key]: !privacy[key] });
+                  togglePrivacy(key);
                 }}
               />
             </div>
@@ -473,7 +541,7 @@ export default function PengaturanAkun() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-red-600 font-semibold">Yakin?</span>
                   <button
-                    onClick={() => { logout(); }}
+                    onClick={deleteAccount}
                     className="px-3 py-1.5 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700"
                   >
                     Ya, Hapus

@@ -1,63 +1,42 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User, UserRole, AuthState } from "../types/auth";
+import { api, ApiError, clearTokens, getTokens, setTokens } from "../lib/api";
 
-// ─── Mock user accounts ───────────────────────────────────────────────────────
+// ─── Tipe data dari server ───────────────────────────────────────────────────
 
-interface MockAccount {
+interface ApiUser {
   id: string;
-  email: string;
-  password: string;
   name: string;
+  email: string;
   role: UserRole;
-  instansi?: string;
-  nip?: string;
+  status: string;
+  nip: string | null;
+  phone: string | null;
+  bio: string | null;
+  instansi: { id: string; nama: string } | null;
 }
 
-const MOCK_ACCOUNTS: MockAccount[] = [
-  {
-    id: "1",
-    email: "admin@tpid-batu.go.id",
-    password: "admin123",
-    name: "Administrator TPID",
-    role: "admin",
-    instansi: "TPID Kota Batu",
-    nip: "196501011990031001",
-  },
-  {
-    id: "2",
-    email: "siti.rahmawati@bps-batu.go.id",
-    password: "petugas123",
-    name: "Siti Rahmawati, S.E.",
-    role: "petugas",
-    instansi: "BPS Kota Batu",
-    nip: "198203142006042001",
-  },
-  {
-    id: "3",
-    email: "bambang@diskoperindag-batu.go.id",
-    password: "petugas123",
-    name: "Bambang Wijaya",
-    role: "petugas",
-    instansi: "Diskumperindag Kota Batu",
-    nip: "197708212003121002",
-  },
-  {
-    id: "4",
-    email: "tamu@tpid-batu.go.id",
-    password: "tamu123",
-    name: "Tamu TPID",
-    role: "tamu",
-  },
-];
+interface AuthResponse {
+  user: ApiUser;
+  accessToken: string;
+  refreshToken: string;
+}
+
+function toAppUser(u: ApiUser): User {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    instansi: u.instansi?.nama,
+    nip: u.nip ?? undefined,
+    phone: u.phone ?? undefined,
+    bio: u.bio ?? undefined,
+    status: u.status,
+  };
+}
 
 // ─── Context definition ───────────────────────────────────────────────────────
-
-interface AuthContextValue extends AuthState {
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  loginAsGuest: () => Promise<{ success: boolean; message: string }>;
-  register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
-  logout: () => void;
-}
 
 export interface RegisterData {
   name: string;
@@ -68,6 +47,15 @@ export interface RegisterData {
   nip?: string;
 }
 
+interface AuthContextValue extends AuthState {
+  loading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  loginAsGuest: () => Promise<{ success: boolean; message: string }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<boolean>;
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -75,73 +63,106 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: null,
     isAuthenticated: false,
   });
+  const [loading, setLoading] = useState(true);
+
+  const applyUser = useCallback((user: User) => {
+    setState({ user, isAuthenticated: true });
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { access, refresh } = getTokens();
+        if (!access && !refresh) return;
+        if (!access) {
+          const ok = await refreshTokensDirect();
+          if (!ok) return;
+        }
+        const data = await api.get<{ user: ApiUser }>("/auth/me");
+        applyUser(toAppUser(data.user));
+      } catch {
+        clearTokens();
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function refreshTokensDirect(): Promise<boolean> {
+    const { refresh } = getTokens();
+    if (!refresh) return false;
+    try {
+      const res = await fetch("/api/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: refresh }),
+      });
+      if (!res.ok) return false;
+      const data = (await res.json()) as { accessToken: string; refreshToken: string };
+      setTokens(data.accessToken, data.refreshToken);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   async function login(email: string, password: string) {
-    // Simulate network delay
-    await new Promise((r) => setTimeout(r, 800));
-
-    const account = MOCK_ACCOUNTS.find(
-      (a) => a.email.toLowerCase() === email.toLowerCase() && a.password === password
-    );
-
-    if (!account) {
-      return { success: false, message: "Email atau kata sandi tidak valid." };
+    try {
+      const data = await api.post<AuthResponse>("/auth/login", { email, password });
+      setTokens(data.accessToken, data.refreshToken);
+      applyUser(toAppUser(data.user));
+      return { success: true, message: "Login berhasil." };
+    } catch (e) {
+      return { success: false, message: e instanceof ApiError ? e.message : "Login gagal." };
     }
-
-    const user: User = {
-      id: account.id,
-      name: account.name,
-      email: account.email,
-      role: account.role,
-      instansi: account.instansi,
-      nip: account.nip,
-    };
-
-    setState({ user, isAuthenticated: true });
-    return { success: true, message: "Login berhasil." };
   }
 
   async function register(data: RegisterData) {
-    await new Promise((r) => setTimeout(r, 900));
-
-    const exists = MOCK_ACCOUNTS.find(
-      (a) => a.email.toLowerCase() === data.email.toLowerCase()
-    );
-    if (exists) {
-      return { success: false, message: "Email sudah terdaftar." };
+    try {
+      await api.post<{ message: string }>("/auth/register", data);
+      return {
+        success: true,
+        message:
+          "Pendaftaran berhasil. Akun petugas Anda akan diverifikasi dan diaktifkan oleh Administrator TPID melalui menu Kelola Pegawai sebelum dapat digunakan.",
+      };
+    } catch (e) {
+      return { success: false, message: e instanceof ApiError ? e.message : "Pendaftaran gagal." };
     }
-
-    return {
-      success: true,
-      message:
-        "Pendaftaran berhasil. Akun petugas Anda akan diverifikasi dan diaktifkan oleh Administrator TPID melalui menu Kelola Pegawai sebelum dapat digunakan.",
-    };
   }
 
   async function loginAsGuest() {
-    await new Promise((r) => setTimeout(r, 500));
-
-    const guest = MOCK_ACCOUNTS.find((a) => a.role === "tamu");
-    if (!guest) return { success: false, message: "Akun tamu tidak tersedia." };
-
-    const user: User = {
-      id: guest.id,
-      name: guest.name,
-      email: guest.email,
-      role: guest.role,
-    };
-    setState({ user, isAuthenticated: true });
-    return { success: true, message: "Berhasil masuk sebagai tamu." };
+    try {
+      const data = await api.post<AuthResponse>("/auth/guest");
+      setTokens(data.accessToken, data.refreshToken);
+      applyUser(toAppUser(data.user));
+      return { success: true, message: "Berhasil masuk sebagai tamu." };
+    } catch (e) {
+      return { success: false, message: e instanceof ApiError ? e.message : "Gagal masuk sebagai tamu." };
+    }
   }
 
-  function logout() {
-    setState({ user: null, isAuthenticated: false });
+  async function logout() {
+    try {
+      const { refresh } = getTokens();
+      if (refresh) {
+        await api.post("/auth/logout", { refreshToken: refresh }).catch(() => null);
+      }
+    } finally {
+      clearTokens();
+      setState({ user: null, isAuthenticated: false });
+    }
+  }
+
+  async function refresh() {
+    return refreshTokensDirect().then((ok) => {
+      if (!ok) setState({ user: null, isAuthenticated: false });
+      return ok;
+    });
   }
 
   return (
-    <AuthContext.Provider
-      value={{ ...state, login, loginAsGuest, register, logout }}
-    >
+    <AuthContext.Provider value={{ ...state, loading, login, loginAsGuest, register, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

@@ -13,6 +13,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { api, ApiError } from "../lib/api";
 import type { UserRole } from "../types/auth";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -41,16 +42,14 @@ const recentActivity = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ProfilSaya() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  // Editable fields (local state only — no real backend)
   const [displayName, setDisplayName] = useState(user?.name ?? "");
-  const [phone, setPhone]             = useState("0812-3456-7890");
-  const [bio, setBio]                 = useState(
-    "Petugas verifikator data IPH mingguan dan koordinator notulensi rapat TPID Kota Batu."
-  );
+  const [phone, setPhone]             = useState(user?.phone ?? "");
+  const [bio, setBio]                 = useState(user?.bio ?? "");
 
   if (!user) return null;
 
@@ -59,10 +58,21 @@ export default function ProfilSaya() {
     .map((n: string) => n[0])
     .join("").toUpperCase();
 
-  function handleSave() {
-    setEditMode(false);
-    setSavedMsg(true);
-    setTimeout(() => setSavedMsg(false), 3000);
+  async function handleSave() {
+    setErrorMsg("");
+    try {
+      await api.patch("/auth/me", {
+        name: displayName.trim(),
+        phone: phone.trim() || null,
+        bio: bio.trim() || null,
+      });
+      await refresh();
+      setEditMode(false);
+      setSavedMsg(true);
+      setTimeout(() => setSavedMsg(false), 3000);
+    } catch (e) {
+      setErrorMsg(e instanceof ApiError ? e.message : "Gagal memperbarui profil.");
+    }
   }
 
   return (
@@ -85,6 +95,13 @@ export default function ProfilSaya() {
         <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
           <CheckCircle2 size={13} className="text-emerald-600" />
           <span className="text-xs text-emerald-700 font-semibold">Profil berhasil diperbarui.</span>
+        </div>
+      )}
+
+      {/* Error message */}
+      {errorMsg && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <span className="text-xs text-red-700 font-semibold">{errorMsg}</span>
         </div>
       )}
 

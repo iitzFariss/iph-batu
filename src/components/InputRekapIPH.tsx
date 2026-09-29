@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Minus, X, TrendingDown, TrendingUp } from "lucide-react";
+import { api, ApiError } from "../lib/api";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,8 @@ const emptyForm = (): FormState => ({
   fluktuasi: emptyAndil(),
 });
 
+const monthIndex = (name: string) => Math.max(0, BULAN.indexOf(name))
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const parseNum = (val: string) => {
@@ -93,11 +96,26 @@ export default function InputRekapIPH() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const [komoditasList, setKomoditasList] = useState<string[]>(DEFAULT_KOMODITAS);
+  const [komoditasIds, setKomoditasIds] = useState<Record<string, string>>({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [newKomoditas, setNewKomoditas] = useState("");
   const [addError, setAddError] = useState("");
+
+  useEffect(() => {
+    api
+      .get<{ rows: { id: string; nama: string }[] }>("/komoditas")
+      .then(({ rows }) => {
+        setKomoditasList(rows.map((k) => k.nama));
+        setKomoditasIds(Object.fromEntries(rows.map((k) => [k.nama, k.id])));
+      })
+      .catch(() => {
+        setKomoditasList(DEFAULT_KOMODITAS);
+      });
+  }, []);
 
   const updateField = <K extends keyof FormState>(key: K, val: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -111,7 +129,7 @@ export default function InputRekapIPH() {
   const updateFluktuasi = (field: keyof KomoditasNilai, val: string) =>
     setForm((prev) => ({ ...prev, fluktuasi: { ...prev.fluktuasi, [field]: val } }));
 
-  const addKomoditas = () => {
+  const addKomoditas = async () => {
     const nama = newKomoditas.trim();
     if (!nama) {
       setAddError("Nama komoditas wajib diisi.");
@@ -121,14 +139,36 @@ export default function InputRekapIPH() {
       setAddError("Komoditas dengan nama tersebut sudah terdaftar.");
       return;
     }
-    setKomoditasList((prev) => [...prev, nama]);
-    setShowAddModal(false);
-    setNewKomoditas("");
-    setAddError("");
+    try {
+      const res = await api.post<{ komoditas: { id: string; nama: string } }>("/komoditas", { nama });
+      setKomoditasList((prev) => [...prev, res.komoditas.nama]);
+      setKomoditasIds((prev) => ({ ...prev, [res.komoditas.nama]: res.komoditas.id }));
+      setShowAddModal(false);
+      setNewKomoditas("");
+      setAddError("");
+    } catch (e) {
+      setAddError(e instanceof ApiError ? e.message : "Gagal menambahkan komoditas.");
+    }
   };
 
-  const removeKomoditas = (nama: string) =>
+  const removeKomoditas = async (nama: string) => {
+    const id = komoditasIds[nama];
+    if (!id) {
+      setKomoditasList((prev) => prev.filter((k) => k !== nama));
+      return;
+    }
+    try {
+      await api.delete(`/komoditas/${id}`);
+    } catch {
+      // tetap disinkronkan lokal
+    }
     setKomoditasList((prev) => prev.filter((k) => k !== nama));
+    setKomoditasIds((prev) => {
+      const rest = { ...prev };
+      delete rest[nama];
+      return rest;
+    });
+  };
 
   const isCommodityValid = (r: KomoditasNilai) =>
     r.nama.trim() !== "" && parseNum(r.nilai) !== null;
@@ -152,16 +192,38 @@ export default function InputRekapIPH() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
-    console.log("Submit rekap IPH:", form);
-    setSubmitted(true);
+    setBusy(true);
+    setSubmitError("");
+    const payload = {
+      tahun: parseInt(form.tahun, 10),
+      bulan: monthIndex(form.bulan) + 1,
+      mingguKe: parseInt(form.mingguKe, 10),
+      indikator: parseNum(form.indikator),
+      andil: form.andil.filter(isCommodityValid).map((r) => ({
+        nama: r.nama.trim(),
+        nilai: parseNum(r.nilai),
+      })),
+      fluktuasi: isCommodityValid(form.fluktuasi)
+        ? { nama: form.fluktuasi.nama.trim(), nilai: parseNum(form.fluktuasi.nilai) }
+        : null,
+    };
+    try {
+      await api.post("/rekap", payload);
+      setSubmitted(true);
+    } catch (e) {
+      setSubmitError(e instanceof ApiError ? e.message : "Gagal menyimpan rekap.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleReset = () => {
     setForm(emptyForm());
     setErrors({});
     setSubmitted(false);
+    setSubmitError("");
   };
 
   // ── Success screen ─────────────────────────────────────────────────────────
@@ -513,26 +575,35 @@ export default function InputRekapIPH() {
       )}
 
       {/* Footer actions */}
-      <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 pt-1 pb-6">
-        <button
-          onClick={handleReset}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors self-start sm:self-auto"
-        >
-          Reset Form
-        </button>
-        <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
+      <div className="space-y-3">
+        {submitError && (
+          <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+            <X size={13} className="text-red-500 flex-shrink-0 mt-0.5" />
+            <span className="text-xs text-red-600">{submitError}</span>
+          </div>
+        )}
+        <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 pt-1 pb-6">
           <button
-            onClick={() => console.log("Draft disimpan", form)}
-            className="px-4 py-2 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex-1 sm:flex-none"
+            onClick={handleReset}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors self-start sm:self-auto"
           >
-            Simpan Draft
+            Reset Form
           </button>
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors flex-1 sm:flex-none"
-          >
-            Simpan &amp; Kirim Rekap
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => console.log("Draft disimpan", form)}
+              className="px-4 py-2 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex-1 sm:flex-none"
+            >
+              Simpan Draft
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={busy}
+              className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors flex-1 sm:flex-none disabled:opacity-60"
+            >
+              {busy ? "Menyimpan..." : "Simpan & Kirim Rekap"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

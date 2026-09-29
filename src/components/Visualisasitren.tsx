@@ -173,6 +173,7 @@ type YearTab = "2024" | "2025" | "2026";
 export default function VisualisasiTren() {
   const [selectedYears, setSelectedYears] = useState<YearTab[]>(["2026"]);
   const [showOnlyPenutupan, setShowOnlyPenutupan] = useState(false);
+  const [showRincianMingguan, setShowRincianMingguan] = useState(false);
 
   const years: YearTab[] = ["2024", "2025", "2026"];
 
@@ -478,10 +479,63 @@ export default function VisualisasiTren() {
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-500">20 komoditas terverifikasi</span>
-            <button className="flex items-center gap-1 text-xs text-emerald-600 font-semibold hover:text-emerald-700">
-              Buka Rincian Lengkap <ChevronRight size={10} />
+            <button
+              onClick={() => setShowRincianMingguan((v) => !v)}
+              className="flex items-center gap-1 text-xs text-emerald-600 font-semibold hover:text-emerald-700"
+            >
+              {showRincianMingguan ? "Tutup Rincian" : "Buka Rincian Lengkap"}
+              <ChevronRight size={10} className={`transition-transform ${showRincianMingguan ? "rotate-90" : ""}`} />
             </button>
           </div>
+
+          {/* Flip card: rincian lengkap */}
+          {showRincianMingguan && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart2 size={12} className="text-emerald-600" />
+                <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">
+                  Rincian Matriks Evaluasi Mingguan
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-bold text-gray-700 mb-2">Andil Komoditas Pemicu (4 Minggu)</div>
+                  <div className="space-y-2.5">
+                    {commodityShares.map(({ name, count, color }) => (
+                      <div key={name}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-gray-700 font-medium">{name}</span>
+                          <span className="text-sm font-black" style={{ color }}>{count} kali</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${(count / Math.max(...commodityShares.map((c) => c.count))) * 100}%`, backgroundColor: color }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-700 mb-2">Catatan Evaluasi</div>
+                  <ul className="space-y-1.5">
+                    {[
+                      "Deflasi Minggu III didorong panen raya bawang merah & telur ayam ras.",
+                      "Cabai rawit tetap pemicu kenaikan tertinggi (11 kemunculan).",
+                      "Proyeksi Minggu IV: deflasi moderat seiring panen hortikultura.",
+                      "Rekomendasi: penambahan pasokan cabai & stabilisasi harga minyak goreng.",
+                    ].map((note, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600 leading-relaxed">
+                        <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
+                        {note}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Andil Komoditas */}

@@ -13,7 +13,13 @@ export interface WeeklyRow {
 
 // Kolom mingguan (label sesuai referensi: urutan pekan per bulan)
 export const weeklyColumns: WeeklyColumn[] = [
-  { id: "m2",         label: "M2"       },
+    { id: "jan-m1",     label: "Jan M1"   },
+    { id: "jan-m2",     label: "Jan M2"   },
+    { id: "jan-m3",     label: "Jan M3"   },
+    { id: "jan-m4",     label: "Jan M4"   },
+    { id: "jan-m5",     label: "Jan M5"   },
+    { id: "feb-m1",     label: "Feb M1"   },
+  { id: "feb-m2",     label: "Feb M2"   },
   { id: "feb-m3",     label: "Feb M3"   },
   { id: "feb-m4",     label: "Feb M4"   },
   { id: "feb-m5",     label: "Feb M5"   },

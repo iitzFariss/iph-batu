@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Calendar,
-  Clock,
   ChevronRight,
   CheckCircle2,
   AlertCircle,
@@ -9,99 +8,58 @@ import {
   FileText,
   Presentation,
   Upload,
-  Users,
   X,
-  Search,
   Printer,
   RefreshCw,
-  ChevronLeft,
-  Pencil,
+  Plus,
+  UserPlus,
 } from "lucide-react";
+import { api } from "../lib/api";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type RapatStatus = "selesai" | "mendatang" | "belum-diisi";
-
-interface PersonilTag {
-  initials: string;
-  color: string;
+interface KaderPersonil {
+  name: string;
+  peran: string;
 }
 
-interface AgendaItem {
-  id: string;
-  rapat_id: string;
-  tanggal: string;
-  waktu: string;
-  terlambat?: number;
-  title: string;
-  status: RapatStatus;
-  personil: PersonilTag[];
-  personilLabel: string;
-}
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const agendaList: AgendaItem[] = [
-  {
-    id: "1",
-    rapat_id: "RAPAT-ID-18",
-    tanggal: "26 April 2026",
-    waktu: "09:00 WIB",
-    title: "Rakor Pengendalian Inflasi Daerah M–IV Kemendagri",
-    status: "selesai",
-    personil: [
-      { initials: "E",  color: "bg-teal-500"   },
-      { initials: "SI", color: "bg-emerald-500" },
-      { initials: "BS", color: "bg-blue-500"    },
-    ],
-    personilLabel: "3 Personil Ditugaskan",
-  },
-  {
-    id: "2",
-    rapat_id: "RAPAT-ID-19",
-    tanggal: "03 Mei 2026",
-    waktu: "10:00 WIB",
-    title: "Evaluasi Pasokan Pangan Menjelang Hari Besar",
-    status: "mendatang",
-    personil: [
-      { initials: "B",  color: "bg-amber-500"   },
-      { initials: "S",  color: "bg-emerald-500" },
-    ],
-    personilLabel: "2 Personil Ditugaskan",
-  },
-  {
-    id: "3",
-    rapat_id: "RAPAT-ID-17",
-    tanggal: "19 April 2026",
-    waktu: "",
-    terlambat: 7,
-    title: "Rakor Teknis TPID & Bulog Ketersediaan Beras SPHP",
-    status: "belum-diisi",
-    personil: [],
-    personilLabel: "Petugas: Drs. Eko Prasetyo (Belum Menyerahkan Resume)",
-  },
+const KADER_FALLBACK: KaderPersonil[] = [
+  { name: "Drs. Eko Prasetyo",      peran: "Sekretaris TPID / Notulis" },
+  { name: "Siti Rahmawati, S.E.",   peran: "Analis Data BPS" },
+  { name: "Budi Santoso M.Si.",     peran: "Bidang Distribusi Disperindag" },
+  { name: "Agus Wibowo, S.E.",      peran: "Dinas Pertanian" },
+  { name: "Rini Puspita, S.E.",     peran: "Dinas Perdagangan & UKM" },
+  { name: "Hendra Gunawan, S.E.",   peran: "Sekretariat Daerah" },
 ];
 
-const statusConfig: Record<RapatStatus, { label: string; cls: string; icon: React.ReactNode }> = {
-  "selesai":     { label: "Selesai",     cls: "bg-emerald-50 text-emerald-700 border border-emerald-200", icon: <CheckCircle2 size={10} /> },
-  "mendatang":   { label: "Mendatang",   cls: "bg-amber-50 text-amber-600 border border-amber-200",       icon: <Clock size={10} />        },
-  "belum-diisi": { label: "Belum Diisi", cls: "bg-red-50 text-red-600 border border-red-200",             icon: <AlertCircle size={10} />  },
-};
-
-type FilterTab = "semua" | "mendatang" | "menunggu" | "selesai";
-
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function KelolaRapat() {
-  const [filterTab, setFilterTab] = useState<FilterTab>("semua");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [petugas, setPetugas] = useState<string[]>([
+    "Drs. Eko Prasetyo",
+    "Siti Rahmawati, S.E.",
+    "Budi Santoso M.Si.",
+  ]);
+  const [kader, setKader] = useState<KaderPersonil[]>(KADER_FALLBACK);
+  const [openPicker, setOpenPicker] = useState(false);
 
-  const tabs: { key: FilterTab; label: string; count: number }[] = [
-    { key: "semua",     label: "Semua Rapat",     count: 18 },
-    { key: "mendatang", label: "Mendatang",        count: 3  },
-    { key: "menunggu",  label: "Menunggu Resume",  count: 2  },
-    { key: "selesai",   label: "Selesai",          count: 13 },
-  ];
+  useEffect(() => {
+    api
+      .get<{ rows: KaderPersonil[] }>("/pegawai")
+      .then(({ rows }) => {
+        if (rows && rows.length) setKader(rows.map((p) => ({ name: p.name, peran: p.peran })));
+      })
+      .catch(() => {});
+  }, []);
+
+  const available = kader.filter((k) => !petugas.includes(k.name));
+
+  function addPersonil(name: string) {
+    setPetugas((p) => (p.includes(name) ? p : [...p, name]));
+    setOpenPicker(false);
+  }
+
+  function removePersonil(name: string) {
+    setPetugas((p) => p.filter((n) => n !== name));
+  }
 
   return (
     <div className="p-4 sm:p-5 space-y-5 w-full">
@@ -225,20 +183,27 @@ export default function KelolaRapat() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-semibold text-gray-700">Petugas Notulis / Resume</label>
-              <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
+              <button
+                onClick={() => setOpenPicker((v) => !v)}
+                className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700"
+              >
+                <UserPlus size={12} />
                 + Tambah Personil
               </button>
             </div>
             <div className="border border-gray-200 rounded-lg p-2 min-h-[44px]">
               <div className="flex flex-wrap gap-1.5 mb-1.5">
-                {["Drs. Eko Prasetyo", "Siti Rahmawati, S.E.", "Budi Santoso M.Si."].map((name) => (
+                {petugas.map((name) => (
                   <div
                     key={name}
                     className="flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-md"
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     <span className="text-sm text-emerald-800 font-medium">{name}</span>
-                    <button className="ml-0.5 text-emerald-400 hover:text-emerald-700">
+                    <button
+                      onClick={() => removePersonil(name)}
+                      className="ml-0.5 text-emerald-400 hover:text-emerald-700"
+                    >
                       <X size={10} />
                     </button>
                   </div>
@@ -250,6 +215,33 @@ export default function KelolaRapat() {
                 className="w-full text-xs text-gray-400 focus:outline-none"
               />
             </div>
+
+            {/* Pick daftar personil (flip card) */}
+            {openPicker && (
+              <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                {available.length === 0 ? (
+                  <div className="px-3 py-3 text-xs text-gray-400 text-center">
+                    Semua personil sudah ditambahkan.
+                  </div>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto divide-y divide-gray-50">
+                    {available.map((k) => (
+                      <button
+                        key={k.name}
+                        onClick={() => addPersonil(k.name)}
+                        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Plus size={12} className="text-emerald-500 flex-shrink-0" />
+                          <span className="text-sm font-medium text-gray-700 truncate">{k.name}</span>
+                        </div>
+                        <span className="text-xs text-gray-400 flex-shrink-0">{k.peran}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Links */}
@@ -290,189 +282,6 @@ export default function KelolaRapat() {
         </div>
       </div>
 
-      {/* Daftar Agenda */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
-          <div>
-            <h2 className="text-sm font-bold text-gray-900">Daftar Agenda Rapat Terjadwal</h2>
-            <p className="text-xs sm:text-sm text-gray-400">
-              Monitoring jadwal berkala, notulensi resume, dan distribusi hasil rapat koordinasi.
-            </p>
-          </div>
-          <div className="relative">
-            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Filter topik rapat..."
-              className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 w-full sm:w-44"
-            />
-          </div>
-        </div>
-
-        {/* Filter tabs */}
-        <div className="overflow-x-auto -mx-5 px-5">
-          <div className="flex items-center gap-1.5 mb-4 w-max">
-          {tabs.map(({ key, label, count }) => (
-            <button
-              key={key}
-              onClick={() => setFilterTab(key)}
-              className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap shrink-0 ${
-                filterTab === key
-                  ? "bg-gray-900 text-white"
-                  : key === "menunggu"
-                  ? "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                  : "text-gray-500 border border-gray-200 hover:bg-gray-50"
-              }`}
-            >
-              {label} ({count})
-            </button>
-          ))}
-          </div>
-        </div>
-
-        {/* Agenda cards */}
-        <div className="space-y-3">
-          {agendaList.map((item) => {
-            const cfg = statusConfig[item.status];
-            return (
-              <div
-                key={item.id}
-                className={`border rounded-xl p-4 ${
-                  item.status === "belum-diisi"
-                    ? "border-red-100 bg-red-50/30"
-                    : "border-gray-100 hover:border-gray-200"
-                } transition-colors`}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    {/* ID + date + time */}
-                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <span
-                        className={`text-xs font-bold px-2 py-0.5 rounded min-w-0 ${
-                          item.status === "belum-diisi"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {item.rapat_id}
-                      </span>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <Calendar size={9} />
-                        {item.tanggal}
-                      </div>
-                      {item.waktu && (
-                        <div className="flex items-center gap-1 text-xs text-gray-400">
-                          <Clock size={9} />
-                          {item.waktu}
-                        </div>
-                      )}
-                      {item.terlambat && (
-                        <div className="flex items-center gap-1 text-xs text-amber-600 font-semibold">
-                          <AlertTriangle size={9} />
-                          Terlambat {item.terlambat} Hari
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Title */}
-                    <div className="text-sm font-bold text-gray-900 mb-2">{item.title}</div>
-
-                    {/* Personil */}
-                    <div className="flex items-center gap-2">
-                      {item.personil.length > 0 ? (
-                        <>
-                          <div className="flex -space-x-1">
-                            {item.personil.map((p, i) => (
-                              <div
-                                key={i}
-                                className={`w-6 h-6 rounded-full ${p.color} text-white text-[11px] font-bold flex items-center justify-center border-2 border-white`}
-                              >
-                                {p.initials}
-                              </div>
-                            ))}
-                          </div>
-                          <span className="text-sm text-gray-500">{item.personilLabel}</span>
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-1 text-sm text-gray-400">
-                          <Users size={11} />
-                          {item.personilLabel}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right: status + actions */}
-                  <div className="flex flex-row sm:flex-col sm:items-end items-center justify-between gap-2 flex-shrink-0 w-full sm:w-auto">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${cfg.cls}`}>
-                      {cfg.icon}
-                      {cfg.label}
-                    </span>
-
-                    <div className="flex flex-wrap items-center justify-end gap-1.5">
-                      {item.status !== "belum-diisi" && (
-                        <>
-                          <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">
-                            <FileText size={9} />
-                            Radiogram
-                          </button>
-                          <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">
-                            <FileText size={9} />
-                            Materi
-                          </button>
-                        </>
-                      )}
-
-                      {item.status === "selesai" && (
-                        <button className="flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700">
-                          <FileText size={9} />
-                          Lihat Notulensi
-                        </button>
-                      )}
-                      {item.status === "mendatang" && (
-                        <button className="flex items-center gap-1 px-2 py-1 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">
-                          <Pencil size={9} />
-                          Ubah Agenda
-                        </button>
-                      )}
-                      {item.status === "belum-diisi" && (
-                        <button className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white rounded text-xs font-semibold hover:bg-red-600">
-                          <FileText size={9} />
-                          Input Notulensi
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-4 border-t border-gray-50">
-          <span className="text-xs sm:text-sm text-gray-400">Menampilkan 3 dari 18 agenda rapat</span>
-          <div className="flex items-center gap-1">
-            <button className="w-7 h-7 flex items-center justify-center rounded text-gray-400 hover:bg-gray-100">
-              <ChevronLeft size={12} />
-            </button>
-            {[1, 2, 3].map((p) => (
-              <button
-                key={p}
-                onClick={() => setCurrentPage(p)}
-                className={`w-7 h-7 rounded text-sm font-semibold flex items-center justify-center ${
-                  currentPage === p ? "bg-emerald-600 text-white" : "text-gray-500 hover:bg-gray-100"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-            <button className="w-7 h-7 flex items-center justify-center rounded text-gray-600 hover:bg-gray-100">
-              <ChevronRight size={12} />
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Status Pengiriman Radiogram */}
       <div className="bg-white border border-gray-100 rounded-xl p-4">

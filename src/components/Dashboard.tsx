@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -225,10 +226,9 @@ function FrequencyChart() {
 }
 
 function CommodityTable() {
-  // Hanya tampilkan 3 komoditas dengan kenaikan tertinggi
-  const topRisers = [...commodities]
-    .sort((a, b) => b.change - a.change)
-    .slice(0, 3);
+  const [showAll, setShowAll] = useState(false);
+  const sorted = [...commodities].sort((a, b) => b.change - a.change);
+  const rows = showAll ? sorted : sorted.slice(0, 3);
 
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
@@ -236,7 +236,9 @@ function CommodityTable() {
         <div>
           <h2 className="text-sm font-bold text-gray-900">Komoditas Pangan Utama Kota Batu</h2>
           <p className="text-sm text-gray-400">
-            3 komoditas dengan kenaikan tertinggi pekan ini di Pasar Besar Kota Batu
+            {showAll
+              ? "Seluruh komoditas strategis di Pasar Besar Kota Batu (sorted by kenaikan tertinggi)"
+              : "3 komoditas dengan kenaikan tertinggi pekan ini di Pasar Besar Kota Batu"}
           </p>
         </div>
         <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
@@ -263,7 +265,7 @@ function CommodityTable() {
           </tr>
         </thead>
         <tbody>
-          {topRisers.map((c: Commodity) => (
+          {rows.map((c: Commodity) => (
             <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
               <td className="py-2.5">
                 <div className="flex items-center gap-2">
@@ -298,10 +300,15 @@ function CommodityTable() {
       </div>
 
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50 flex-wrap gap-2">
-        <span className="text-sm text-gray-400">Menampilkan 3 kenaikan tertinggi dari 20 komoditas strategis</span>
-        <button className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700">
-          Lihat Tabel Lengkap Komoditas
-          <ChevronRight size={11} />
+        <span className="text-sm text-gray-400">
+          Menampilkan {rows.length} dari {sorted.length} komoditas strategis
+        </span>
+        <button
+          onClick={() => setShowAll((v) => !v)}
+          className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700"
+        >
+          {showAll ? "Tutup Tabel Lengkap Komoditas" : "Lihat Tabel Lengkap Komoditas"}
+          <ChevronRight size={11} className={`transition-transform ${showAll ? "rotate-90" : ""}`} />
         </button>
       </div>
     </div>

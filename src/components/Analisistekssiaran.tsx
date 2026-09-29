@@ -3,38 +3,16 @@ import {
   RefreshCw,
   ChevronDown,
   TrendingDown,
-  TrendingUp,
   Copy,
-  Send,
-  Download,
   Pencil,
   ShieldCheck,
   Clock,
-  ChevronRight,
   Users,
   Link2,
 } from "lucide-react";
 import { buildPublicDashboardLink } from "../lib/publicDashboard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface CommodityCard {
-  name: string;
-  price: number;
-  unit: string;
-  change: number;
-  andil: string;
-  direction: "turun" | "naik";
-  note: string;
-}
-
-interface TransmisiRow {
-  waktu: string;
-  periode: string;
-  nilaiIPH: number;
-  target: string;
-  status: "terkirim";
-}
 
 interface Penerima {
   initials: string;
@@ -45,42 +23,6 @@ interface Penerima {
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const commodities: CommodityCard[] = [
-  {
-    name: "Beras Medium",
-    price: 12800,
-    unit: "kg",
-    change: -0.25,
-    andil: "-0.25% Andil",
-    direction: "turun",
-    note: "Pasokan panen raya wilayah barat tersalur lancar.",
-  },
-  {
-    name: "Daging Ayam Ras",
-    price: 34500,
-    unit: "kg",
-    change: -0.12,
-    andil: "-0.12% Andil",
-    direction: "turun",
-    note: "Ketersediaan pakan stabil & stok peternak melimpah.",
-  },
-  {
-    name: "Cabai Rawit",
-    price: 48000,
-    unit: "kg",
-    change: 0.18,
-    andil: "+0.18% Andil",
-    direction: "naik",
-    note: "Kendala panen lokal & penurunan kiriman Kediri.",
-  },
-];
-
-const transmisiRows: TransmisiRow[] = [
-  { waktu: "18 Apr 2026 09:15", periode: "Minggu III Apr 2026", nilaiIPH: -0.42, target: "Pj. Walikota, Sekda, BPS Jatim", status: "terkirim" },
-  { waktu: "11 Apr 2026 08:30", periode: "Minggu II Apr 2026",  nilaiIPH: -0.15, target: "Pj. Walikota, Diskoperindag",    status: "terkirim" },
-  { waktu: "04 Apr 2026 09:00", periode: "Minggu I Apr 2026",   nilaiIPH:  0.31, target: "Kemendagri, Ditjen Bangda",      status: "terkirim" },
-];
 
 const penerimaSiaran: Penerima[] = [
   { initials: "PW", color: "bg-emerald-600", name: "Pj. Walikota Batu",  jabatan: "Akses Jalur Komando 1",    status: "siap"     },
@@ -111,79 +53,20 @@ Kota Batu pada Minggu III April 2026:
 Demikian laporan Tim Pengendalian Inflasi Daerah (TPID)
 Kota Batu.`;
 
-// ─── Per-tab draf texts ───────────────────────────────────────────────────────
-
-const drafTexts: Record<string, string> = {
-  "bahasa-resmi": drafText,
-
-  "poin-ringkas":
-`📊 RINGKASAN IPH KOTA BATU — Minggu III April 2026
-
-• IPH Gabungan: -0.42% → Deflasi Terkendali ✅
-• Komoditas Turun:
-  ↓ Beras Medium   -0.25% (Rp 12.800/kg)
-  ↓ Daging Ayam    -0.12% (Rp 34.500/kg)
-• Komoditas Naik:
-  ↑ Cabai Rawit    +0.18% (Rp 48.000/kg)
-• Pasokan 12 bapok: AMAN ✅
-• Status Validasi: BPS Terverifikasi
-
-— TPID Kota Batu / Bagian Perekonomian Setda`,
-
-  "siaran-media":
-`🌾 *SIARAN PERS TPID KOTA BATU*
-Minggu III April 2026
-
-Harga bahan pokok di Kota Batu pekan ini *terkendali*. Indeks Perkembangan Harga (IPH) tercatat *−0,42%*, masuk kategori Deflasi Terkendali.
-
-Harga *beras medium* turun ke Rp 12.800/kg dan *daging ayam* stabil di Rp 34.500/kg. Satu-satunya komoditas yang perlu diperhatikan adalah *cabai rawit* yang naik tipis +0,18% akibat cuaca di sentra Pujon.
-
-Pasokan 12 bahan pokok di Pasar Besar dan Pasar Relokasi Batu dipastikan aman lebih dari 14 hari ke depan.
-
-📌 Info: Tim Pengendalian Inflasi Daerah (TPID) Kota Batu`,
-};
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-type ActiveTab = "bahasa-resmi" | "poin-ringkas" | "siaran-media";
-
 export default function AnalisisTeksSiaran() {
-  const [activeTab, setActiveTab]       = useState<ActiveTab>("bahasa-resmi");
   const [showPenerima, setShowPenerima] = useState(false);
   const [copied, setCopied]             = useState(false);
-  const [linkCopied, setLinkCopied]     = useState(false);
-  const [sending, setSending]           = useState(false);
   const [sendingGrafik, setSendingGrafik] = useState(false);
   const [dashboardLink] = useState(() => buildPublicDashboardLink());
 
-  const tabs: { key: ActiveTab; label: string }[] = [
-    { key: "bahasa-resmi",  label: "Bahasa Resmi"  },
-    { key: "poin-ringkas",  label: "Poin Ringkas"  },
-    { key: "siaran-media",  label: "Siaran Media"  },
-  ];
+  const currentDraf = drafText;
 
-  const currentDraf = drafTexts[activeTab] ?? drafText;
-
-  const tabLabel: Record<ActiveTab, string> = {
-    "bahasa-resmi": "Bahasa Resmi",
-    "poin-ringkas": "Poin Ringkas",
-    "siaran-media": "Siaran Media",
-  };
-
-  function handleCopy() {
+  function handleCopyTeksLink() {
+    navigator.clipboard?.writeText(`${currentDraf}\n\nLink Dashboard Publik: ${dashboardLink}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }
-
-  function handleSend() {
-    setSending(true);
-    setTimeout(() => setSending(false), 2000);
-  }
-
-  function handleCopyLink() {
-    navigator.clipboard?.writeText(dashboardLink);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
   }
 
   function handleSendGrafik() {
@@ -276,19 +159,6 @@ export default function AnalisisTeksSiaran() {
 
             {/* Tab nav */}
             <div className="flex items-center gap-0 border-b border-gray-100 px-4">
-              {tabs.map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveTab(key)}
-                  className={`px-3 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
-                    activeTab === key
-                      ? "border-emerald-600 text-emerald-700"
-                      : "border-transparent text-gray-400 hover:text-gray-600"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
               <div className="ml-auto flex items-center gap-2 py-2">
                 <span className="text-xs text-gray-400">Mono</span>
                 <span className="text-xs text-gray-400">↕ 100%</span>
@@ -304,18 +174,8 @@ export default function AnalisisTeksSiaran() {
 
             {/* Action bar */}
             <div className="px-4 pb-4 space-y-2">
-              {/* Row 1: primary send actions */}
-              <div className="flex items-center gap-2">
-                {/* Kirim teks saja */}
-                <button
-                  onClick={handleSend}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors"
-                >
-                  <Send size={12} />
-                  {sending ? "Mengirim..." : `Kirim Teks (${tabLabel[activeTab]})`}
-                </button>
-
-                {/* Kirim link dashboard + teks */}
+              {/* Row 1: kirim via WA + salin */}
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={handleSendGrafik}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
@@ -327,27 +187,19 @@ export default function AnalisisTeksSiaran() {
                   <Link2 size={12} />
                   {sendingGrafik
                     ? "Membuat Link..."
-                    : `Kirim Link Dashboard + Teks (${tabLabel[activeTab]}) via WA`}
+                    : "Kirim Link Dashboard + Teks via WA"}
+                </button>
+                <button
+                  onClick={handleCopyTeksLink}
+                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  <Copy size={12} />
+                  {copied ? "Teks & Link Tersalin!" : "Salin Teks & Link"}
                 </button>
               </div>
 
-              {/* Row 2: secondary actions */}
+              {/* Row 2: edit manual */}
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50"
-                >
-                  <Copy size={11} />
-                  {copied ? "Tersalin!" : "Salin Teks"}
-                </button>
-                <button onClick={handleCopyLink} className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50">
-                  <Link2 size={11} />
-                  {linkCopied ? "Link Disalin!" : "Salin Link Dashboard"}
-                </button>
-                <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50">
-                  <Download size={11} />
-                  Unduh .txt
-                </button>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50">
                   <Pencil size={11} />
                   Edit Manual
@@ -356,10 +208,11 @@ export default function AnalisisTeksSiaran() {
 
               {/* Hint */}
               <p className="text-xs text-gray-400">
-                "Kirim Link Dashboard" akan mengirim link{" "}
-                <span className="font-mono text-gray-500 break-all">{dashboardLink}</span> bersama
-                draf teks <strong>{tabLabel[activeTab]}</strong> ke WhatsApp Dinas. Link dibuka
-                sebagai dashboard publik — tampilannya sama seperti yang dilihat masyarakat.
+                "Salin Teks &amp; Link" menyalin draf{" "}
+                <strong>Bahasa Resmi</strong> beserta link{" "}
+                <span className="font-mono text-gray-500 break-all">{dashboardLink}</span> ke
+                clipboard. Link dibuka sebagai dashboard publik — tampilannya sama
+                seperti yang dilihat masyarakat.
               </p>
             </div>
 
@@ -371,123 +224,10 @@ export default function AnalisisTeksSiaran() {
               </span>
             </div>
           </div>
-
-          {/* Riwayat Transmisi */}
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <span className="text-xs font-bold text-gray-900">Riwayat Transmisi Siaran (Pekan Terakhir)</span>
-              <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
-                Lihat Semua Arsip
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px]">
-              <thead className="bg-gray-50">
-                <tr>
-                  {["Waktu Rilis", "Periode", "Nilai IPH", "Target Disposisi", "Status", "Aksi"].map((col) => (
-                    <th key={col} className="text-left text-xs font-normal text-gray-400 uppercase px-4 py-2.5">
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {transmisiRows.map((row, i) => (
-                  <tr key={i} className="hover:bg-gray-50/50">
-                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{row.waktu}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{row.periode}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-black ${row.nilaiIPH < 0 ? "text-emerald-600" : "text-amber-600"}`}>
-                        {row.nilaiIPH > 0 ? "+" : ""}{row.nilaiIPH.toFixed(2)}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{row.target}</td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
-                        Terkirim
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
-                        Buka Draf
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          </div>
         </div>
 
         {/* Right panel */}
         <div className="space-y-3">
-
-          {/* Catatan Pengawasan */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5">
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className="text-amber-500">⚠</span>
-              <span className="text-xs font-bold text-amber-800">Catatan Pengawasan Komoditas</span>
-            </div>
-            <p className="text-sm text-amber-700 leading-relaxed mb-2.5">
-              Meskipun IPH gabungan deflasi (−0.42%), komoditas{" "}
-              <strong>Cabai Rawit</strong> mengalami tekanan kenaikan harga +0.18% di Pasar
-              Relokasi Batu akibat cuaca penghujan di sentra Pujon.
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-amber-600 font-semibold">
-                Rekomendasi: Operasi Pasar Terbatas
-              </span>
-              <button className="flex items-center gap-0.5 text-xs text-amber-700 font-bold hover:text-amber-900">
-                Detail Pemicu <ChevronRight size={10} />
-              </button>
-            </div>
-          </div>
-
-          {/* Matriks Andil Fluktuasi */}
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-3.5 py-3 border-b border-gray-100">
-              <span className="text-xs font-bold text-gray-900">Matriks Andil Fluktuasi</span>
-              <span className="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded">
-                Minggu III
-              </span>
-            </div>
-            <div className="">
-              {commodities.map((c) => (
-                <div key={c.name} className="px-3.5 py-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-semibold text-gray-800">{c.name}</span>
-                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                      c.direction === "turun"
-                        ? "bg-blue-50 text-blue-700"
-                        : "bg-red-50 text-red-600"
-                    }`}>
-                      {c.andil}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-black text-gray-900">
-                        Rp {c.price.toLocaleString("id-ID")}
-                      </span>
-                      <span className="text-xs text-gray-400">/{c.unit}</span>
-                    </div>
-                    <div className={`flex items-center gap-1 text-xs font-semibold ${
-                      c.direction === "turun" ? "text-blue-600" : "text-red-600"
-                    }`}>
-                      {c.direction === "turun"
-                        ? <TrendingDown size={10} />
-                        : <TrendingUp size={10} />}
-                      {c.direction === "turun" ? "Turun" : "Naik"} Rp{" "}
-                      {Math.abs(Math.round(c.price * Math.abs(c.change) / 100)).toLocaleString("id-ID")}
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">{c.note}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Daftar Penerima — collapsible */}
           <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
             <button

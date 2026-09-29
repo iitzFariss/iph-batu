@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   ChevronDown,
@@ -14,8 +14,11 @@ import {
   Lock,
   Pencil,
   Plus,
+  Trash2,
   X,
 } from "lucide-react";
+import { api, ApiError } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -42,76 +45,6 @@ interface RekapRow {
   inflasi: CommodityTag[];
 }
 
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-
-const rekapData: RekapRow[] = [
-  {
-    id: "1",
-    periode: "Minggu III – April 2026",
-    cutoffStart: "14 Apr",
-    cutoffEnd: "20 Apr 2026",
-    nilaiIPH: -0.42,
-    statusIPH: "deflasi-terkendali",
-    deflasi: [
-      { name: "Beras Medium", change: -0.25 },
-      { name: "Daging Ayam",  change: -0.12 },
-    ],
-    inflasi: [{ name: "Cabai Rawit", change: 0.18 }],
-  },
-  {
-    id: "2",
-    periode: "Minggu II – April 2026",
-    cutoffStart: "07 Apr",
-    cutoffEnd: "13 Apr 2026",
-    nilaiIPH: 0.15,
-    statusIPH: "inflasi-ringan",
-    deflasi: [{ name: "Minyak Goreng", change: -0.08 }],
-    inflasi: [
-      { name: "Bawang Merah", change: 0.14 },
-      { name: "Telur Ayam",   change: 0.09 },
-    ],
-  },
-  {
-    id: "3",
-    periode: "Minggu I – April 2026",
-    cutoffStart: "31 Mar",
-    cutoffEnd: "06 Apr 2026",
-    nilaiIPH: 0.88,
-    statusIPH: "perlu-intervensi",
-    deflasi: [],
-    inflasi: [
-      { name: "Cabai Rawit", change: 0.54 },
-      { name: "Daging Sapi", change: 0.22 },
-    ],
-  },
-  {
-    id: "4",
-    periode: "Minggu IV – Maret 2026",
-    cutoffStart: "24 Mar",
-    cutoffEnd: "30 Mar 2026",
-    nilaiIPH: -0.11,
-    statusIPH: "stabil-terkendali",
-    deflasi: [
-      { name: "Beras Premium", change: -0.10 },
-      { name: "Gula Pasir",    change: -0.05 },
-    ],
-    inflasi: [{ name: "Bawang Putih", change: 0.04 }],
-  },
-  {
-    id: "5",
-    periode: "Minggu III – Maret 2026",
-    cutoffStart: "17 Mar",
-    cutoffEnd: "23 Mar 2026",
-    nilaiIPH: -0.65,
-    statusIPH: "deflasi-signifikan",
-    deflasi: [
-      { name: "Cabai Merah",   change: -0.38 },
-      { name: "Beras Medium",  change: -0.24 },
-    ],
-    inflasi: [],
-  },
-];
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 interface IPHConfig {
@@ -128,6 +61,14 @@ const iphConfigMap: Record<IPHStatus, IPHConfig> = {
   "stabil-terkendali":   { label: "Stabil Terkendali",    bg: "bg-teal-50",    text: "text-teal-700",    icon: <TrendingDown size={12} /> },
   "deflasi-signifikan":  { label: "Deflasi Signifikan",   bg: "bg-blue-50",    text: "text-blue-700",    icon: <TrendingDown size={12} /> },
 };
+
+const statusOptions: { value: IPHStatus; label: string }[] = [
+  { value: "deflasi-signifikan", label: "Deflasi Signifikan" },
+  { value: "deflasi-terkendali", label: "Deflasi Terkendali" },
+  { value: "stabil-terkendali",  label: "Stabil Terkendali" },
+  { value: "inflasi-ringan",     label: "Inflasi Ringan" },
+  { value: "perlu-intervensi",   label: "Perlu Intervensi" },
+];
 
 function IPHBadge({ value, status }: { value: number; status: IPHStatus }) {
   const cfg = iphConfigMap[status];
@@ -350,17 +291,56 @@ function EditRekapModal({ row, onSave, onClose }: {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function RekapanData() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [filterTab, setFilterTab] = useState<FilterTab>("semua");
+  const [openYear, setOpenYear] = useState(false);
+  const [year, setYear] = useState("2026");
+  const [openAdvanced, setOpenAdvanced] = useState(false);
+  const [advFilter, setAdvFilter] = useState<IPHStatus[]>([]);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [rows, setRows] = useState<RekapRow[]>(rekapData);
+  const [perPage, setPerPage] = useState(10);
+  const [rows, setRows] = useState<RekapRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [search, setSearch] = useState("");
   const [editingRow, setEditingRow] = useState<RekapRow | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const tabs: { key: FilterTab; label: string; count?: number }[] = [
-    { key: "semua",      label: "Semua Periode",      count: 52 },
-    { key: "deflasi",    label: "IPH Deflasi (< 0%)"             },
-    { key: "inflasi",    label: "IPH Inflasi (> 0%)"             },
-    { key: "intervensi", label: "Perlu Intervensi",   count: 2   },
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setLoadError("");
+      const params = new URLSearchParams({ tab: filterTab, page: String(currentPage), perPage: String(perPage) });
+      if (search.trim()) params.set("q", search.trim());
+      try {
+        const data = await api.get<{ rows: RekapRow[]; total: number; totalPages: number }>(`/rekap?${params.toString()}`);
+        if (cancelled) return;
+        setRows(data.rows);
+        setTotal(data.total);
+        setTotalPages(Math.max(1, data.totalPages));
+      } catch (e) {
+        if (cancelled) return;
+        setLoadError(e instanceof ApiError ? e.message : "Gagal memuat data rekapan.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [filterTab, currentPage, perPage, search, reloadKey]);
+
+  const tabs: { key: FilterTab; label: string }[] = [
+    { key: "semua",      label: "Semua Periode" },
+    { key: "deflasi",    label: "IPH Deflasi (< 0%)" },
+    { key: "inflasi",    label: "IPH Inflasi (> 0%)" },
+    { key: "intervensi", label: "Perlu Intervensi" },
   ];
 
   const toggleRow = (id: string) => {
@@ -369,10 +349,57 @@ export default function RekapanData() {
     );
   };
 
-  const handleSaveEdit = (updated: RekapRow) => {
-    setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-    setEditingRow(null);
+  const toggleAdvStatus = (v: IPHStatus) => {
+    setAdvFilter((prev) =>
+      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]
+    );
   };
+
+  const handleSaveEdit = async (updated: RekapRow) => {
+    try {
+      await api.patch(`/rekap/${updated.id}`, {
+        periode: updated.periode,
+        nilaiIPH: updated.nilaiIPH,
+        deflasi: updated.deflasi.filter((t) => t.name.trim()),
+        inflasi: updated.inflasi.filter((t) => t.name.trim()),
+      });
+      setEditingRow(null);
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      setLoadError(e instanceof ApiError ? e.message : "Gagal menyimpan perubahan.");
+    }
+  };
+
+  const handleDeleteRow = async (id: string) => {
+    await api.delete(`/rekap/${id}`).catch(() => null);
+    setSelectedRows((prev) => prev.filter((r) => r !== id));
+    setReloadKey((k) => k + 1);
+  };
+
+  const handleExport = async () => {
+    const token = localStorage.getItem("tpid_access_token") ?? "";
+    const res = await fetch("/api/rekap/export", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      setLoadError("Gagal mengekspor data.");
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rekap-iph.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const pageStart = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
+  const pageEnd = Math.min(currentPage * perPage, total);
+  const pageNumbers: number[] = [];
+  const start = Math.max(1, currentPage - 1);
+  const end = Math.min(totalPages, start + 2);
+  for (let p = start; p <= end; p += 1) pageNumbers.push(p);
 
   return (
     <div className="p-4 sm:p-5 space-y-4 w-full">
@@ -410,71 +437,147 @@ export default function RekapanData() {
 
       {/* Toolbar */}
       <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+        {/* Row 1: search + export */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Search */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-[220px]">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Cari berdasarkan komoditas, periode, atau petugas..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               className="w-full pl-8 pr-4 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-gray-400"
             />
           </div>
 
-          {/* Year filter */}
-          <button className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-            Tahun 2026 (Aktif)
-            <ChevronDown size={12} />
-          </button>
-
-          {/* Advanced filter */}
-          <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
-            <SlidersHorizontal size={12} />
-            Filter Lanjutan
-          </button>
-
           {/* Export */}
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
-          <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 flex-1 sm:flex-none justify-center">
-            <FileDown size={13} className="text-red-500" />
-            Export PDF Resmi
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex-1 sm:flex-none justify-center">
-            <Sheet size={13} />
-            Download CSV / Excel
-          </button>
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 flex-1 sm:flex-none justify-center">
+              <FileDown size={13} className="text-red-500" />
+              Export PDF Resmi
+            </button>
+            <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex-1 sm:flex-none justify-center">
+              <Sheet size={13} />
+              Download CSV / Excel
+            </button>
           </div>
         </div>
 
-        {/* Filter tabs */}
-        <div className="overflow-x-auto">
-        <div className="flex flex-wrap items-center gap-2 min-w-[620px]">
-          <span className="text-sm text-gray-400 font-medium">Filter Kategori:</span>
-          {tabs.map(({ key, label, count }) => (
-            <button
-              key={key}
-              onClick={() => setFilterTab(key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                filterTab === key
-                  ? "bg-gray-900 text-white"
-                  : key === "intervensi"
-                  ? "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-                  : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              {key === "intervensi" && (
+        {/* Row 2: year + advanced + category tabs */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Year filter */}
+          <button
+            onClick={() => { setOpenYear((v) => !v); setOpenAdvanced(false); }}
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold border rounded-lg transition-colors ${
+              openYear ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            Tahun {year} {year === "2026" ? "(Aktif)" : "(Arsip)"}
+            <ChevronDown size={12} className={`transition-transform ${openYear ? "rotate-180" : ""}`} />
+          </button>
+
+          {/* Advanced filter */}
+          <button
+            onClick={() => { setOpenAdvanced((v) => !v); setOpenYear(false); }}
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium border rounded-lg transition-colors ${
+              openAdvanced
+                ? "bg-gray-900 text-white border-gray-900"
+                : advFilter.length > 0
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+            }`}
+          >
+            <SlidersHorizontal size={12} />
+            Filter Lanjutan
+            {advFilter.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">{advFilter.length}</span>
+            )}
+          </button>
+
+          {/* Filter tabs */}
+          <div className="overflow-x-auto flex-1">
+            <div className="flex items-center gap-1.5 min-w-max">
+              <span className="text-sm text-gray-400 font-medium pl-1">Filter Kategori:</span>
+              {tabs.map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => { setFilterTab(key); setCurrentPage(1); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap ${
+                    filterTab === key
+                      ? "bg-gray-900 text-white"
+                      : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {key === "intervensi" && (
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
               )}
               {label}
-              {count !== undefined && (
-                <span className={`ml-0.5 ${filterTab === key ? "opacity-70" : "text-gray-400"}`}>
-                  ({count})
-                </span>
-              )}
             </button>
           ))}
+          </div>
+          </div>
         </div>
-        </div>
+
+        {/* Panel filter (flip card) */}
+        {openYear && (
+          <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
+            <div className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Pilih Tahun Data</div>
+            <div className="flex flex-wrap gap-2">
+              {["2026", "2025", "2024"].map((y) => (
+                <button
+                  key={y}
+                  onClick={() => { setYear(y); setOpenYear(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                    year === y
+                      ? "bg-gray-900 text-white border-gray-900"
+                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {y} {y === "2026" ? "· Aktif" : "· Arsip"}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Menampilkan arsip per tahun pencatatan IPH; default periode berjalan 2026.
+            </p>
+          </div>
+        )}
+
+        {openAdvanced && (
+          <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
+            <div className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Filter Status IPH</div>
+            <div className="flex flex-wrap gap-2">
+              {statusOptions.map((o) => (
+                <button
+                  key={o.value}
+                  onClick={() => toggleAdvStatus(o.value)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                    advFilter.includes(o.value)
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {advFilter.includes(o.value) ? "✓ " : ""}{o.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2 mt-2 pt-2 border-t border-gray-100">
+              <button
+                onClick={() => setAdvFilter([])}
+                className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700"
+              >
+                Reset
+              </button>
+              <button
+                onClick={() => setOpenAdvanced(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-gray-900 hover:bg-gray-800"
+              >
+                Terapkan Filter
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -505,7 +608,20 @@ export default function RekapanData() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">
+                  Memuat data rekapan…
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">
+                  {loadError || "Belum ada data rekapan untuk filter ini."}
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => (
               <tr
                 key={row.id}
                 className={`hover:bg-gray-50/50 transition-colors ${
@@ -563,16 +679,28 @@ export default function RekapanData() {
 
                 {/* Aksi */}
                 <td className="px-3 py-4 text-right">
-                  <button
-                    onClick={() => setEditingRow(row)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 border border-gray-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
-                  >
-                    <Pencil size={11} />
-                    Ubah
-                  </button>
+                  {isAdmin && (
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        onClick={() => setEditingRow(row)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 border border-gray-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
+                      >
+                        <Pencil size={11} />
+                        Ubah
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRow(row.id)}
+                        title="Hapus rekap"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
         </div>
@@ -580,21 +708,29 @@ export default function RekapanData() {
         {/* Pagination */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/50">
           <span className="text-sm text-gray-500">
-            Menampilkan <strong>1–5</strong> dari <strong>52</strong> data rekapan
+            Menampilkan <strong>{pageStart}–{pageEnd}</strong> dari <strong>{total}</strong> data rekapan
           </span>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-400">Baris per halaman:</span>
-            <select className="text-sm border border-gray-200 rounded px-2 py-1 bg-white text-gray-700">
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
+            <select
+              value={perPage}
+              onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
+              className="text-sm border border-gray-200 rounded px-2 py-1 bg-white text-gray-700"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
             </select>
           </div>
           <div className="flex items-center gap-1">
-            <button className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:bg-gray-100 disabled:opacity-30">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+              className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:bg-gray-100 disabled:opacity-30"
+            >
               <ChevronLeft size={13} />
             </button>
-            {[1, 2, 3].map((p) => (
+            {pageNumbers.map((p) => (
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
@@ -607,11 +743,11 @@ export default function RekapanData() {
                 {p}
               </button>
             ))}
-            <span className="text-gray-400 text-sm px-1">…</span>
-            <button className="w-7 h-7 rounded text-sm font-semibold text-gray-500 hover:bg-gray-100 flex items-center justify-center">
-              6
-            </button>
-            <button className="w-7 h-7 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100">
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="w-7 h-7 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+            >
               <ChevronRight size={13} />
             </button>
           </div>

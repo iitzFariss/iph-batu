@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Server (backend)
+server/node_modules
+server/dist
+server/.env
+server/prisma/dev.db
+server/prisma/dev.db-journal

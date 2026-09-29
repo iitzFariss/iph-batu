@@ -7,6 +7,9 @@ export interface User {
   role: UserRole;
   instansi?: string;
   nip?: string;
+  phone?: string;
+  bio?: string;
+  status?: string;
 }
 
 export interface AuthState {

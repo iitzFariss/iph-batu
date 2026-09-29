@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
-  ChevronDown,
   Plus,
   Share2,
   Pencil,
@@ -10,17 +9,17 @@ import {
   ChevronRight,
   ShieldCheck,
   X,
-  Building2,
   BadgeCheck,
   User,
   Mail,
   Users,
   LayoutGrid,
 } from "lucide-react";
+import { api, ApiError } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PegawaiStatus = "aktif" | "nonaktif" | "cuti";
+type PegawaiStatus = "aktif" | "nonaktif";
 
 interface Pegawai {
   id: string;
@@ -33,111 +32,15 @@ interface Pegawai {
   peran: string;
   peranIcon: string;
   status: PegawaiStatus;
+  email?: string;
+  isAccountCreated?: boolean;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const pegawaiList: Pegawai[] = [
-  {
-    id: "1",
-    initials: "EP",
-    color: "bg-gray-700",
-    name: "Drs. Eko Prasetyo, M.Si.",
-    nip: "19780410 200312 1 002",
-    instansi: "Bagian Perekonomian Setda",
-    instansiSub: "Sekretariat Daerah Kota Batu",
-    peran: "Admin Sistem & Koordinator Teknis",
-    peranIcon: "🛡️",
-    status: "aktif",
-  },
-  {
-    id: "2",
-    initials: "SR",
-    color: "bg-emerald-600",
-    name: "Siti Rahmawati, S.E.",
-    nip: "19850920 200902 2 004",
-    instansi: "BPS Kota Batu",
-    instansiSub: "Badan Pusat Statistik",
-    peran: "Analis Data BPS & Verifikator",
-    peranIcon: "📊",
-    status: "aktif",
-  },
-  {
-    id: "3",
-    initials: "BS",
-    color: "bg-blue-600",
-    name: "Budi Santoso, M.Si.",
-    nip: "19800315 200501 1 008",
-    instansi: "Disperindag Kota Batu",
-    instansiSub: "Dinas Perindustrian & Perdagangan",
-    peran: "Satgas Pasar & Enumerator",
-    peranIcon: "🏪",
-    status: "aktif",
-  },
-  {
-    id: "4",
-    initials: "AR",
-    color: "bg-teal-600",
-    name: "Anisa Rahayu, S.P.",
-    nip: "19891104 201402 2 001",
-    instansi: "Dinas Pertanian",
-    instansiSub: "Dinas Pertanian & Ketahanan Pangan",
-    peran: "Koordinator Teknis Distribusi",
-    peranIcon: "🌾",
-    status: "aktif",
-  },
-  {
-    id: "5",
-    initials: "BW",
-    color: "bg-purple-600",
-    name: "Bambang Wijaya",
-    nip: "19770808 200312 1 003",
-    instansi: "Diskumperindag Kota Batu",
-    instansiSub: "Dinas Koperasi & UMKM",
-    peran: "Analis Pasar & Harga",
-    peranIcon: "📈",
-    status: "aktif",
-  },
-  {
-    id: "6",
-    initials: "DL",
-    color: "bg-amber-600",
-    name: "Diana Lestari, M.Si.",
-    nip: "19830612 200604 2 002",
-    instansi: "Bagian Perekonomian Setda",
-    instansiSub: "Sekretariat Daerah Kota Batu",
-    peran: "Notulis & Dokumentasi Rapat",
-    peranIcon: "📝",
-    status: "cuti",
-  },
-  {
-    id: "7",
-    initials: "AN",
-    color: "bg-rose-600",
-    name: "Achmad Nur, S.T.",
-    nip: "19920214 201903 1 001",
-    instansi: "Dinas Kominfo Kota Batu",
-    instansiSub: "Kominfo & Persandian",
-    peran: "Admin Teknis Sistem",
-    peranIcon: "💻",
-    status: "nonaktif",
-  },
-];
-
-const instansiOptions = [
-  "Semua Instansi OPD",
-  "Bagian Perekonomian Setda",
-  "BPS Kota Batu",
-  "Disperindag Kota Batu",
-  "Dinas Pertanian",
-  "Diskumperindag Kota Batu",
-  "Dinas Kominfo Kota Batu",
-];
+// ─── Status config ──────────────────────────────────────────────────────────────
 
 const statusConfig: Record<PegawaiStatus, { label: string; cls: string }> = {
   aktif:    { label: "Aktif",    cls: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
   nonaktif: { label: "Nonaktif", cls: "bg-gray-100 text-gray-500 border border-gray-200"         },
-  cuti:     { label: "Cuti",     cls: "bg-amber-50 text-amber-700 border border-amber-200"        },
 };
 
 // ─── Add/Edit Modal ───────────────────────────────────────────────────────────
@@ -165,7 +68,6 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
   function handleSave() {
     if (!form.name.trim())    { setError("Nama pegawai wajib diisi."); return; }
     if (!form.nip.trim())     { setError("NIP wajib diisi."); return; }
-    if (!form.instansi.trim()){ setError("Instansi wajib diisi."); return; }
     if (!form.peran.trim())   { setError("Peran penugasan wajib diisi."); return; }
 
     const initials = form.name.split(" ").slice(0,2).map((n: string) => n[0]).join("").toUpperCase();
@@ -183,6 +85,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
       peran:      form.peran,
       peranIcon:  form.peranIcon,
       status:     form.status,
+      email:      form.email.trim() || undefined,
     });
   }
 
@@ -249,7 +152,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
           {/* Email */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-              Email Dinas
+              Email
             </label>
             <div className="relative">
               <Mail size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -262,57 +165,17 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
             </div>
           </div>
 
-          {/* Instansi */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-                Instansi / OPD <span className="text-red-400">*</span>
-              </label>
-              <div className="relative">
-                <Building2 size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={form.instansi}
-                  onChange={(e) => { setForm({...form, instansi: e.target.value}); setError(""); }}
-                  placeholder="Nama instansi"
-                  className="w-full pl-8 pr-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-                Sub-instansi
-              </label>
-              <input
-                value={form.instansiSub}
-                onChange={(e) => setForm({...form, instansiSub: e.target.value})}
-                placeholder="Nama dinas lengkap"
-                className="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
-              />
-            </div>
-          </div>
-
           {/* Peran */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
               Peran Penugasan TPID <span className="text-red-400">*</span>
             </label>
-            <div className="flex gap-2">
-              <select
-                value={form.peranIcon}
-                onChange={(e) => setForm({...form, peranIcon: e.target.value})}
-                className="px-2 py-2.5 text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-              >
-                {["🛡️","📊","🏪","🌾","📈","📝","💻","📋","🔍","📦"].map(icon => (
-                  <option key={icon} value={icon}>{icon}</option>
-                ))}
-              </select>
-              <input
-                value={form.peran}
-                onChange={(e) => { setForm({...form, peran: e.target.value}); setError(""); }}
-                placeholder="Contoh: Analis Data BPS & Verifikator"
-                className="flex-1 px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
-              />
-            </div>
+            <input
+              value={form.peran}
+              onChange={(e) => { setForm({...form, peran: e.target.value}); setError(""); }}
+              placeholder="Contoh: Analis Data BPS & Verifikator"
+              className="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
+            />
           </div>
 
           {/* Status */}
@@ -321,7 +184,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               Status Penugasan
             </label>
             <div className="flex gap-2">
-              {(["aktif","nonaktif","cuti"] as PegawaiStatus[]).map((s) => (
+              {(["aktif","nonaktif"] as PegawaiStatus[]).map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -330,8 +193,6 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
                     form.status === s
                       ? s === "aktif"
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                        : s === "cuti"
-                        ? "border-amber-400 bg-amber-50 text-amber-700"
                         : "border-gray-400 bg-gray-100 text-gray-600"
                       : "border-gray-100 text-gray-400 hover:border-gray-200"
                   }`}
@@ -366,22 +227,34 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function KelolaPegawai() {
-  const [pegawai, setPegawai]         = useState<Pegawai[]>(pegawaiList);
+  const [pegawai, setPegawai]         = useState<Pegawai[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [loadError, setLoadError]     = useState("");
+  const [message, setMessage]         = useState("");
   const [search, setSearch]           = useState("");
-  const [filterInstansi, setFilter]   = useState("Semua Instansi OPD");
   const [currentPage, setCurrentPage] = useState(1);
   const [modal, setModal]             = useState<null | { mode: "add" | "edit"; data?: Pegawai }>(null);
   const [deleteId, setDeleteId]       = useState<string | null>(null);
   const perPage = 4;
+
+  useEffect(() => {
+    api
+      .get<{ rows: Pegawai[] }>("/pegawai")
+      .then(({ rows }) => {
+        setPegawai(rows.map((p) => ({ ...p, nip: p.nip.trim() })));
+      })
+      .catch((e) => {
+        setLoadError(e instanceof ApiError ? e.message : "Gagal memuat data pegawai.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   // Filter
   const filtered = pegawai.filter((p) => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.nip.includes(search);
-    const matchInstansi =
-      filterInstansi === "Semua Instansi OPD" || p.instansi === filterInstansi;
-    return matchSearch && matchInstansi;
+    return matchSearch;
   });
 
   const totalPages = Math.ceil(filtered.length / perPage);
@@ -390,16 +263,38 @@ export default function KelolaPegawai() {
   const totalAktif    = pegawai.filter((p) => p.status === "aktif").length;
   const totalInstansi = new Set(pegawai.map((p) => p.instansi)).size;
 
-  function handleSave(p: Pegawai) {
-    if (modal?.mode === "add") {
-      setPegawai((prev) => [p, ...prev]);
-    } else {
-      setPegawai((prev) => prev.map((x) => (x.id === p.id ? p : x)));
+  async function handleSave(p: Pegawai) {
+    setMessage("");
+    const payload = {
+      name: p.name,
+      nip: p.nip,
+      instansi: p.instansi === "-" ? "" : p.instansi,
+      instansiSub: p.instansiSub,
+      peran: p.peran,
+      peranIcon: p.peranIcon,
+      status: p.status,
+      ...(modal?.mode === "add" && p.email ? { email: p.email } : {}),
+    };
+    try {
+      if (modal?.mode === "add") {
+        const res = await api.post<{ pegawai: Pegawai; temporaryPassword?: string | null }>("/pegawai", payload);
+        setPegawai((prev) => [res.pegawai, ...prev]);
+        if (res.temporaryPassword) {
+          setMessage(`Akun petugas dibuat. Kata sandi sementara: ${res.temporaryPassword}`);
+        }
+      } else {
+        const res = await api.patch<{ pegawai: Pegawai }>(`/pegawai/${p.id}`, payload);
+        setPegawai((prev) => prev.map((x) => (x.id === p.id ? res.pegawai : x)));
+      }
+      setModal(null);
+    } catch (e) {
+      setLoadError(e instanceof ApiError ? e.message : "Gagal menyimpan pegawai.");
     }
-    setModal(null);
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
+    setMessage("");
+    await api.delete(`/pegawai/${id}`).catch(() => null);
     setPegawai((prev) => prev.filter((p) => p.id !== id));
     setDeleteId(null);
   }
@@ -442,6 +337,16 @@ export default function KelolaPegawai() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Success message */}
+      {message && (
+        <div className="flex items-start gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+          <span className="text-xs text-emerald-700">{message}</span>
+          <button onClick={() => setMessage("")} className="ml-auto text-emerald-500 hover:text-emerald-700">
+            <X size={12} />
+          </button>
         </div>
       )}
 
@@ -515,20 +420,6 @@ export default function KelolaPegawai() {
             />
           </div>
 
-          {/* Instansi filter */}
-          <div className="relative flex-shrink-0">
-            <select
-              value={filterInstansi}
-              onChange={(e) => { setFilter(e.target.value); setCurrentPage(1); }}
-              className="appearance-none pl-3 pr-8 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white text-gray-700 cursor-pointer"
-            >
-              {instansiOptions.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          </div>
-
           {/* Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
             <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
@@ -550,7 +441,7 @@ export default function KelolaPegawai() {
         <table className="w-full min-w-[720px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              {["Nama Pegawai & NIP", "Asal Instansi", "Peran Penugasan TPID", "Status", "Aksi"].map((col) => (
+              {["Nama Pegawai & NIP", "Peran Penugasan TPID", "Status", "Aksi"].map((col) => (
                 <th
                   key={col}
                   className="text-left text-xs font-normal text-gray-400 uppercase tracking-wide px-5 py-3"
@@ -561,11 +452,17 @@ export default function KelolaPegawai() {
             </tr>
           </thead>
           <tbody>
-            {paginated.length === 0 ? (
+            {loading ? (
               <tr>
-                <td colSpan={5} className="text-center py-10 text-sm text-gray-400">
-                  Tidak ada pegawai ditemukan.
-                </td>
+<td colSpan={4} className="text-center py-10 text-sm text-gray-400">
+                    Memuat data pegawai…
+                  </td>
+              </tr>
+            ) : paginated.length === 0 ? (
+              <tr>
+<td colSpan={4} className="text-center py-10 text-sm text-gray-400">
+                    {loadError || "Tidak ada pegawai ditemukan."}
+                  </td>
               </tr>
             ) : (
               paginated.map((p) => (
@@ -583,17 +480,6 @@ export default function KelolaPegawai() {
                     </div>
                   </td>
 
-                  {/* Instansi */}
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      <Building2 size={12} className="text-gray-400 flex-shrink-0" />
-                      <div>
-                        <div className="text-xs font-semibold text-gray-800">{p.instansi}</div>
-                        <div className="text-xs text-gray-400">{p.instansiSub}</div>
-                      </div>
-                    </div>
-                  </td>
-
                   {/* Peran */}
                   <td className="px-5 py-4">
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-100 rounded-lg max-w-[220px]">
@@ -606,9 +492,7 @@ export default function KelolaPegawai() {
                   <td className="px-5 py-4">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${statusConfig[p.status].cls}`}>
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                        p.status === "aktif"    ? "bg-emerald-500" :
-                        p.status === "cuti"     ? "bg-amber-500"   :
-                        "bg-gray-400"
+                        p.status === "aktif" ? "bg-emerald-500" : "bg-gray-400"
                       }`} />
                       {statusConfig[p.status].label}
                     </span>
