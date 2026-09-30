@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -17,6 +17,7 @@ import {
   ChevronRight,
   BarChart3,
 } from "lucide-react";
+import { api } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,10 +30,9 @@ interface TrendPoint {
 interface WeeklyRow {
   minggu: string;
   iph: number;
-  status: "waspada" | "stabil" | "deflasi" | "proyeksi";
+  status: "waspada" | "stabil" | "deflasi";
   pemicu: string;
   highlighted?: boolean;
-  penutupan?: boolean;
 }
 
 interface CommodityShare {
@@ -41,69 +41,31 @@ interface CommodityShare {
   color: string;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+interface SummaryTrendPoint {
+  tahun: number;
+  bulan: number;
+  mingguIndeks: number;
+  iph: number;
+  status: string;
+  pemicu: string | null;
+  penutupan: boolean;
+}
 
-type YearTabValue = "2024" | "2025" | "2026";
+interface SummaryResp {
+  trend: SummaryTrendPoint[];
+  weekly: { tahun: number; data: Record<string, number | null> }[];
+  frequency: { tahun: number; items: { name: string; count: number }[] }[];
+  latest: SummaryTrendPoint | null;
+}
 
-const trendData: TrendPoint[] = [
-  { label: "M1 Mar", iph: 0.0   },
-  { label: "M2 Mar", iph: 0.88  },
-  { label: "M3 Mar", iph: 1.28  },
-  { label: "M4 Mar", iph: 0.62, penutupan: true   },
-  { label: "M1 Apr", iph: 0.48  },
-  { label: "M2 Apr", iph: 0.15  },
-  { label: "M3 Apr", iph: -0.42 },
-];
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const trendData2024: TrendPoint[] = [
-  { label: "M1 Mar", iph: 0.25  },
-  { label: "M2 Mar", iph: 0.55  },
-  { label: "M3 Mar", iph: 0.85  },
-  { label: "M4 Mar", iph: 0.40, penutupan: true   },
-  { label: "M1 Apr", iph: 0.30  },
-  { label: "M2 Apr", iph: 0.10  },
-  { label: "M3 Apr", iph: 0.02  },
-];
-
-const trendData2025: TrendPoint[] = [
-  { label: "M1 Mar", iph: 0.10  },
-  { label: "M2 Mar", iph: 0.68  },
-  { label: "M3 Mar", iph: 1.05  },
-  { label: "M4 Mar", iph: 0.38, penutupan: true   },
-  { label: "M1 Apr", iph: 0.29  },
-  { label: "M2 Apr", iph: 0.17  },
-  { label: "M3 Apr", iph: 0.08  },
-];
-
-const trendDataByYear: Record<YearTabValue, TrendPoint[]> = {
-  "2024": trendData2024,
-  "2025": trendData2025,
-  "2026": trendData,
-};
-
-const yearColors: Record<YearTabValue, string> = {
-  "2024": "#8b5cf6",
-  "2025": "#f59e0b",
-  "2026": "#10b981",
-};
-
-const weeklyRows: WeeklyRow[] = [
-  { minggu: "Minggu I Apr",         iph:  0.48,  status: "waspada",  pemicu: "Daging Ayam Ras, Cabai Rawit"   },
-  { minggu: "Minggu II Apr",        iph:  0.05,  status: "stabil",   pemicu: "Beras Medium, Minyakita"        },
-  { minggu: "Minggu III Apr",       iph: -0.42,  status: "deflasi",  pemicu: "Bawang Merah, Telur Ayam", highlighted: true },
-  { minggu: "Minggu IV Apr (Est)",  iph: -0.28,  status: "proyeksi", pemicu: "Panen Raya Hortikultura", penutupan: true  },
-];
-
-const commodityShares: CommodityShare[] = [
-  { name: "Cabai Rawit Merah",           count: 11, color: "#ef4444" },
-  { name: "Beras Medium (SPHP & Lokal)", count: 8,  color: "#f97316" },
-  { name: "Minyak Goreng Kemasan",       count: 6,  color: "#eab308" },
-  { name: "Telur Ayam Ras",              count: 5,  color: "#22c55e" },
-  { name: "Bawang Merah",                count: 4,  color: "#8b5cf6" },
-];
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const BULAN_SINGKAT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const ROMAWI = ["I", "II", "III", "IV", "V"];
+const PALETTE = ["#10b981", "#8b5cf6", "#f59e0b", "#ef4444"];
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
-// Define props manually so we don't depend on recharts internal type paths.
 
 interface TooltipPayloadItem {
   value?: number | string | null;
@@ -143,7 +105,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Status badging ───────────────────────────────────────────────────────────
 
 type WeeklyStatus = WeeklyRow["status"];
 
@@ -156,7 +118,6 @@ const weeklyStatusMap: Record<WeeklyStatus, StatusChipConfig> = {
   waspada:  { label: "Waspada Naik",  cls: "bg-amber-100 text-amber-700"    },
   stabil:   { label: "Stabil Netral", cls: "bg-gray-100 text-gray-600"      },
   deflasi:  { label: "Deflasi Sehat", cls: "bg-emerald-100 text-emerald-700" },
-  proyeksi: { label: "Proyeksi",      cls: "bg-gray-100 text-gray-400"      },
 };
 
 function WeeklyStatusBadge({ status }: { status: WeeklyStatus }) {
@@ -166,18 +127,56 @@ function WeeklyStatusBadge({ status }: { status: WeeklyStatus }) {
   );
 }
 
+function statusFromIph(iph: number): WeeklyStatus {
+  if (iph < 0) return "deflasi";
+  if (iph > 0.5) return "waspada";
+  return "stabil";
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-type YearTab = "2024" | "2025" | "2026";
-
 export default function VisualisasiTren() {
-  const [selectedYears, setSelectedYears] = useState<YearTab[]>(["2026"]);
+  const [summary, setSummary] = useState<SummaryResp | null>(null);
+  const [error, setError] = useState("");
+  const [selectedYears, setSelectedYears] = useState<string[]>([]);
   const [showOnlyPenutupan, setShowOnlyPenutupan] = useState(false);
   const [showRincianMingguan, setShowRincianMingguan] = useState(false);
 
-  const years: YearTab[] = ["2024", "2025", "2026"];
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<SummaryResp>("/rekap/summary")
+      .then((data) => {
+        if (cancelled) return;
+        setSummary(data);
+        const years = [...new Set(data.trend.map((t) => t.tahun))].sort((a, b) => b - a).map(String);
+        if (years.length) setSelectedYears([String(data.latest?.tahun ?? years[0])]);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Gagal memuat data visualisasi.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const toggleYear = (y: YearTab) => {
+  const latest = summary?.latest ?? null;
+  const latestYear = latest?.tahun ?? null;
+
+  const years: string[] = [...new Set((summary?.trend ?? []).map((t) => t.tahun))].sort((a, b) => b - a).map(String);
+
+  const trendByYear: Record<string, TrendPoint[]> = {};
+  for (const t of summary?.trend ?? []) {
+    (trendByYear[String(t.tahun)] ??= []).push({
+      label: `M${t.mingguIndeks} ${BULAN_SINGKAT[t.bulan - 1]}`,
+      iph: t.iph,
+      penutupan: t.penutupan,
+    });
+  }
+
+  const colorOf = (y: string) => PALETTE[Math.max(0, years.indexOf(y)) % PALETTE.length];
+
+  const toggleYear = (y: string) => {
     setSelectedYears((prev) => {
       if (prev.includes(y)) {
         if (prev.length === 1) return prev;
@@ -187,14 +186,67 @@ export default function VisualisasiTren() {
     });
   };
 
+  const latestLabel = latest
+    ? `M${latest.mingguIndeks} ${BULAN_SINGKAT[latest.bulan - 1]}`
+    : "—";
+
+  const matrixRows: WeeklyRow[] = (summary?.trend ?? [])
+    .filter((t) => latest && t.tahun === latest.tahun && t.bulan === latest.bulan)
+    .map((t) => ({
+      minggu: `Minggu ${ROMAWI[t.mingguIndeks - 1]} ${BULAN[t.bulan - 1]}`,
+      iph: t.iph,
+      status: statusFromIph(t.iph),
+      pemicu: t.pemicu ?? "—",
+      highlighted: t.mingguIndeks === latest?.mingguIndeks,
+    }));
+
+  const latestYearItems = summary?.frequency.find((f) => String(f.tahun) === String(latestYear))?.items ?? [];
+  const shares: CommodityShare[] = latestYearItems.slice(0, 6).map((it, i) => ({
+    name: it.name,
+    count: it.count,
+    color: PALETTE[i % PALETTE.length],
+  }));
+
+  const yearPoints = latestYear ? trendByYear[String(latestYear)] ?? [] : [];
+  const avg4 = yearPoints.slice(-4).length
+    ? yearPoints.slice(-4).reduce((s, p) => s + p.iph, 0) / Math.min(4, yearPoints.slice(-4).length)
+    : 0;
+  const maxPt = yearPoints.length ? yearPoints.reduce((a, b) => (b.iph > a.iph ? b : a), yearPoints[0]) : null;
+  const peak = maxPt?.iph ?? 0;
+
+  const stats: { label: string; value: string; sub?: string; color: string }[] = [
+    {
+      label: `IPH ${latestLabel}`,
+      value: `${latest && latest.iph > 0 ? "+" : ""}${(latest?.iph ?? 0).toFixed(2)}%`,
+      sub: latest ? (latest.iph < 0 ? "Deflasi" : latest.iph >= 1 ? "Perlu Intervensi" : "Inflasi Ringan") : undefined,
+      color: latest && latest.iph < 0 ? "text-emerald-600" : latest && latest.iph >= 1 ? "text-red-600" : "text-gray-900",
+    },
+    { label: "Rata-rata 4 Minggu Terakhir", value: `${avg4 > 0 ? "+" : ""}${avg4.toFixed(2)}%`, color: "text-gray-900" },
+    { label: "Puncak Tertinggi", value: `${peak > 0 ? "+" : ""}${peak.toFixed(2)}%`, sub: maxPt ? `(${maxPt.label})` : undefined, color: "text-amber-600" },
+    { label: "Stabilitas Pasar", value: peak < 1 ? "Terkendali" : "Waspada", sub: `(${yearPoints.length} pekan)`, color: peak < 1 ? "text-emerald-600" : "text-red-600" },
+  ];
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center p-6">
+        <div className="bg-white border border-red-100 rounded-2xl p-8 text-sm text-red-500">{error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Page header */}
       <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">
         <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
-          <span className="text-emerald-600 font-semibold">Periode Evaluasi 2026</span>
+          <span className="text-emerald-600 font-semibold">Periode Evaluasi {latestYear ?? "—"}</span>
           <span className="text-gray-300">•</span>
-          <span>Terakhir diperbarui: Minggu IV April 2026, 08:30 WIB</span>
+          <span>
+            Terakhir diperbarui:{" "}
+            {latest
+              ? `Minggu ${ROMAWI[latest.mingguIndeks - 1]} ${BULAN[latest.bulan - 1]} ${latest.tahun}`
+              : "—"}
+          </span>
         </div>
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
           <div>
@@ -211,7 +263,9 @@ export default function VisualisasiTren() {
               <div className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">
                 Status Regional
               </div>
-              <div className="text-sm font-bold text-emerald-700">Terkendali &amp; Waspada Cabai</div>
+              <div className="text-sm font-bold text-emerald-700">
+                {latest ? (latest.iph < 0 ? "Deflasi Terkendali" : latest.iph < 1 ? "Terkendali" : "Waspada") : "—"}
+              </div>
             </div>
           </div>
         </div>
@@ -230,7 +284,7 @@ export default function VisualisasiTren() {
                   : "text-gray-500 hover:text-gray-800"
               }`}
             >
-              {y === "2026" ? `${y} Aktif` : y}
+              {y === String(latestYear) ? `${y} Aktif` : y}
             </button>
           ))}
         </div>
@@ -268,12 +322,11 @@ export default function VisualisasiTren() {
       <div className="mx-4 sm:mx-6 mt-4 flex flex-wrap items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
         <AlertCircle size={13} className="text-amber-600 flex-shrink-0" />
         <span className="text-sm text-amber-800">
-          <strong>Catatan Pantauan:</strong> Deviasi Cabai Rawit (+7.8%) di Pasar Batu termonitor
-          menjelang panen raya Pujon. Kondisi terkendali.
+          <strong>Catatan Pantauan:</strong>
+          {latest
+            ? ` IPH terakhir tercatat ${latest.iph > 0 ? "+" : ""}${latest.iph.toFixed(2)}% (${latest.pemicu ? "pemicu utama " + latest.pemicu : "tanpa pemicu utama"}).`
+            : " Belum ada data pemantauan."}
         </span>
-        <button className="ml-auto text-sm text-amber-700 font-semibold hover:text-amber-800 flex items-center gap-0.5 flex-shrink-0">
-          Detail Pantauan <ChevronRight size={11} />
-        </button>
       </div>
 
       {/* Chart card */}
@@ -284,13 +337,13 @@ export default function VisualisasiTren() {
               Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
             </h2>
             <p className="text-sm text-gray-500">
-              Pergerakan kumulatif 20 komoditas strategis Kota Batu per minggu (Baseline 0.00%)
+              Pergerakan kumulatif komoditas strategis Kota Batu per minggu (Baseline 0.00%)
             </p>
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0 flex-wrap">
             {selectedYears.map((y) => (
               <div key={y} className="flex items-center gap-1.5">
-                <div className="w-4 h-0.5 rounded" style={{ backgroundColor: yearColors[y] }} />
+                <div className="w-4 h-0.5 rounded" style={{ backgroundColor: colorOf(y) }} />
                 <span>Tahun {y}</span>
               </div>
             ))}
@@ -364,12 +417,14 @@ export default function VisualisasiTren() {
                   type="monotone"
                   dataKey="iph"
                   name={`${y} IPH`}
-                  data={showOnlyPenutupan
-                    ? trendDataByYear[y].filter((p) => p.penutupan)
-                    : trendDataByYear[y]}
-                  stroke={yearColors[y]}
+                  data={
+                    showOnlyPenutupan
+                      ? (trendByYear[y] ?? []).filter((p) => p.penutupan)
+                      : trendByYear[y] ?? []
+                  }
+                  stroke={colorOf(y)}
                   strokeWidth={2.5}
-                  dot={{ fill: yearColors[y], r: 4, strokeWidth: 2, stroke: "#fff" }}
+                  dot={{ fill: colorOf(y), r: 4, strokeWidth: 2, stroke: "#fff" }}
                   activeDot={{ r: 6 }}
                 />
               ))}
@@ -380,14 +435,7 @@ export default function VisualisasiTren() {
 
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-4 pt-4 border-t border-gray-100">
-          {(
-            [
-              { label: "IPH Minggu III April", value: "-0.42%",     sub: "Deflasi Ringan",  color: "text-emerald-600" },
-              { label: "Rata-rata Kuartal",    value: "+0.48%",     sub: undefined,         color: "text-gray-900"   },
-              { label: "Puncak Tertinggi",     value: "+1.28%",     sub: "(M3 Mar)",        color: "text-amber-600"  },
-              { label: "Stabilitas Pasar",     value: "Terkendali", sub: "(0.31)",          color: "text-emerald-600" },
-            ] as const
-          ).map(({ label, value, sub, color }) => (
+          {stats.map(({ label, value, sub, color }) => (
             <div key={label} className="text-center min-w-0">
               <div className="text-[11px] sm:text-xs text-gray-500 mb-1 uppercase tracking-wide leading-tight">{label}</div>
               <div className={`text-base sm:text-lg font-black leading-tight ${color}`}>
@@ -407,11 +455,12 @@ export default function VisualisasiTren() {
             <div>
               <h3 className="text-sm font-bold text-gray-900">Matriks Evaluasi Mingguan</h3>
               <p className="text-xs text-gray-500">
-                Pergerakan IPH April 2026 dan komoditas pemicu
+                Pergerakan IPH{" "}
+                {latest ? `${BULAN[latest.bulan - 1]} ${latest.tahun}` : "—"} dan komoditas pemicu
               </p>
             </div>
             <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
-              April 2026
+              {latest ? `${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}` : "—"}
             </span>
           </div>
 
@@ -430,14 +479,10 @@ export default function VisualisasiTren() {
               </tr>
             </thead>
             <tbody>
-              {weeklyRows
-                .filter((r) => (showOnlyPenutupan ? r.penutupan : true))
-                .map((row: WeeklyRow) => (
+              {matrixRows.map((row: WeeklyRow) => (
                 <tr
                   key={row.minggu}
-                  className={`${row.highlighted ? "bg-emerald-50" : ""} ${
-                    row.status === "proyeksi" ? "opacity-60" : ""
-                  }`}
+                  className={`${row.highlighted ? "bg-emerald-50" : ""}`}
                 >
                   <td className="py-2 pr-3">
                     <div className="flex items-center gap-1.5">
@@ -480,7 +525,9 @@ export default function VisualisasiTren() {
           </div>
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-            <span className="text-xs text-gray-500">20 komoditas terverifikasi</span>
+            <span className="text-xs text-gray-500">
+              {summary ? `${summary.trend.length} pekan tercatat` : "—"} • {summary?.weekly.length ?? 0} tahun
+            </span>
             <button
               onClick={() => setShowRincianMingguan((v) => !v)}
               className="flex items-center gap-1 text-xs text-emerald-600 font-semibold hover:text-emerald-700"
@@ -501,38 +548,46 @@ export default function VisualisasiTren() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <div className="text-xs font-bold text-gray-700 mb-2">Andil Komoditas Pemicu (4 Minggu)</div>
+                  <div className="text-xs font-bold text-gray-700 mb-2">
+                    Andil Komoditas Pemicu ({matrixRows.length} minggu)
+                  </div>
                   <div className="space-y-2.5">
-                    {commodityShares.map(({ name, count, color }) => (
-                      <div key={name}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-gray-700 font-medium">{name}</span>
-                          <span className="text-sm font-black" style={{ color }}>{count} kali</span>
+                    {shares.length === 0 ? (
+                      <p className="text-xs text-gray-400">Belum ada komoditas tercatat.</p>
+                    ) : (
+                      shares.map(({ name, count, color }) => (
+                        <div key={name}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm text-gray-700 font-medium">{name}</span>
+                            <span className="text-sm font-black" style={{ color }}>{count} kali</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${(count / Math.max(1, ...shares.map((c) => c.count))) * 100}%`, backgroundColor: color }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${(count / Math.max(...commodityShares.map((c) => c.count))) * 100}%`, backgroundColor: color }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs font-bold text-gray-700 mb-2">Catatan Evaluasi</div>
                   <ul className="space-y-1.5">
-                    {[
-                      "Deflasi Minggu III didorong panen raya bawang merah & telur ayam ras.",
-                      "Cabai rawit tetap pemicu kenaikan tertinggi (11 kemunculan).",
-                      "Proyeksi Minggu IV: deflasi moderat seiring panen hortikultura.",
-                      "Rekomendasi: penambahan pasokan cabai & stabilisasi harga minyak goreng.",
-                    ].map((note, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-xs text-gray-600 leading-relaxed">
-                        <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
-                        {note}
-                      </li>
-                    ))}
+                    {matrixRows.length === 0 ? (
+                      <li className="text-xs text-gray-400">Belum ada pekan tercatat.</li>
+                    ) : (
+                      matrixRows.map((r) => (
+                        <li key={r.minggu} className="flex items-start gap-1.5 text-xs text-gray-600 leading-relaxed">
+                          <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
+                          <span>
+                            {r.minggu}: IPH {r.iph > 0 ? "+" : ""}
+                            {r.iph.toFixed(2)}% (pemicu {r.pemicu || "—"}).
+                          </span>
+                        </li>
+                      ))
+                    )}
                   </ul>
                 </div>
               </div>
@@ -546,33 +601,37 @@ export default function VisualisasiTren() {
             <div>
               <h3 className="text-sm font-bold text-gray-900">Andil Komoditas Terhadap Fluktuasi</h3>
               <p className="text-xs text-gray-500">
-                Jumlah kemunculan sebagai pemicu utama fluktuasi harga (2026)
+                Jumlah kemunculan sebagai pemicu utama fluktuasi harga ({latestYear ?? "—"})
               </p>
             </div>
             <BarChart3 size={16} className="text-gray-500" />
           </div>
 
           <div className="space-y-3">
-            {commodityShares.map(({ name, count, color }: CommodityShare) => (
-              <div key={name}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-gray-700 font-medium">{name}</span>
-                  <span className="text-sm font-black" style={{ color }}>
-                    {count} kali
-                  </span>
+            {shares.length === 0 ? (
+              <p className="text-xs text-gray-400">Belum ada komoditas tercatat.</p>
+            ) : (
+              shares.map(({ name, count, color }: CommodityShare) => (
+                <div key={name}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-gray-700 font-medium">{name}</span>
+                    <span className="text-sm font-black" style={{ color }}>
+                      {count} kali
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${(count / Math.max(1, ...shares.map((c) => c.count))) * 100}%`, backgroundColor: color }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${(count / Math.max(...commodityShares.map((c) => c.count))) * 100}%`, backgroundColor: color }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-            <span className="text-xs text-gray-500">Sumber: SP2KP Kemendag &amp; BPS</span>
+            <span className="text-xs text-gray-500">Sumber: Rekap IPH Kota Batu (CSV)</span>
             <button className="flex items-center gap-1 text-xs text-gray-500 font-semibold hover:text-gray-800">
               <BarChart2 size={10} />
               Bobot Andil

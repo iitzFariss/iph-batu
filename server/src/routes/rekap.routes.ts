@@ -12,6 +12,7 @@ import {
 } from "../lib/rekap";
 import { AuthedRequest, requireAuth, requireRoles } from "../middleware/auth";
 import { findOrCreateKomoditas } from "./master.helpers";
+import { BULAN_SINGKAT } from "../lib/dates";
 
 export const router = Router();
 
@@ -34,6 +35,7 @@ function toRekapRow(rekap: {
     statusIPH: computeStatusIPH(rekap.indikator),
     deflasi: groups.deflasi,
     inflasi: groups.inflasi,
+    fluktuasi: groups.fluktuasi,
     tahun: rekap.tahun,
     bulan: rekap.bulan,
     mingguIndeks: rekap.mingguIndeks,
@@ -87,6 +89,75 @@ router.get(
     ]);
 
     res.json({ rows: records.map(toRekapRow), total, page, perPage, totalPages: Math.ceil(total / perPage) });
+  })
+);
+
+// ─── GET /api/rekap/summary ────────────────────────────────────────────────
+router.get(
+  "/summary",
+  requireAuth,
+  requireRoles("admin", "petugas", "tamu"),
+  h(async (_req, res) => {
+    const records = await prisma.rekap.findMany({
+      orderBy: [{ tahun: "asc" }, { bulan: "asc" }, { mingguIndeks: "asc" }],
+      include: { details: { include: { komoditas: true } } },
+    });
+
+    const trend = records.map((r) => {
+      const top = [...r.details].sort((a, b) => Math.abs(b.nilai) - Math.abs(a.nilai))[0];
+      return {
+        tahun: r.tahun,
+        bulan: r.bulan,
+        mingguIndeks: r.mingguIndeks,
+        iph: r.indikator,
+        status: computeStatusIPH(r.indikator),
+        pemicu: top ? top.komoditas.nama : null,
+      };
+    });
+
+    const maxWeek = new Map<string, number>();
+    for (const t of trend) {
+      const k = `${t.tahun}-${t.bulan}`;
+      maxWeek.set(k, Math.max(maxWeek.get(k) ?? 0, t.mingguIndeks));
+    }
+    const trendWith = trend.map((t) => ({
+      ...t,
+      penutupan: t.mingguIndeks === maxWeek.get(`${t.tahun}-${t.bulan}`),
+    }));
+
+    const weekly = new Map<number, Record<string, number | null>>();
+    for (const r of records) {
+      const key = `${BULAN_SINGKAT[r.bulan - 1].toLowerCase()}-m${r.mingguIndeks}`;
+      const row = weekly.get(r.tahun) ?? {};
+      row[key] = r.indikator;
+      weekly.set(r.tahun, row);
+    }
+
+    const freqByYear = new Map<number, Map<string, number>>();
+    for (const r of records) {
+      const names = [...new Set(r.details.map((d) => d.komoditas.nama))];
+      for (const name of names) {
+        const m = freqByYear.get(r.tahun) ?? new Map<string, number>();
+        m.set(name, (m.get(name) ?? 0) + 1);
+        freqByYear.set(r.tahun, m);
+      }
+    }
+
+    res.json({
+      trend: trendWith,
+      weekly: [...weekly.entries()]
+        .map(([tahun, data]) => ({ tahun, data }))
+        .sort((a, b) => a.tahun - b.tahun),
+      frequency: [...freqByYear.entries()]
+        .map(([tahun, m]) => ({
+          tahun,
+          items: [...m.entries()]
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count),
+        }))
+        .sort((a, b) => a.tahun - b.tahun),
+      latest: trendWith.length ? trendWith[trendWith.length - 1] : null,
+    });
   })
 );
 
@@ -227,6 +298,7 @@ router.patch(
     }
 
     const details = [...body.deflasi, ...body.inflasi];
+    const fluktuasiNilai = body.fluktuasi?.nilai ?? null;
 
     await prisma.$transaction(async (tx) => {
       await tx.rekap.update({
@@ -238,6 +310,12 @@ router.patch(
         const komoditas = await findOrCreateKomoditas(d.nama);
         await tx.rekapDetail.create({
           data: { rekapId: rekap.id, komoditasId: komoditas.id, nilai: d.nilai, isFluktuasi: false },
+        });
+      }
+      if (body.fluktuasi && fluktuasiNilai !== null) {
+        const komoditas = await findOrCreateKomoditas(body.fluktuasi.nama);
+        await tx.rekapDetail.create({
+          data: { rekapId: rekap.id, komoditasId: komoditas.id, nilai: body.fluktuasi.nilai, isFluktuasi: true },
         });
       }
     });

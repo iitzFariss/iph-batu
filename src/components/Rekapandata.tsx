@@ -43,6 +43,7 @@ interface RekapRow {
   statusIPH: IPHStatus;
   deflasi: CommodityTag[];
   inflasi: CommodityTag[];
+  fluktuasi: CommodityTag | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -151,6 +152,18 @@ function EditRekapModal({ row, onSave, onClose }: {
 
   const removeTag = (group: "deflasi" | "inflasi", idx: number) =>
     setDraft((p) => ({ ...p, [group]: p[group].filter((_, i) => i !== idx) }));
+
+  const setFluktuasi = (field: "name" | "change", val: string) =>
+    setDraft((p) => {
+      const change = p.fluktuasi?.change ?? 0;
+      const name = p.fluktuasi?.name ?? "";
+      if (field === "name") return { ...p, fluktuasi: { name: val, change } };
+      const num = parseFloat(val.replace(",", "."));
+      return { ...p, fluktuasi: { name, change: isNaN(num) ? change : num } };
+    });
+
+  const clearFluktuasi = () => setDraft((p) => ({ ...p, fluktuasi: null }));
+  const addFluktuasi = () => setDraft((p) => ({ ...p, fluktuasi: { name: "", change: 0 } }));
 
   const handleSave = () => {
     if (!draft.periode.trim()) {
@@ -274,6 +287,52 @@ function EditRekapModal({ row, onSave, onClose }: {
               </div>
             </div>
           ))}
+
+          {/* Fluktuasi harga tertinggi */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                Fluktuasi Harga Tertinggi
+              </label>
+              {draft.fluktuasi ? (
+                <button
+                  type="button"
+                  onClick={clearFluktuasi}
+                  className="px-2 py-1 text-xs font-semibold text-gray-500 border border-gray-200 rounded-lg hover:text-red-600 hover:border-red-200 hover:bg-red-50"
+                >
+                  Hapus
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={addFluktuasi}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50"
+                >
+                  <Plus size={11} />
+                  Tambah
+                </button>
+              )}
+            </div>
+            {draft.fluktuasi && (
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center">
+                <input
+                  type="text"
+                  placeholder="Nama komoditas fluktuasi"
+                  value={draft.fluktuasi.name}
+                  onChange={(e) => setFluktuasi("name", e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="%"
+                  value={draft.fluktuasi.change}
+                  onChange={(e) => setFluktuasi("change", e.target.value)}
+                  className="w-24 px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
@@ -302,7 +361,7 @@ export default function RekapanData() {
   const isAdmin = user?.role === "admin";
   const [filterTab, setFilterTab] = useState<FilterTab>("semua");
   const [openYear, setOpenYear] = useState(false);
-  const [year, setYear] = useState("2026");
+  const [year, setYear] = useState<string | null>("2026");
   const [openAdvanced, setOpenAdvanced] = useState(false);
   const [bulan, setBulan] = useState<number | null>(null);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -324,6 +383,7 @@ export default function RekapanData() {
       setLoadError("");
       const params = new URLSearchParams({ tab: filterTab, page: String(currentPage), perPage: String(perPage) });
       if (search.trim()) params.set("q", search.trim());
+      if (year) params.set("tahun", year);
       if (bulan !== null) params.set("bulan", String(bulan));
       try {
         const data = await api.get<{ rows: RekapRow[]; total: number; totalPages: number }>(`/rekap?${params.toString()}`);
@@ -342,7 +402,7 @@ export default function RekapanData() {
     return () => {
       cancelled = true;
     };
-  }, [filterTab, currentPage, perPage, search, bulan, reloadKey]);
+  }, [filterTab, currentPage, perPage, search, year, bulan, reloadKey]);
 
   const tabs: { key: FilterTab; label: string }[] = [
     { key: "semua",      label: "Semua Periode" },
@@ -364,6 +424,10 @@ export default function RekapanData() {
         nilaiIPH: updated.nilaiIPH,
         deflasi: updated.deflasi.filter((t) => t.name.trim()),
         inflasi: updated.inflasi.filter((t) => t.name.trim()),
+        fluktuasi:
+          updated.fluktuasi && updated.fluktuasi.name.trim()
+            ? { nama: updated.fluktuasi.name.trim(), nilai: updated.fluktuasi.change }
+            : null,
       });
       setEditingRow(null);
       setReloadKey((k) => k + 1);
@@ -475,7 +539,7 @@ export default function RekapanData() {
               openYear ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
             }`}
           >
-            Tahun {year} {year === "2026" ? "(Aktif)" : "(Arsip)"}
+            Tahun {year ?? "Semua"}{year === "2026" ? " (Aktif)" : year ? " (Arsip)" : ""}
             <ChevronDown size={12} className={`transition-transform ${openYear ? "rotate-180" : ""}`} />
           </button>
 
@@ -526,10 +590,20 @@ export default function RekapanData() {
           <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
             <div className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Pilih Tahun Data</div>
             <div className="flex flex-wrap gap-2">
-              {["2026", "2025", "2024"].map((y) => (
+              <button
+                onClick={() => { setYear(null); setCurrentPage(1); setOpenYear(false); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                  year === null
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                Semua Tahun
+              </button>
+              {["2026", "2025", "2024", "2023"].map((y) => (
                 <button
                   key={y}
-                  onClick={() => { setYear(y); setOpenYear(false); }}
+                  onClick={() => { setYear(y); setCurrentPage(1); setOpenYear(false); }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                     year === y
                       ? "bg-gray-900 text-white border-gray-900"
@@ -541,7 +615,7 @@ export default function RekapanData() {
               ))}
             </div>
             <p className="text-xs text-gray-400 mt-2">
-              Menampilkan arsip per tahun pencatatan IPH; default periode berjalan 2026.
+              Menampilkan data per tahun pencatatan IPH; aktifkan sesuai periode yang ingin ditinjau.
             </p>
           </div>
         )}
@@ -589,23 +663,24 @@ export default function RekapanData() {
       {/* Table */}
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px]">
+        <table className="w-full min-w-[880px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="w-10 px-4 py-3">
                 <input type="checkbox" className="rounded" readOnly />
               </th>
               {[
-                "Periode & Cutoff Data",
+                "Periode & Rentang Data",
                 "Nilai IPH Gabungan",
                 "Komoditas Andil Penurunan (Deflasi)",
                 "Komoditas Andil Kenaikan (Inflasi)",
+                "Fluktuasi Harga Tertinggi",
                 "",
               ].map((col, i) => (
                 <th
                   key={i}
                   className={`text-left text-xs font-normal text-gray-500 uppercase tracking-wide px-3 py-3 ${
-                    i === 4 ? "w-16 text-right" : ""
+                    i === 5 ? "w-16 text-right" : ""
                   }`}
                 >
                   {col}
@@ -616,13 +691,13 @@ export default function RekapanData() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
                   Memuat data rekapan…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
                   {loadError || "Belum ada data rekapan untuk filter ini."}
                 </td>
               </tr>
@@ -648,7 +723,7 @@ export default function RekapanData() {
                 <td className="px-3 py-4">
                   <div className="text-sm font-bold text-gray-900 mb-0.5">{row.periode}</div>
                   <div className="text-xs text-gray-400">
-                    Cutoff: {row.cutoffStart} – {row.cutoffEnd}
+                    Rentang: {row.cutoffStart} – {row.cutoffEnd}
                   </div>
                 </td>
 
@@ -680,6 +755,19 @@ export default function RekapanData() {
                         <CommodityChip key={c.name} name={c.name} change={c.change} type="inflasi" />
                       ))}
                     </div>
+                  )}
+                </td>
+
+                {/* Fluktuasi harga tertinggi */}
+                <td className="px-3 py-4">
+                  {!row.fluktuasi ? (
+                    <span className="text-sm text-gray-400 italic">Nihil</span>
+                  ) : (
+                    <CommodityChip
+                      name={row.fluktuasi.name}
+                      change={row.fluktuasi.change}
+                      type={row.fluktuasi.change < 0 ? "deflasi" : "inflasi"}
+                    />
                   )}
                 </td>
 

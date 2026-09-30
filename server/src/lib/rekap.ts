@@ -23,6 +23,7 @@ export interface CommodityTag {
 export interface RekapGroups {
   deflasi: CommodityTag[];
   inflasi: CommodityTag[];
+  fluktuasi: CommodityTag | null;
 }
 
 export function computeCommodityGroups(
@@ -42,12 +43,11 @@ export function computeCommodityGroups(
     .slice(0, 3)
     .map((d) => ({ name: d.name, change: round(d.nilai) }));
 
-  if (fluktuasi) {
-    const tag = { name: fluktuasi.komoditas.nama, change: round(fluktuasi.nilai) };
-    if (fluktuasi.nilai < 0) deflasi.push(tag);
-    else if (fluktuasi.nilai > 0) inflasi.push(tag);
-  }
-  return { deflasi, inflasi };
+  const fluktuasiTag = fluktuasi
+    ? { name: fluktuasi.komoditas.nama, change: round(fluktuasi.nilai) }
+    : null;
+
+  return { deflasi, inflasi, fluktuasi: fluktuasiTag };
 }
 
 export interface Periodic {

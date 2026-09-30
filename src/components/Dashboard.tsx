@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -17,13 +17,32 @@ import {
   Minus,
   ChevronRight,
 } from "lucide-react";
-import {
-  commodities,
-  commodityFrequency,
-  iphTrend,
-  type Commodity,
-} from "../data/Mockdata";
+import { commodities, type Commodity } from "../data/Mockdata";
+import { weeklyColumns, type WeeklyRow } from "../data/weeklyData";
 import WeeklyDataTable from "./WeeklyDataTable";
+import { api } from "../lib/api";
+
+// ─── types ───────────────────────────────────────────────────────────────────
+
+const BULAN_SINGKAT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"] as const;
+const ROMAWI = ["I", "II", "III", "IV", "V"] as const;
+
+interface SummaryTrendPoint {
+  tahun: number;
+  bulan: number;
+  mingguIndeks: number;
+  iph: number;
+  status: string;
+  pemicu: string | null;
+  penutupan: boolean;
+}
+
+interface SummaryResp {
+  trend: SummaryTrendPoint[];
+  weekly: { tahun: number; data: Record<string, number | null> }[];
+  frequency: { tahun: number; items: { name: string; count: number }[] }[];
+  latest: SummaryTrendPoint | null;
+}
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -67,14 +86,17 @@ function ChangeCell({ change }: { change: number }) {
 
 // ─── sub-sections ────────────────────────────────────────────────────────────
 
-function HeroMetrics() {
+function HeroMetrics({ latest }: { latest: SummaryTrendPoint | null }) {
+  const periodeLabel = latest
+    ? `Minggu ${ROMAWI[latest.mingguIndeks - 1] ?? latest.mingguIndeks} ${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}`
+    : "Belum ada data";
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-5 mb-4">
       <div className="flex flex-wrap items-center gap-1.5 mb-3">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
         <span className="text-sm text-gray-500">Sinkronisasi BPS • </span>
         <span className="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-          Minggu III April 2026
+          {periodeLabel}
         </span>
         <span className="text-sm text-gray-500"> (Terverifikasi)</span>
       </div>
@@ -92,7 +114,9 @@ function HeroMetrics() {
             <div className="text-xs text-gray-500 mb-0.5">
               Indeks Perkembangan Harga (IPH) Terkini
             </div>
-            <span className="text-4xl font-black text-gray-900 tracking-tight">-0.42%</span>
+            <span className="text-4xl font-black text-gray-900 tracking-tight">
+              {latest ? `${latest.iph > 0 ? "+" : ""}${latest.iph.toFixed(2)}%` : "—"}
+            </span>
           </div>
         </div>
       </div>
@@ -100,7 +124,8 @@ function HeroMetrics() {
   );
 }
 
-function TrendChart() {
+function TrendChart({ points, year }: { points: { label: string; iph: number }[]; year: number }) {
+  const maxAbs = Math.max(1, ...points.map((p) => Math.abs(p.iph))) * 1.2;
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
       <div className="flex items-start justify-between mb-1 flex-wrap gap-2">
@@ -113,14 +138,14 @@ function TrendChart() {
           </p>
         </div>
         <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
-          2026
+          {year}
         </span>
       </div>
 
       <div className="overflow-x-auto mt-3 pb-1">
         <div className="min-w-[760px] h-96">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={iphTrend} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+          <LineChart data={points} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
               dataKey="label"
@@ -133,7 +158,7 @@ function TrendChart() {
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}%`}
-              domain={[-1.0, 1.6]}
+              domain={[-maxAbs, maxAbs]}
             />
             <Tooltip
               contentStyle={{
@@ -174,24 +199,29 @@ function TrendChart() {
   );
 }
 
-function FrequencyChart() {
+function FrequencyChart({ data }: { data: { name: string; count: number }[] }) {
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
       <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
         <div>
           <h2 className="text-sm font-bold text-gray-900">Frekuensi Kemunculan Komoditas</h2>
           <p className="text-sm text-gray-400">
-            Berapa kali komoditas muncul dalam pemantauan pekan ini (2026)
+            Berapa kali komoditas muncul sebagai andil/fluktuasi dalam pemantauan tahun berjalan
           </p>
         </div>
         <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
-          2026
+          Tahun berjalan
         </span>
       </div>
 
       <div className="h-64 mt-3">
+        {data.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-sm text-gray-400">
+            Belum ada komoditas tercatat.
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={commodityFrequency} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+          <BarChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
               dataKey="name"
@@ -222,6 +252,7 @@ function FrequencyChart() {
             <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
           </BarChart>
         </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
@@ -320,15 +351,53 @@ function CommodityTable() {
 // ─── main ───────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const [summary, setSummary] = useState<SummaryResp | null>(null);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<SummaryResp>("/rekap/summary")
+      .then((data) => {
+        if (!cancelled) setSummary(data);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError("Gagal memuat ringkasan data.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const latest = summary?.latest ?? null;
+  const year = latest?.tahun ?? 2026;
+  const trendPoints = (summary?.trend ?? [])
+    .filter((t) => t.tahun === year)
+    .map((t) => ({ label: `${BULAN_SINGKAT[t.bulan - 1]} M${t.mingguIndeks}`, iph: t.iph }));
+  const freqItems = summary?.frequency.find((f) => f.tahun === year)?.items ?? [];
+  const weeklyRows: WeeklyRow[] = (summary?.weekly ?? []).map((w) => ({ tahun: w.tahun, data: w.data }));
+
   return (
     <div className="p-4 sm:p-5 space-y-4 w-full">
-      <HeroMetrics />
+      <HeroMetrics latest={latest} />
 
       <div className="space-y-4">
-        <CommodityTable />
-        <TrendChart />
-        <FrequencyChart />
-        <WeeklyDataTable />
+        {loadError ? (
+          <div className="bg-white border border-red-100 rounded-xl p-10 text-center text-sm text-red-500">
+            {loadError}
+          </div>
+        ) : !summary ? (
+          <div className="bg-white border border-gray-100 rounded-xl p-10 text-center text-sm text-gray-400">
+            Memuat data ringkasan…
+          </div>
+        ) : (
+          <>
+            <CommodityTable />
+            <TrendChart points={trendPoints} year={year} />
+            <FrequencyChart data={freqItems} />
+            <WeeklyDataTable rows={weeklyRows} columns={weeklyColumns} />
+          </>
+        )}
       </div>
     </div>
   );

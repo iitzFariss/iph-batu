@@ -80,4 +80,5 @@ export const rekapUpdateSchema = z.object({
   nilaiIPH: z.number().nullish(),
   deflasi: z.array(detailSchema).default([]),
   inflasi: z.array(detailSchema).default([]),
+  fluktuasi: detailSchema.nullish(),
 });
