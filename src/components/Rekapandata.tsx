@@ -62,13 +62,20 @@ const iphConfigMap: Record<IPHStatus, IPHConfig> = {
   "deflasi-signifikan":  { label: "Deflasi Signifikan",   bg: "bg-blue-50",    text: "text-blue-700",    icon: <TrendingDown size={12} /> },
 };
 
-const statusOptions: { value: IPHStatus; label: string }[] = [
-  { value: "deflasi-signifikan", label: "Deflasi Signifikan" },
-  { value: "deflasi-terkendali", label: "Deflasi Terkendali" },
-  { value: "stabil-terkendali",  label: "Stabil Terkendali" },
-  { value: "inflasi-ringan",     label: "Inflasi Ringan" },
-  { value: "perlu-intervensi",   label: "Perlu Intervensi" },
-];
+const BULAN_FE = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+] as const;
 
 function IPHBadge({ value, status }: { value: number; status: IPHStatus }) {
   const cfg = iphConfigMap[status];
@@ -297,7 +304,7 @@ export default function RekapanData() {
   const [openYear, setOpenYear] = useState(false);
   const [year, setYear] = useState("2026");
   const [openAdvanced, setOpenAdvanced] = useState(false);
-  const [advFilter, setAdvFilter] = useState<IPHStatus[]>([]);
+  const [bulan, setBulan] = useState<number | null>(null);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
@@ -317,6 +324,7 @@ export default function RekapanData() {
       setLoadError("");
       const params = new URLSearchParams({ tab: filterTab, page: String(currentPage), perPage: String(perPage) });
       if (search.trim()) params.set("q", search.trim());
+      if (bulan !== null) params.set("bulan", String(bulan));
       try {
         const data = await api.get<{ rows: RekapRow[]; total: number; totalPages: number }>(`/rekap?${params.toString()}`);
         if (cancelled) return;
@@ -334,7 +342,7 @@ export default function RekapanData() {
     return () => {
       cancelled = true;
     };
-  }, [filterTab, currentPage, perPage, search, reloadKey]);
+  }, [filterTab, currentPage, perPage, search, bulan, reloadKey]);
 
   const tabs: { key: FilterTab; label: string }[] = [
     { key: "semua",      label: "Semua Periode" },
@@ -346,12 +354,6 @@ export default function RekapanData() {
   const toggleRow = (id: string) => {
     setSelectedRows((prev) =>
       prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
-    );
-  };
-
-  const toggleAdvStatus = (v: IPHStatus) => {
-    setAdvFilter((prev) =>
-      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]
     );
   };
 
@@ -483,15 +485,15 @@ export default function RekapanData() {
             className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium border rounded-lg transition-colors ${
               openAdvanced
                 ? "bg-gray-900 text-white border-gray-900"
-                : advFilter.length > 0
+                : bulan !== null
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                 : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
             }`}
           >
             <SlidersHorizontal size={12} />
             Filter Lanjutan
-            {advFilter.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">{advFilter.length}</span>
+            {bulan !== null && (
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">{BULAN_FE[bulan - 1]}</span>
             )}
           </button>
 
@@ -546,28 +548,32 @@ export default function RekapanData() {
 
         {openAdvanced && (
           <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
-            <div className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Filter Status IPH</div>
+            <div className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Filter Bulan</div>
             <div className="flex flex-wrap gap-2">
-              {statusOptions.map((o) => (
-                <button
-                  key={o.value}
-                  onClick={() => toggleAdvStatus(o.value)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                    advFilter.includes(o.value)
-                      ? "bg-emerald-600 text-white border-emerald-600"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  {advFilter.includes(o.value) ? "✓ " : ""}{o.label}
-                </button>
-              ))}
+              {BULAN_FE.map((nama, i) => {
+                const num = i + 1;
+                const active = bulan === num;
+                return (
+                  <button
+                    key={nama}
+                    onClick={() => { setBulan(active ? null : num); setCurrentPage(1); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                      active
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    {active ? "✓ " : ""}{nama}
+                  </button>
+                );
+              })}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2 mt-2 pt-2 border-t border-gray-100">
               <button
-                onClick={() => setAdvFilter([])}
+                onClick={() => { setBulan(null); setCurrentPage(1); }}
                 className="px-3 py-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700"
               >
-                Reset
+                Reset Bulan
               </button>
               <button
                 onClick={() => setOpenAdvanced(false)}

@@ -50,6 +50,7 @@ router.get(
     const q = req.query as Record<string, string | undefined>;
     const tab = q.tab ?? "semua";
     const tahun = q.tahun ? Number(q.tahun) : undefined;
+    const bulan = q.bulan ? Number(q.bulan) : undefined;
     const search = q.q?.trim();
     const page = Math.max(1, Number(q.page ?? 1));
     const perPage = Math.min(100, Math.max(1, Number(q.perPage ?? 10)));
@@ -59,6 +60,7 @@ router.get(
     else if (tab === "inflasi") where.indikator = { gt: 0 };
     else if (tab === "intervensi") where.indikator = { gte: 1 };
     if (tahun) where.tahun = tahun;
+    if (bulan && bulan >= 1 && bulan <= 12) where.bulan = bulan;
 
     if (search) {
       const activeKom = await prisma.komoditas.findMany();
