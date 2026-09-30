@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   LineChart,
   Line,
@@ -163,7 +163,11 @@ export default function VisualisasiTren() {
   const latest = summary?.latest ?? null;
   const latestYear = latest?.tahun ?? null;
 
-  const years: string[] = [...new Set((summary?.trend ?? []).map((t) => t.tahun))].sort((a, b) => b - a).map(String);
+  const years = useMemo<string[]>(
+    () =>
+      [...new Set((summary?.trend ?? []).map((t) => t.tahun))].sort((a, b) => b - a).map(String),
+    [summary]
+  );
 
   const trendByYear: Record<string, TrendPoint[]> = {};
   for (const t of summary?.trend ?? []) {
@@ -175,6 +179,45 @@ export default function VisualisasiTren() {
   }
 
   const colorOf = (y: string) => PALETTE[Math.max(0, years.indexOf(y)) % PALETTE.length];
+
+  // Satu datasetmerged dengan satu kategori X bersama, supaya tiap tahun
+  // duduk di posisi yang sama dan tidak saling geser.
+  const mergedData = useMemo(() => {
+    const perYear: Record<string, Map<string, number>> = {};
+    for (const t of summary?.trend ?? []) {
+      const key = String(t.tahun);
+      const label = `M${t.mingguIndeks} ${BULAN_SINGKAT[t.bulan - 1]}`;
+      if (showOnlyPenutupan && !t.penutupan) continue;
+      (perYear[key] ??= new Map()).set(label, t.iph);
+    }
+
+    const order = new Map<string, number>();
+    for (const t of summary?.trend ?? []) {
+      if (showOnlyPenutupan && !t.penutupan) continue;
+      order.set(`M${t.mingguIndeks} ${BULAN_SINGKAT[t.bulan - 1]}`, t.bulan * 10 + t.mingguIndeks);
+    }
+
+    return [...order.entries()]
+      .sort((a, b) => a[1] - b[1])
+      .map(([label]) => {
+        const row: Record<string, string | number | null> = { label };
+        for (const y of years) row[y] = perYear[y]?.get(label) ?? null;
+        return row;
+      });
+  }, [summary, years, showOnlyPenutupan]);
+
+  // Sumbu Y mengikuti data tahun yang dipilih, selalu menyertakan garis 0 dan
+  // ambang +1.50% supaya tidak ada garis yang terpotong.
+  const yDomain = useMemo<[number, number]>(() => {
+    const values = mergedData.flatMap((row) =>
+      selectedYears.map((y) => row[y]).filter((v): v is number => typeof v === "number")
+    );
+    if (values.length === 0) return [-1, 1];
+    const max = Math.max(...values, 1.5);
+    const min = Math.min(...values, 0);
+    const pad = (max - min) * 0.12 || 0.25;
+    return [Number((min - pad).toFixed(2)), Number((max + pad).toFixed(2))];
+  }, [mergedData, selectedYears]);
 
   const toggleYear = (y: string) => {
     setSelectedYears((prev) => {
@@ -362,12 +405,13 @@ export default function VisualisasiTren() {
         <div className="overflow-x-auto pb-1">
         <div className="min-w-[820px] h-96 sm:h-[28rem]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart margin={{ top: 10, right: 16, bottom: 0, left: 0 }}>
+            <LineChart data={mergedData} margin={{ top: 10, right: 16, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis
                 dataKey="label"
                 type="category"
                 allowDuplicatedCategory={false}
+                interval="preserveStartEnd"
                 tick={{ fill: "#9ca3af", fontSize: 12 }}
                 axisLine={{ stroke: "#e5e7eb" }}
                 tickLine={false}
@@ -377,7 +421,7 @@ export default function VisualisasiTren() {
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}%`}
-                domain={[-1.2, 2.0]}
+                domain={yDomain}
               />
               <Tooltip content={<CustomTooltip />} />
               <ReferenceLine
@@ -415,13 +459,9 @@ export default function VisualisasiTren() {
                 <Line
                   key={y}
                   type="monotone"
-                  dataKey="iph"
+                  dataKey={y}
                   name={`${y} IPH`}
-                  data={
-                    showOnlyPenutupan
-                      ? (trendByYear[y] ?? []).filter((p) => p.penutupan)
-                      : trendByYear[y] ?? []
-                  }
+                  connectNulls
                   stroke={colorOf(y)}
                   strokeWidth={2.5}
                   dot={{ fill: colorOf(y), r: 4, strokeWidth: 2, stroke: "#fff" }}
