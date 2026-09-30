@@ -5,7 +5,6 @@ import {
   changePasswordSchema,
   loginSchema,
   preferencesSchema,
-  registerSchema,
   updateMeSchema,
 } from "../lib/schemas";
 import {
@@ -44,41 +43,6 @@ async function issueSession(userId: string, role: string, req: AuthedRequest) {
     refreshToken,
   };
 }
-
-// ─── POST /api/auth/register ──────────────────────────────────────────────
-router.post(
-  "/register",
-  h(async (req, res) => {
-    const body = registerSchema.parse(req.body);
-
-    const exists = await prisma.user.findUnique({ where: { emailNorm: body.email.toLowerCase() } });
-    if (exists) {
-      res.status(409).json({ message: "Email sudah terdaftar." });
-      return;
-    }
-
-    const instansi = body.instansi ? await findOrCreateInstansi(body.instansi) : null;
-
-    await prisma.user.create({
-      data: {
-        name: body.name,
-        email: body.email,
-        emailNorm: body.email.toLowerCase(),
-        password: await hashPassword(body.password),
-        role: "petugas",
-        status: "pending",
-        instansiId: instansi?.id ?? null,
-        nip: body.nip ?? null,
-        phone: body.phone ?? null,
-      },
-    });
-
-    res.status(201).json({
-      message:
-        "Pendaftaran berhasil. Akun petugas Anda akan diverifikasi dan diaktifkan oleh Administrator TPID melalui menu Kelola Pegawai sebelum dapat digunakan.",
-    });
-  })
-);
 
 // ─── POST /api/auth/login ─────────────────────────────────────────────────
 router.post(

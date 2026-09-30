@@ -38,20 +38,10 @@ function toAppUser(u: ApiUser): User {
 
 // ─── Context definition ───────────────────────────────────────────────────────
 
-export interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  instansi?: string;
-  nip?: string;
-}
-
 interface AuthContextValue extends AuthState {
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   loginAsGuest: () => Promise<{ success: boolean; message: string }>;
-  register: (data: RegisterData) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<boolean>;
 }
@@ -118,19 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function register(data: RegisterData) {
-    try {
-      await api.post<{ message: string }>("/auth/register", data);
-      return {
-        success: true,
-        message:
-          "Pendaftaran berhasil. Akun petugas Anda akan diverifikasi dan diaktifkan oleh Administrator TPID melalui menu Kelola Pegawai sebelum dapat digunakan.",
-      };
-    } catch (e) {
-      return { success: false, message: e instanceof ApiError ? e.message : "Pendaftaran gagal." };
-    }
-  }
-
   async function loginAsGuest() {
     try {
       const data = await api.post<AuthResponse>("/auth/guest");
@@ -162,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, loading, login, loginAsGuest, register, logout, refresh }}>
+    <AuthContext.Provider value={{ ...state, loading, login, loginAsGuest, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

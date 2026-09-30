@@ -5,16 +5,6 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Kata sandi wajib diisi."),
 });
 
-export const registerSchema = z.object({
-  name: z.string().trim().min(3, "Nama minimal 3 karakter."),
-  email: z.string().trim().email("Format email tidak valid."),
-  password: z.string().min(8, "Kata sandi minimal 8 karakter."),
-  role: z.enum(["petugas"]).optional().default("petugas"),
-  instansi: z.string().trim().optional().nullable(),
-  nip: z.string().trim().optional().nullable(),
-  phone: z.string().trim().optional().nullable(),
-});
-
 export const updateMeSchema = z.object({
   name: z.string().trim().min(3, "Nama minimal 3 karakter.").optional(),
   email: z.string().trim().email("Format email tidak valid.").optional(),

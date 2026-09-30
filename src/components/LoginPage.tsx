@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import type { UserRole } from "../types/auth";
 
 interface LoginPageProps {
-  onGoRegister: () => void;
   onGoBack?: () => void;
 }
 
@@ -65,7 +64,7 @@ const demoHints: Record<UserRole, { email: string; password: string }> = {
   tamu:    { email: "Tanpa kredensial",              password: "—"          },
 };
 
-export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
+export default function LoginPage({ onGoBack }: LoginPageProps) {
   const { login, loginAsGuest } = useAuth();
 
   const [selectedRole, setSelectedRole] = useState<UserRole>("petugas");
@@ -263,10 +262,7 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
                 )}
               </button>
               <p className="text-center text-sm text-gray-400">
-                Ingin akses penuh?{" "}
-                <button type="button" onClick={onGoRegister} className="text-emerald-600 font-bold hover:text-emerald-700">
-                  Daftar sebagai Petugas
-                </button>
+                Akun dibuat oleh Administrator TPID melalui menu Kelola Pegawai.
               </p>
             </div>
           ) : (
@@ -350,10 +346,7 @@ export default function LoginPage({ onGoRegister, onGoBack }: LoginPageProps) {
 
           {selectedRole !== "tamu" && (
           <p className="text-center text-sm text-gray-400 mt-6">
-            Belum punya akun?{" "}
-            <button type="button" onClick={onGoRegister} className="text-emerald-600 font-bold hover:text-emerald-700">
-              Daftar Sekarang
-            </button>
+            Belum punya akun? Hubungi Administrator TPID.
           </p>
           )}
         </div>

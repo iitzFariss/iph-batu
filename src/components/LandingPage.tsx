@@ -16,7 +16,6 @@ import { useState, useEffect } from "react";
 
 interface LandingPageProps {
   onLogin: () => void;
-  onRegister: () => void;
 }
 
 const iphSnapshot = {
@@ -94,7 +93,7 @@ function useLandingTheme() {
   return { isDark, toggle: () => setIsDark((d) => !d) };
 }
 
-export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
+export default function LandingPage({ onLogin }: LandingPageProps) {
   const isDeflasi = iphSnapshot.nilai < 0;
   const { isDark, toggle } = useLandingTheme();
 
@@ -139,15 +138,9 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
             </button>
             <button
               onClick={onLogin}
-              className="px-3 sm:px-4 py-1.5 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
-            >
-              Masuk
-            </button>
-            <button
-              onClick={onRegister}
               className="px-3 sm:px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap"
             >
-              Daftar Petugas
+              Masuk
             </button>
           </div>
         </div>

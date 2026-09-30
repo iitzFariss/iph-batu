@@ -13,7 +13,6 @@ import MonitoringResume from "./components/Monitoringresume";
 import AnalisisTeksSiaran from "./components/Analisistekssiaran";
 import KelolaPegawai from "./components/Kelolapegawai";
 import LoginPage from "./components/LoginPage";
-import RegisterPage from "./components/RegisterPage";
 import LandingPage from "./components/LandingPage";
 import ProfilSaya from "./components/ProfilSaya";
 import PengaturanAkun from "./components/PengaturanAkun";
@@ -206,9 +205,7 @@ function InternalApp() {
 function AppShell() {
   const { user, isAuthenticated, loginAsGuest } = useAuth();
   const { isDark } = useTheme();
-  const [authView, setAuthView] = useState<"landing" | "login" | "register">(
-    "landing"
-  );
+  const [authView, setAuthView] = useState<"landing" | "login">("landing");
 
   // Link publik (#/publik): otomatis masuk sebagai tamu → dashboard yang
   // sama persis dengan yang dilihat masyarakat.
@@ -235,27 +232,9 @@ function AppShell() {
       );
     }
     if (authView === "login") {
-      return (
-        <LoginPage
-          onGoRegister={() => setAuthView("register")}
-          onGoBack={() => setAuthView("landing")}
-        />
-      );
+      return <LoginPage onGoBack={() => setAuthView("landing")} />;
     }
-    if (authView === "register") {
-      return (
-        <RegisterPage
-          onGoLogin={() => setAuthView("login")}
-          onGoBack={() => setAuthView("landing")}
-        />
-      );
-    }
-    return (
-      <LandingPage
-        onLogin={() => setAuthView("login")}
-        onRegister={() => setAuthView("register")}
-      />
-    );
+    return <LandingPage onLogin={() => setAuthView("login")} />;
   }
 
   // Semua role (admin / petugas / tamu) → dashboard penuh
