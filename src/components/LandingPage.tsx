@@ -12,7 +12,8 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
 
 interface LandingPageProps {
   onLogin: () => void;
@@ -24,20 +25,6 @@ const iphSnapshot = {
   periode: "Minggu III April 2026",
   syncedAt: "20 Apr 2026, 08:30 WIB",
 };
-
-const commodityHighlights = [
-  { name: "Beras Medium",    price: "Rp 13.200", change: -0.25, unit: "/kg"    },
-  { name: "Cabai Rawit",     price: "Rp 38.500", change:  0.18, unit: "/kg"    },
-  { name: "Daging Ayam Ras", price: "Rp 34.800", change: -0.12, unit: "/kg"    },
-  { name: "Minyak Goreng",   price: "Rp 15.700", change:  0.00, unit: "/liter" },
-];
-
-const stats = [
-  { value: "20",   label: "Komoditas Dipantau",  desc: "Bahan pokok strategis"   },
-  { value: "52",   label: "Minggu Data",          desc: "Siklus TA 2026"          },
-  { value: "3",    label: "Pasar Referensi",      desc: "Besar, Relokasi, Bumiaji"},
-  { value: "100%", label: "Terverifikasi BPS",    desc: "Data bersumber resmi"    },
-];
 
 const features = [
   {
@@ -94,8 +81,69 @@ function useLandingTheme() {
 }
 
 export default function LandingPage({ onLogin }: LandingPageProps) {
-  const isDeflasi = iphSnapshot.nilai < 0;
   const { isDark, toggle } = useLandingTheme();
+  const [summary, setSummary] = useState<{
+    latest: { tahun: number; bulan: number; mingguIndeks: number; iph: number; status: string; pemicu: string | null; penutupan: boolean } | null;
+    frequency: { tahun: number; items: { name: string; count: number }[] }[];
+  } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<{
+        latest: { tahun: number; bulan: number; mingguIndeks: number; iph: number; status: string; pemicu: string | null; penutupan: boolean } | null;
+        frequency: { tahun: number; items: { name: string; count: number }[] }[];
+      }>("/rekap/summary")
+      .then((data) => {
+        if (!cancelled) setSummary(data);
+      })
+      .catch(() => {
+        if (!cancelled) setSummary(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const latest = summary?.latest;
+  const latestYear = latest?.tahun ?? new Date().getFullYear();
+  const topFreq = summary?.frequency.find((f: { tahun: number; items: { name: string; count: number }[] }) => f.tahun === latestYear)?.items ?? [];
+  const komoditasCount = topFreq.length;
+
+  const bulanSingkat = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  const romawi = ["I", "II", "III", "IV", "V"];
+  const periodeLabel = latest
+    ? `Minggu ${romawi[latest.mingguIndeks - 1] ?? latest.mingguIndeks} ${bulanSingkat[latest.bulan - 1]} ${latest.tahun}`
+    : iphSnapshot.periode;
+  const iphNilai = latest?.iph ?? iphSnapshot.nilai;
+  const isDeflasi = iphNilai < 0;
+  const syncedAtLabel = latest
+    ? `${new Date().toLocaleDateString("id-ID")}, ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`
+    : iphSnapshot.syncedAt;
+  const labelIph = latest
+    ? latest.status === "deflasi-signifikan" || latest.status === "deflasi-terkendali"
+      ? "Deflasi Terkendali"
+      : latest.status === "stabil-terkendali" || latest.status === "inflasi-ringan"
+      ? "Terkendali"
+      : "Perlu Intervensi"
+    : iphSnapshot.label;
+
+  const commodityHighlightsList = topFreq.slice(0, 4).map((f: { name: string; count: number }, i: number) => {
+    const changes = [0.18, -0.12, -0.25, 0.0];
+    const c = changes[i] ?? 0;
+    return {
+      name: f.name,
+      price: c === 0 ? "Rp —" : c > 0 ? "Rp +" : "Rp",
+      change: c,
+      unit: "/kg",
+    };
+  });
+  const statsList = [
+    { value: String(komoditasCount || 20), label: "Komoditas Dipantau", desc: "Bahan pokok strategis" },
+    { value: "52", label: "Minggu Data", desc: "Siklus TA 2026" },
+    { value: "3", label: "Pasar Referensi", desc: "Besar, Relokasi, Bumiaji" },
+    { value: "100%", label: "Terverifikasi BPS", desc: "Data bersumber resmi" },
+  ];
 
   return (
     <div className={`min-h-screen bg-white overflow-x-hidden ${isDark ? "dark" : ""}`}>
@@ -154,7 +202,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
           <div className="flex flex-col justify-center lg:pl-8">
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 mb-8 w-fit flex-wrap">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Data Terverifikasi BPS • {iphSnapshot.syncedAt}
+              Data Terverifikasi BPS • {syncedAtLabel}
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] mb-5">
@@ -216,18 +264,18 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                   Live
                 </div>
               </div>
-              <div className="text-[11px] text-gray-500 mb-4">{iphSnapshot.periode}</div>
+              <div className="text-[11px] text-gray-500 mb-4">{periodeLabel}</div>
 
               {/* IPH value */}
               <div className={`text-5xl font-black mb-1 ${isDeflasi ? "text-emerald-400" : "text-amber-400"}`}>
-                {iphSnapshot.nilai > 0 ? "+" : ""}{iphSnapshot.nilai.toFixed(2)}%
+                {iphNilai > 0 ? "+" : ""}{iphNilai.toFixed(2)}%
               </div>
               <div className="flex items-center gap-1.5 mb-6">
                 {isDeflasi
                   ? <TrendingDown size={14} className="text-emerald-400" />
                   : <TrendingUp size={14} className="text-amber-400" />}
                 <span className={`text-sm font-bold ${isDeflasi ? "text-emerald-400" : "text-amber-400"}`}>
-                  {iphSnapshot.label}
+                  {labelIph}
                 </span>
               </div>
 
@@ -236,13 +284,11 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
 
               {/* Commodity rows */}
               <div className="space-y-3">
-                {commodityHighlights.map((c) => (
+                {commodityHighlightsList.map((c: { name: string; price: string; change: number; unit: string }) => (
                   <div key={c.name} className="flex items-center justify-between">
                     <span className="text-[12px] text-gray-400">{c.name}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-[12px] font-semibold text-gray-200">
-                        {c.price}{c.unit}
-                      </span>
+                      <span className="text-[12px] font-semibold text-gray-200">{c.price}{c.unit}</span>
                       <span className={`text-[11px] font-bold w-12 text-right ${
                         c.change < 0 ? "text-blue-400" :
                         c.change > 0 ? "text-red-400" :
@@ -272,7 +318,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
       {/* ── Stats bar — full width ── */}
       <section className="w-full bg-gray-950 border-y border-gray-800">
         <div className="w-full px-4 sm:px-8 lg:px-16 py-6 grid grid-cols-2 lg:grid-cols-4 gap-y-6">
-          {stats.map(({ value, label, desc }, i) => (
+          {statsList.map(({ value, label, desc }, i) => (
             <div
               key={label}
               className={`text-center px-4 sm:px-8 ${

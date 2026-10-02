@@ -27,7 +27,7 @@ const VARIAN_BULAN: Record<string, string> = {
 
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
-  let row: string[] = [];
+  let row: string[] = []; 
   let cell = "";
   let inQuotes = false;
   for (let i = 0; i < text.length; i++) {
@@ -119,9 +119,13 @@ interface RekapInput {
 
 const MAX_WAJAR = 100;
 
+// Kolom fluktuasi di CSV kadang berisi label kondisi, bukan nama komoditas
+// (mis. "STABIL,0" pada 2023 Mei/Sept/Okt/Nov/Des M1).
+const BUKAN_KOMODITAS = new Set(["STABIL", "TETAP", "N/A", "NA", "-", "--"]);
+
 function parseFluktuasi(name: string | undefined, value: string | undefined): AndilItem | undefined {
   const nama = (name ?? "").replace(/\s+/g, " ").trim().toUpperCase();
-  if (!nama) return undefined;
+  if (!nama || BUKAN_KOMODITAS.has(nama)) return undefined;
   const nilai = parseFloatOrNull(value);
   if (nilai === null || Math.abs(nilai) > MAX_WAJAR) return undefined;
   return { nama, nilai };
