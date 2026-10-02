@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -17,7 +17,6 @@ import {
   Minus,
   ChevronRight,
 } from "lucide-react";
-import { commodities, type Commodity } from "../data/Mockdata";
 import { weeklyColumns, type WeeklyRow } from "../data/weeklyData";
 import WeeklyDataTable from "./WeeklyDataTable";
 import { api } from "../lib/api";
@@ -46,7 +45,7 @@ interface SummaryResp {
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-type CommodityStatus = Commodity["status"];
+type CommodityStatus = "deflasi" | "waspada" | "terkendali" | "stabil";
 
 interface StatusConfig {
   label: string;
@@ -258,10 +257,50 @@ function FrequencyChart({ data }: { data: { name: string; count: number }[] }) {
   );
 }
 
-function CommodityTable() {
+interface CommodityRow {
+  id: string;
+  name: string;
+  count: number;
+  changePct: number | null;
+  status: CommodityStatus;
+  unit: string;
+}
+
+function CommodityTable({ freq, latest }: { freq: { name: string; count: number }[]; latest: SummaryTrendPoint | null }) {
   const [showAll, setShowAll] = useState(false);
-  const sorted = [...commodities].sort((a, b) => b.change - a.change);
-  const rows = showAll ? sorted : sorted.slice(0, 3);
+
+  const rows = useMemo<CommodityRow[]>(() => {
+    const base = [...freq].sort((a, b) => b.count - a.count);
+    return base.map((f, i) => {
+      const name = f.name;
+      const count = f.count;
+      let changePct: number | null = null;
+      if (i > 0 && base[0]?.count) {
+        changePct = ((count - base[0].count) / Math.max(1, base[0].count)) * 100;
+      } else if (base.length === 1) {
+        changePct = 0;
+      }
+      const status: CommodityStatus =
+        changePct === null || Math.abs(changePct) < 0.01
+          ? "stabil"
+          : changePct > 0.5
+          ? "waspada"
+          : changePct < -0.5
+          ? "deflasi"
+          : "terkendali";
+      return {
+        id: String(i),
+        name,
+        count,
+        changePct: changePct !== null ? Number(changePct.toFixed(2)) : null,
+        status,
+        unit: "Satuan / kg",
+      };
+    });
+  }, [freq]);
+
+  const sorted = rows;
+  const visible = sorted.slice(0, 3);
 
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
@@ -270,12 +309,14 @@ function CommodityTable() {
           <h2 className="text-sm font-bold text-gray-900">Komoditas Pangan Utama Kota Batu</h2>
           <p className="text-sm text-gray-400">
             {showAll
-              ? "Seluruh komoditas strategis di Pasar Besar Kota Batu (sorted by kenaikan tertinggi)"
+              ? "Seluruh komoditas strategis di Pasar Besar Kota Batu"
               : "3 komoditas dengan kenaikan tertinggi pekan ini di Pasar Besar Kota Batu"}
           </p>
         </div>
         <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
-          Minggu III April 2026
+          {latest
+            ? `Minggu ${ROMAWI[latest.mingguIndeks - 1]} ${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}`
+            : "Periode terbaru"}
         </span>
       </div>
 
@@ -298,7 +339,7 @@ function CommodityTable() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((c: Commodity) => (
+          {visible.map((c) => (
             <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
               <td className="py-2.5">
                 <div className="flex items-center gap-2">
@@ -313,14 +354,14 @@ function CommodityTable() {
               </td>
               <td className="py-2.5 text-right">
                 <div className="flex items-center justify-end gap-1">
-                  {c.change === 0 ? (
+                  {c.changePct === null || Math.abs(c.changePct) < 0.01 ? (
                     <Minus size={10} className="text-gray-400" />
-                  ) : c.change > 0 ? (
+                  ) : (c.changePct ?? 0) > 0 ? (
                     <TrendingUp size={10} className="text-amber-500" />
                   ) : (
                     <TrendingDown size={10} className="text-blue-500" />
                   )}
-                  <ChangeCell change={c.change} />
+                  <ChangeCell change={c.changePct ?? 0} />
                 </div>
               </td>
               <td className="py-2.5 text-right">
@@ -332,17 +373,19 @@ function CommodityTable() {
       </table>
       </div>
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50 flex-wrap gap-2">
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50 flex-wrap gap-2">
         <span className="text-sm text-gray-400">
-          Menampilkan {rows.length} dari {sorted.length} komoditas strategis
+          Menampilkan {visible.length} dari {sorted.length} komoditas
         </span>
-        <button
-          onClick={() => setShowAll((v) => !v)}
-          className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700"
-        >
-          {showAll ? "Tutup Tabel Lengkap Komoditas" : "Lihat Tabel Lengkap Komoditas"}
-          <ChevronRight size={11} className={`transition-transform ${showAll ? "rotate-90" : ""}`} />
-        </button>
+        {sorted.length > 3 && (
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700"
+          >
+            {showAll ? "Tutup" : "Lihat Semua"}
+            <ChevronRight size={11} className={`transition-transform ${showAll ? "rotate-90" : ""}`} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -392,7 +435,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            <CommodityTable />
+            <CommodityTable freq={freqItems} latest={latest} />
             <TrendChart points={trendPoints} year={year} />
             <FrequencyChart data={freqItems} />
             <WeeklyDataTable rows={weeklyRows} columns={weeklyColumns} />
