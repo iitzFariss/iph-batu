@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { h } from "../lib/asyncHandler";
-import { buildRekapSummary } from "../lib/rekapSummary";
+import { getSummary } from "../lib/rekapCache";
 
 export const router = Router();
 
@@ -8,7 +8,9 @@ export const router = Router();
 router.get(
   "/rekap/summary",
   h(async (_req, res) => {
-    res.json(await buildRekapSummary());
+    const { summary, cache } = await getSummary();
+    res.set("X-Cache", cache);
+    res.json(summary);
   })
 );
 

@@ -9,6 +9,7 @@ import {
 import { hashPassword } from "../lib/security";
 import { requireAuth, requireRoles } from "../middleware/auth";
 import { findOrCreateInstansi, toPegawaiDTO } from "./master.helpers";
+import { invalidateSummary } from "../lib/rekapCache";
 
 export const router = Router();
 
@@ -54,6 +55,7 @@ router.post(
       data: { nama, namaNorm: nama.toLowerCase(), unit: body.unit ?? null },
     });
     res.status(201).json({ message: "Komoditas berhasil ditambahkan.", komoditas: kom });
+    invalidateSummary();
   })
 );
 
@@ -71,6 +73,7 @@ router.delete(
     }
     await prisma.komoditas.update({ where: { id }, data: { isActive: false } });
     res.json({ message: "Komoditas dinonaktifkan." });
+    invalidateSummary();
   })
 );
 

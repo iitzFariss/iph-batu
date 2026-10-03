@@ -12,7 +12,7 @@ import {
 } from "../lib/rekap";
 import { AuthedRequest, requireAuth, requireRoles } from "../middleware/auth";
 import { findOrCreateKomoditas } from "./master.helpers";
-import { buildRekapSummary } from "../lib/rekapSummary";
+import { getSummary, invalidateSummary } from "../lib/rekapCache";
 
 export const router = Router();
 
@@ -98,7 +98,9 @@ router.get(
   requireAuth,
   requireRoles("admin", "petugas", "tamu"),
   h(async (_req, res) => {
-    res.json(await buildRekapSummary());
+    const { summary, cache } = await getSummary();
+    res.set("X-Cache", cache);
+    res.json(summary);
   })
 );
 
@@ -180,6 +182,7 @@ router.post(
     });
 
     res.status(201).json({ message: "Rekap IPH berhasil disimpan.", rekap: { id: rekap.id } });
+    invalidateSummary();
   })
 );
 
@@ -266,6 +269,7 @@ router.patch(
       include: { details: { include: { komoditas: true } } },
     });
     res.json({ message: "Rekap berhasil diperbarui.", rekap: toRekapRow(updated!) });
+    invalidateSummary();
   })
 );
 
@@ -282,6 +286,7 @@ router.delete(
     }
     await prisma.rekap.delete({ where: { id: rekap.id } });
     res.json({ message: "Rekap berhasil dihapus." });
+    invalidateSummary();
   })
 );
 
