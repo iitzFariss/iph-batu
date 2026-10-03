@@ -3,7 +3,6 @@ import {
   Calendar,
   ChevronRight,
   CheckCircle2,
-  AlertCircle,
   AlertTriangle,
   FileText,
   Presentation,
@@ -81,6 +80,9 @@ export default function KelolaRapat() {
           <p className="text-xs text-gray-500">
             Penjadwalan rapat koordinasi pengendalian inflasi daerah, penugasan aparatur
             resume, dan distribusi radiogram.
+          </p>
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2 inline-block">
+            Data contoh. Modul rapat belum terhubung ke database.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 w-full lg:w-auto">
@@ -277,51 +279,12 @@ export default function KelolaRapat() {
             Buat Jadwal Rapat
           </button>
           <p className="text-center text-xs text-gray-400">
-            Radiogram akan secara otomatis diteruskan ke WhatsApp Group TPID Kota Batu.
+            Pengiriman radiogram dilakukan manual oleh sekretaris rapat.
           </p>
         </div>
       </div>
 
 
-      {/* Status Pengiriman Radiogram */}
-      <div className="bg-white border border-gray-100 rounded-xl p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2">
-            <FileText size={14} className="text-emerald-600" />
-            <span className="text-xs sm:text-sm font-bold text-gray-900">Status Pengiriman Radiogram Terakhir</span>
-          </div>
-          <button className="text-xs sm:text-sm text-emerald-600 font-semibold hover:text-emerald-700 self-start sm:self-auto">
-            Lihat Log Transmisi
-          </button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[
-            {
-              title: "Surat Undangan No. 005/142/TPID/2026",
-              sub: "Terkirim ke 14 OPD Teknis & Forkopimda Kota Batu.",
-              status: "DELIVERED (100%)",
-              statusCls: "text-emerald-600",
-              icon: <CheckCircle2 size={14} className="text-emerald-500" />,
-            },
-            {
-              title: "Disposisi Bahan Paparan Komoditas",
-              sub: "Menunggu konfirmasi penerimaan Dinas Koperasi & UMKM",
-              status: "PENDING ACK (1 OPD)",
-              statusCls: "text-amber-600",
-              icon: <AlertCircle size={14} className="text-amber-500" />,
-            },
-          ].map(({ title, sub, status, statusCls, icon }) => (
-            <div key={title} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="flex-shrink-0 mt-0.5">{icon}</div>
-              <div>
-                <div className="text-xs font-semibold text-gray-900 mb-0.5">{title}</div>
-                <div className="text-xs text-gray-400 mb-1.5">{sub}</div>
-                <div className={`text-xs font-bold ${statusCls}`}>Status: {status}</div>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
-    </div>
   );
 }

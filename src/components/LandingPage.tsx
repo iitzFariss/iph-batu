@@ -1,13 +1,9 @@
 import {
   TrendingDown,
   TrendingUp,
-  Eye,
-  BarChart2,
-  FileText,
   ArrowRight,
   MapPin,
   RefreshCw,
-  CheckCircle2,
   Sun,
   Moon,
 } from "lucide-react";
@@ -17,38 +13,6 @@ import { api } from "../lib/api";
 interface LandingPageProps {
   onLogin: () => void;
 }
-
-const features = [
-  {
-    icon: <Eye size={20} className="text-blue-600" />,
-    bg: "bg-blue-50",
-    border: "border-blue-100",
-    title: "Pantau Harga Komoditas",
-    desc: "Lihat andil harga bahan pokok di Pasar Besar & Pasar Relokasi Batu secara mingguan.",
-    points: ["Data diperbarui setiap Jumat", "Dibandingkan pekan sebelumnya"],
-  },
-  {
-    icon: <BarChart2 size={20} className="text-emerald-600" />,
-    bg: "bg-emerald-50",
-    border: "border-emerald-100",
-    title: "Tren IPH Publik",
-    desc: "Grafik indeks perkembangan harga yang mudah dibaca, diperbarui tiap pekan.",
-    points: ["Visualisasi tren 12 bulan", "Dibandingkan periode sebelumnya"],
-  },
-  {
-    icon: <FileText size={20} className="text-purple-600" />,
-    bg: "bg-purple-50",
-    border: "border-purple-100",
-    title: "Siaran Pers Resmi",
-    desc: "Akses ringkasan eksekutif dan siaran pers inflasi langsung dari TPID Kota Batu.",
-    points: ["Format resmi Kemendagri", "Rilis mengikuti periode survei"],
-  },
-];
-
-const instansiList = [
-  "BPS Kota Batu", "Disperindag", "Dinas Pertanian",
-  "Bulog Sub-Divre", "Bank Indonesia", "Satgas Pangan",
-];
 
 const LANDING_THEME_KEY = "tpid-landing-theme";
 
@@ -161,14 +125,6 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             </div>
           </div>
 
-          {/* Center nav links */}
-          <div className="hidden lg:flex items-center gap-6 text-xs font-medium text-gray-500">
-            <span className="hover:text-gray-800 cursor-pointer">Data Harga</span>
-            <span className="hover:text-gray-800 cursor-pointer">Tren IPH</span>
-            <span className="hover:text-gray-800 cursor-pointer">Siaran Pers</span>
-            <span className="hover:text-gray-800 cursor-pointer">Tentang TPID</span>
-          </div>
-
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden md:flex items-center gap-1 text-[10px] text-gray-400">
@@ -210,9 +166,8 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             </h1>
 
             <p className="text-base text-gray-500 leading-relaxed mb-8 max-w-lg">
-              Platform resmi Tim Pengendali Inflasi Daerah (TPID) untuk memantau
-              indeks harga komoditas pangan dan koordinasi pengendalian inflasi daerah
-              Kota Batu secara transparan.
+              Rekap mingguan Indeks Perkembangan Harga (IPH) Kota Batu beserta andil
+              harga tiap komoditas, diperbarui setiap pekan.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 mb-10">
@@ -230,23 +185,6 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                 Masuk sebagai Petugas
               </button>
             </div>
-
-            {/* Instansi strip — chip lebih besar */}
-            <div>
-              <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-3 font-semibold">
-                Terintegrasi dengan
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {instansiList.map((inst) => (
-                  <span
-                    key={inst}
-                    className="px-3 py-1.5 bg-gray-50 border border-gray-200 text-xs text-gray-600 font-medium rounded-lg"
-                  >
-                    {inst}
-                  </span>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Right: IPH live card — fills the column */}
@@ -254,7 +192,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             <div className="w-full bg-gray-950 rounded-3xl p-8 text-white shadow-2xl">
               {/* Header */}
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">
+                <span className="text-[11px] text-gray-400 font-bold">
                   IPH Terkini
                 </span>
                 <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
@@ -341,17 +279,15 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
       <section className="w-full bg-white py-12 lg:py-14">
         <div className="w-full px-4 sm:px-8 lg:px-16">
           {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
             <div>
-              <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest mb-2">
-                Informasi Publik Terbuka
-              </p>
+              <p className="text-xs text-gray-400 mb-2">Data publik</p>
               <h2 className="text-xl sm:text-2xl font-black text-gray-900">
-                Informasi harga pangan,<br />transparan dan terbuka.
+                Rekap IPH terbuka untuk umum.
               </h2>
             </div>
             <div className="lg:text-right">
-              <p className="text-sm text-gray-400 mb-3">Tanpa pendaftaran — cukup masuk sebagai tamu.</p>
+              <p className="text-sm text-gray-400 mb-3">Tanpa pendaftaran, cukup masuk sebagai tamu.</p>
               <button
                 onClick={onLogin}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors"
@@ -361,25 +297,30 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             </div>
           </div>
 
-          {/* Feature cards — fills full width */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {features.map(({ icon, bg, border, title, desc, points }) => (
+          {/* Capability list — rows, not a card grid */}
+          <div className="border-t border-gray-200">
+            {[
+              {
+                title: "Rekap mingguan per komoditas",
+                desc: "Andil inflasi dan deflasi tiap bahan pokok untuk setiap pekan, termasuk komoditas yang fluktuasi.",
+                detail: loading ? "…" : `${mingguData} pekan sejak ${latest?.tahun ?? "-"}`,
+              },
+              {
+                title: "Tren dan visualisasi",
+                desc: "Perkembangan IPH mingguan dan bulanan dalam grafik, dibandingkan antarperiode.",
+                detail: loading ? "…" : `${tahunAwal ?? "-"} sampai ${latest?.tahun ?? "-"}`,
+              },
+            ].map(({ title, desc, detail }) => (
               <div
                 key={title}
-                className={`bg-white border-2 ${border} rounded-2xl p-6 sm:p-7 hover:shadow-md transition-all group`}
+                className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-8 py-5 border-b border-gray-100"
               >
-                <div className={`w-11 h-11 rounded-2xl ${bg} flex items-center justify-center mb-5`}>
-                  {icon}
+                <div>
+                  <div className="text-base font-bold text-gray-900">{title}</div>
+                  <p className="text-sm text-gray-500 leading-relaxed mt-1">{desc}</p>
                 </div>
-                <div className="text-base font-black text-gray-900 mb-2">{title}</div>
-                <p className="text-sm text-gray-500 leading-relaxed mb-5">{desc}</p>
-                <div className="space-y-1.5">
-                  {points.map((pt) => (
-                    <div key={pt} className="flex items-center gap-2">
-                      <CheckCircle2 size={11} className="text-emerald-500 flex-shrink-0" />
-                      <span className="text-[11px] text-gray-500">{pt}</span>
-                    </div>
-                  ))}
+                <div className="text-xs text-gray-400 sm:text-right sm:whitespace-nowrap sm:pt-1">
+                  {detail}
                 </div>
               </div>
             ))}
@@ -391,33 +332,32 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
       <section className="w-full bg-gray-950 py-10 lg:py-14">
         <div className="w-full px-4 sm:px-8 lg:px-16 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           <div>
-            <p className="text-[11px] text-emerald-400 font-bold uppercase tracking-widest mb-3">
-              Untuk Aparatur & Petugas TPID
-            </p>
+            <p className="text-xs text-gray-500 mb-3">Untuk petugas TPID</p>
             <h2 className="text-xl sm:text-2xl font-black text-white mb-4 leading-tight">
-              Akses penuh sistem<br />pengendalian inflasi daerah.
+              Akses untuk petugas<br />pengendalian inflasi daerah.
             </h2>
             <p className="text-sm text-gray-400 leading-relaxed max-w-lg">
-              Input rekap IPH mingguan, kelola jadwal rapat koordinasi, monitor
-              notulensi resume, distribusi siaran pers ke Kemendagri — semua dalam
-              satu platform terintegrasi.
+              Petugas mencatat rekap IPH mingguan, memverifikasi andil tiap
+              komoditas, dan mengelola data petugas TPID.
             </p>
           </div>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col">
             {[
-              { icon: "📊", label: "Input & verifikasi data IPH mingguan" },
-              { icon: "📅", label: "Kelola jadwal & notulensi rapat koordinasi" },
-              { icon: "📡", label: "Distribusi otomatis siaran pers ke Kemendagri" },
-              { icon: "👥", label: "Manajemen tim & direktori pegawai TPID" },
-            ].map(({ icon, label }) => (
-              <div key={label} className="flex items-center gap-3">
-                <span className="text-lg">{icon}</span>
-                <span className="text-sm text-gray-300">{label}</span>
+              "Input rekap IPH mingguan",
+              "Verifikasi andil dan komoditas fluktuasi",
+              "Visualisasi tren IPH antarperiode",
+              "Pengelolaan data petugas TPID",
+            ].map((label) => (
+              <div
+                key={label}
+                className="text-sm text-gray-300 py-3 border-b border-gray-800 first:border-t"
+              >
+                {label}
               </div>
             ))}
             <button
               onClick={onLogin}
-              className="mt-2 flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors w-fit"
+              className="mt-6 flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors w-fit"
             >
               Masuk sebagai Petugas
               <ArrowRight size={14} />

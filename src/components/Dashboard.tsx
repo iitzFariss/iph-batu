@@ -92,7 +92,7 @@ function HeroMetrics({ latest }: { latest: SummaryTrendPoint | null }) {
           Dashboard Pengendalian Inflasi (IPH) Kota Batu
         </h1>
         <p className="text-xs text-gray-500 mb-4">
-          Pusat pemantauan kestabilan harga komoditas dan koordinasi respon cepat TPID Kota Batu.
+          Rekap perubahan harga mingguan dan andil komoditas Pasar Besar Kota Batu.
         </p>
 
         <div className="flex items-center gap-3">
@@ -120,7 +120,7 @@ function TrendChart({ points, year }: { points: { label: string; iph: number }[]
             Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
           </h2>
           <p className="text-sm text-gray-400">
-            Pergerakan kumulatif komoditas strategis Kota Batu per minggu (Baseline 0.00%)
+            Perubahan harga mingguan komoditas di Pasar Besar Kota Batu (baseline 0.00%)
           </p>
         </div>
         <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">

@@ -384,7 +384,7 @@ export default function KelolaPegawai() {
               <LayoutGrid size={16} className="text-emerald-600" />
             </div>
             <div>
-              <div className="text-xs text-gray-400">Instansi Terintegrasi</div>
+              <div className="text-xs text-gray-400">Jumlah OPD</div>
               <div className="text-xl font-black text-emerald-700">{totalInstansi} OPD Pemkot</div>
             </div>
           </div>

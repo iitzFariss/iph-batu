@@ -124,6 +124,9 @@ export default function MonitoringResume() {
           Monitoring jadwal rapat koordinasi pengendalian inflasi, kepatuhan notulensi resume,
           dan distribusi hasil rapat. Notulis bertugas mengisi resume yang menunggu input.
         </p>
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2 inline-block">
+          Data contoh. Modul rapat belum terhubung ke database.
+        </p>
       </div>
 
       {/* Stat cards */}
@@ -131,7 +134,7 @@ export default function MonitoringResume() {
         {[
           { label: "Total Agenda Terjadwal", value: agendaList.length, icon: <Calendar size={16} className="text-gray-400" />, cls: "" },
           { label: "Menunggu Resume Notulis", value: pendingCount, icon: <AlertCircle size={16} className="text-red-500" />, cls: "border-l-2 border-l-red-400" },
-          { label: "Selesai & Terverifikasi", value: doneCount, icon: <CheckCircle2 size={16} className="text-emerald-500" />, cls: "border-l-2 border-l-emerald-400" },
+          { label: "Selesai", value: doneCount, icon: <CheckCircle2 size={16} className="text-emerald-500" />, cls: "border-l-2 border-l-emerald-400" },
         ].map(({ label, value, icon, cls }) => (
           <div key={label} className={`bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between ${cls}`}>
             <div>
@@ -329,7 +332,7 @@ export default function MonitoringResume() {
                             <p className="text-xs text-gray-600 leading-relaxed">
                               Disepakati pelaksanaan gerakan pasar murah setiap Minggu II di 5 kelurahan;
                               koordinasi pasokan beras SPHP diperpanjang hingga akhir kuartal; pembentukan
-                              tim pemantau harga pasar harian beranggotakan BPS &amp; Disperindag.
+                              tim pemantau harga pasar harian beranggotakan petugas BPS dan Disperindag.
                             </p>
                           </div>
                           <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg">
@@ -344,10 +347,6 @@ export default function MonitoringResume() {
                           <span className="text-xs text-gray-400">
                             Disusun: Siti Rahmawati, S.E. • Disahkan: Drs. Eko Prasetyo, M.Si. (Sekretaris TPID)
                           </span>
-                          <button className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50">
-                            <CheckCircle2 size={11} className="text-emerald-600" />
-                            Verifikasi &amp; Tandai Terverifikasi
-                          </button>
                         </div>
                       </div>
                     ) : (

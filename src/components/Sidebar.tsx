@@ -7,8 +7,6 @@ import {
   UserCog,
   TrendingUp,
   Radio,
-  Settings,
-  HelpCircle,
   Menu,
 } from "lucide-react";
 
@@ -29,11 +27,6 @@ const navItems = [
   { id: "kelola-pegawai", label: "Kelola Pegawai", icon: UserCog },
   { id: "visualisasi-tren", label: "Visualisasi Tren IPH", icon: TrendingUp },
   { id: "analisis-teks", label: "Analisis Teks Siaran", icon: Radio },
-];
-
-const bottomItems = [
-  { id: "pengaturan", label: "Pengaturan Sistem", icon: Settings },
-  { id: "bantuan", label: "Bantuan Teknis", icon: HelpCircle },
 ];
 
 export default function Sidebar({
@@ -99,22 +92,6 @@ export default function Sidebar({
           );
         })}
       </nav>
-
-      {/* Bottom nav */}
-        <div className="px-3 pb-4 pt-2 border-t border-gray-100 space-y-0.5">
-          {bottomItems
-            .filter(({ id }) => !hiddenPages.includes(id))
-            .map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => onNavigate(id)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
-            >
-              <Icon size={14} className="flex-shrink-0" />
-              <span className="truncate">{label}</span>
-            </button>
-          ))}
-        </div>
       </aside>
     </>
   );

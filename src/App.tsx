@@ -32,8 +32,6 @@ export type PageId =
   | "analisis-teks"
   | "profil-saya"
   | "pengaturan-akun"
-  | "pengaturan"
-  | "bantuan"
   | "error-404"
   | "error-500";
 
@@ -63,8 +61,6 @@ const ALL_PAGES: PageId[] = [
   "analisis-teks",
   "profil-saya",
   "pengaturan-akun",
-  "pengaturan",
-  "bantuan",
   "error-404",
   "error-500",
 ];

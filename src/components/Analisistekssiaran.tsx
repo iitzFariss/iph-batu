@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   RefreshCw,
   ChevronDown,
@@ -8,7 +8,9 @@ import {
   Clock,
   Users,
   Link2,
+  Bell,
 } from "lucide-react";
+import { api } from "../lib/api";
 import { buildPublicDashboardLink } from "../lib/publicDashboard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -21,6 +23,46 @@ interface Penerima {
   status: "siap" | "terhubung";
 }
 
+interface AndilItem {
+  name: string;
+  change: number;
+}
+
+interface RekapRow {
+  id: string;
+  periode: string;
+  cutoffStart: string;
+  cutoffEnd: string;
+  nilaiIPH: number;
+  statusIPH: string;
+  deflasi: AndilItem[];
+  inflasi: AndilItem[];
+  fluktuasi: AndilItem | null;
+  tahun: number;
+  bulan: number;
+  mingguIndeks: number;
+}
+
+interface Periode {
+  tahun: number;
+  bulan: number;
+  minggu: number;
+}
+
+const BULAN = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+] as const;
+const ROMAWI = ["I", "II", "III", "IV", "V"] as const;
+
+const STATUS_IPH: Record<string, string> = {
+  "deflasi-signifikan": "Deflasi Signifikan",
+  "deflasi-terkendali": "Deflasi Terkendali",
+  "stabil-terkendali": "Stabil Terkendali",
+  "inflasi-ringan": "Inflasi Ringan",
+  "perlu-intervensi": "Perlu Intervensi",
+};
+
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const penerimaSiaran: Penerima[] = [
@@ -29,28 +71,82 @@ const penerimaSiaran: Penerima[] = [
   { initials: "KD", color: "bg-purple-600",  name: "Pusda Kemendagri",    jabatan: "Integrasi Pelaporan API",  status: "terhubung" },
 ];
 
-const drafText = `// DOKUMEN DISPOSISI KEPALA DAERAH / SIARAN PERS KEMENDAGRI  ID: W3
+const drafKosong = `// Belum ada data rekap untuk periode yang dipilih.
+//
+// Pilih Tahun Anggaran, Bulan Pelaporan, dan Pekan Evaluasi IPH
+// pada toolbar di atas untuk menyusun draf.`;
 
-Yth. Bapak Pj. Walikota Batu / Sekretaris Daerah Kota Batu,
-Melaporkan rilis resmi Indeks Perkembangan Harga (IPH)
-Kota Batu pada Minggu III April 2026:
+function formatAndil(list: AndilItem[]): string[] {
+  return list.map((d) => `   - ${d.name} (${d.change > 0 ? "+" : ""}${d.change.toFixed(2)}%)`);
+}
 
-1. Angka IPH Gabungan Kota Batu tercatat sebesar -0.42%
-   (kategori Deflasi Terkendali).
+function formatIph(nilai: number): string {
+  return `${nilai > 0 ? "+" : ""}${nilai.toFixed(2)}%`;
+}
 
-2. Komoditas utama yang memberikan andil penurunan harga:
-   - Beras Medium (-0.25%)
-   - Daging Ayam Ras (-0.12%)
+function hariJam(value: Date): string {
+  return value.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+}
 
-3. Komoditas yang mengalami andil kenaikan / fluktuasi:
-   - Cabai Rawit (+0.18%)
+function urutRekap(a: RekapRow, b: RekapRow): number {
+  return b.tahun - a.tahun || b.bulan - a.bulan || b.mingguIndeks - a.mingguIndeks;
+}
 
-4. Ketersediaan pasokan 12 bahan pokok di Pasar Besar
-   dan pasar tradisional terpantau aman dan distribusi
-   logistik lancar.
+function mingguTersediaPada(rows: RekapRow[], tahun: number, bulan: number): number[] {
+  return [...new Set(rows.filter((r) => r.tahun === tahun && r.bulan === bulan).map((r) => r.mingguIndeks))].sort(
+    (a, b) => a - b,
+  );
+}
 
-Demikian laporan Tim Pengendalian Inflasi Daerah (TPID)
-Kota Batu.`;
+function periodeCadangan(rows: RekapRow[], saatIni: Periode): Periode | null {
+  const samaBulan = rows.filter((r) => r.tahun === saatIni.tahun && r.bulan === saatIni.bulan);
+  if (samaBulan.length > 0) {
+    const minggu = Math.max(...samaBulan.map((r) => r.mingguIndeks));
+    return { ...saatIni, minggu };
+  }
+  const sameTahun = rows.filter((r) => r.tahun === saatIni.tahun);
+  if (sameTahun.length > 0) {
+    const akhir = sameTahun.reduce((a, b) =>
+      a.bulan > b.bulan || (a.bulan === b.bulan && a.mingguIndeks >= b.mingguIndeks) ? a : b,
+    );
+    return { tahun: akhir.tahun, bulan: akhir.bulan, minggu: akhir.mingguIndeks };
+  }
+  const terbaru = rows[0];
+  return terbaru ? { tahun: terbaru.tahun, bulan: terbaru.bulan, minggu: terbaru.mingguIndeks } : null;
+}
+
+function buildDraf(row: RekapRow): string {
+  const minggu = `Minggu ${ROMAWI[row.mingguIndeks - 1] ?? row.mingguIndeks} ${BULAN[row.bulan - 1]} ${row.tahun}`;
+  const nilai = `${row.nilaiIPH > 0 ? "+" : ""}${row.nilaiIPH.toFixed(2)}%`;
+  const baris: string[] = [
+    "// DOKUMEN DISPOSISI KEPALA DAERAH / SIARAN PERS KEMENDAGRI",
+    "",
+    "Yth. Bapak Pj. Wali Kota Batu / Sekretaris Daerah Kota Batu,",
+    "Melaporkan rilis resmi Indeks Perkembangan Harga (IPH)",
+    `Kota Batu pada ${minggu}:`,
+    "",
+    `1. Angka IPH Gabungan Kota Batu tercatat sebesar ${nilai}`,
+    `   (kategori ${STATUS_IPH[row.statusIPH] ?? row.statusIPH}).`,
+  ];
+
+  if (row.deflasi.length > 0) {
+    baris.push("", "2. Komoditas utama yang memberikan andil penurunan harga:", ...formatAndil(row.deflasi));
+  }
+  if (row.inflasi.length > 0) {
+    baris.push("", "3. Komoditas yang memberikan andil kenaikan harga:", ...formatAndil(row.inflasi));
+  }
+  if (row.fluktuasi) {
+    baris.push("", "4. Komoditas berfluktuasi:", ...formatAndil([row.fluktuasi]));
+  }
+
+  baris.push(
+    "",
+    "Demikian laporan Tim Pengendalian Inflasi Daerah (TPID)",
+    "Kota Batu.",
+  );
+
+return baris.join("\n");
+}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -60,7 +156,159 @@ export default function AnalisisTeksSiaran() {
   const [sendingGrafik, setSendingGrafik] = useState(false);
   const [dashboardLink] = useState(() => buildPublicDashboardLink());
 
-  const currentDraf = drafText;
+  const [rows, setRows] = useState<RekapRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [menyegarkan, setMenyegarkan] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [periode, setPeriode] = useState<Periode | null>(null);
+  const [terakhirMuat, setTerakhirMuat] = useState<Date | null>(null);
+  const [infoBaru, setInfoBaru] = useState<string | null>(null);
+
+  const rowsRef = useRef<RekapRow[]>([]);
+  const periodeRef = useRef<Periode | null>(null);
+  const memuatRef = useRef(false);
+
+  const terapkan = useCallback((urut: RekapRow[], awal: boolean) => {
+    const terbaru = urut[0];
+    const sebelumnya = rowsRef.current[0];
+
+    setRows(urut);
+    rowsRef.current = urut;
+    setTerakhirMuat(new Date());
+    setLoadError(null);
+
+    const sekarang = periodeRef.current;
+    if (awal || !sekarang) {
+      const dipilih = terbaru ? { tahun: terbaru.tahun, bulan: terbaru.bulan, minggu: terbaru.mingguIndeks } : null;
+      periodeRef.current = dipilih;
+      setPeriode(dipilih);
+      return;
+    }
+
+    if (terbaru && sebelumnya && terbaru.id !== sebelumnya.id) {
+      setInfoBaru(
+        `Rekap baru masuk: ${terbaru.periode}, IPH ${formatIph(terbaru.nilaiIPH)}. Pilih di toolbar untuk membuka.`,
+      );
+    }
+
+    const masihAda = urut.some(
+      (r) => r.tahun === sekarang.tahun && r.bulan === sekarang.bulan && r.mingguIndeks === sekarang.minggu,
+    );
+    if (!masihAda) {
+      const ganti = periodeCadangan(urut, sekarang);
+      periodeRef.current = ganti;
+      setPeriode(ganti);
+    }
+  }, []);
+
+  const muatData = useCallback(
+    async (mode: "manual" | "auto") => {
+      if (memuatRef.current) return;
+      memuatRef.current = true;
+      if (mode === "auto") setMenyegarkan(true);
+      else setLoading(true);
+
+      try {
+        const data = await api.get<{ rows: RekapRow[] }>("/rekap?perPage=100");
+        terapkan([...data.rows].sort(urutRekap), false);
+      } catch (e) {
+        setLoadError(
+          mode === "auto" ? `Gagal memeriksa data baru: ${(e as Error).message}` : (e as Error).message,
+        );
+      } finally {
+        memuatRef.current = false;
+        setLoading(false);
+        setMenyegarkan(false);
+      }
+    },
+    [terapkan],
+  );
+
+  useEffect(() => {
+    let batal = false;
+    api
+      .get<{ rows: RekapRow[] }>("/rekap?perPage=100")
+      .then((data) => {
+        if (!batal) terapkan([...data.rows].sort(urutRekap), true);
+      })
+      .catch((e: Error) => {
+        if (!batal) setLoadError(e.message);
+      })
+      .finally(() => {
+        if (!batal) setLoading(false);
+      });
+    return () => {
+      batal = true;
+    };
+  }, [terapkan]);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    const saatTerlihat = () => {
+      if (document.visibilityState !== "visible") return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => void muatData("auto"), 2000);
+    };
+
+    window.addEventListener("focus", saatTerlihat);
+    document.addEventListener("visibilitychange", saatTerlihat);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", saatTerlihat);
+      document.removeEventListener("visibilitychange", saatTerlihat);
+    };
+  }, [muatData]);
+
+  function simpanPeriode(next: Periode) {
+    periodeRef.current = next;
+    setPeriode(next);
+  }
+
+  function handleTahunChange(next: number) {
+    const bulanTersedia = [...new Set(rows.filter((r) => r.tahun === next).map((r) => r.bulan))].sort((a, b) => a - b);
+    const bulanBaru =
+      periode && bulanTersedia.includes(periode.bulan) ? periode.bulan : bulanTersedia[bulanTersedia.length - 1] ?? 0;
+    const mingguTersedia = bulanBaru ? mingguTersediaPada(rows, next, bulanBaru) : [];
+    const mingguBaru =
+      periode && mingguTersedia.includes(periode.minggu) ? periode.minggu : mingguTersedia[mingguTersedia.length - 1] ?? 0;
+    simpanPeriode({ tahun: next, bulan: bulanBaru, minggu: mingguBaru });
+  }
+
+  function handleBulanChange(next: number) {
+    const mingguTersedia = mingguTersediaPada(rows, periode?.tahun ?? 0, next);
+    const mingguBaru =
+      periode && mingguTersedia.includes(periode.minggu) ? periode.minggu : mingguTersedia[mingguTersedia.length - 1] ?? 0;
+    simpanPeriode({ tahun: periode?.tahun ?? 0, bulan: next, minggu: mingguBaru });
+  }
+
+  function handleReload() {
+    setInfoBaru(null);
+    void muatData("manual");
+  }
+
+  const tahunOptions = useMemo(
+    () => [...new Set(rows.map((r) => r.tahun))].sort((a, b) => b - a),
+    [rows],
+  );
+  const bulanOptions = useMemo(
+    () => [...new Set(rows.filter((r) => r.tahun === periode?.tahun).map((r) => r.bulan))].sort((a, b) => a - b),
+    [rows, periode],
+  );
+  const mingguOptions = useMemo(() => {
+    if (!periode) return [];
+    return mingguTersediaPada(rows, periode.tahun, periode.bulan);
+  }, [rows, periode]);
+  const selectedRow = useMemo(
+    () =>
+      periode
+        ? rows.find(
+            (r) => r.tahun === periode.tahun && r.bulan === periode.bulan && r.mingguIndeks === periode.minggu,
+          ) ?? null
+        : null,
+    [rows, periode],
+  );
+
+  const currentDraf = selectedRow ? buildDraf(selectedRow) : drafKosong;
 
   function handleCopyTeksLink() {
     navigator.clipboard?.writeText(`${currentDraf}\n\nLink Dashboard Publik: ${dashboardLink}`);
@@ -98,27 +346,103 @@ export default function AnalisisTeksSiaran() {
       </div>
 
       {/* Filter toolbar */}
-      <div className="bg-white border border-gray-100 rounded-xl p-3 flex flex-wrap items-center gap-3">
-        {[
-          { label: "Tahun Anggaran", value: "2026 (Aktif)" },
-          { label: "Bulan Pelaporan", value: "April" },
-          { label: "Pekan Evaluasi IPH", value: "Minggu III (14 – 20 April 2026)" },
-        ].map(({ label, value }) => (
-          <div key={label} className="flex flex-col gap-0.5">
-            <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">{label}</span>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100">
-              {value}
-              <ChevronDown size={11} />
-            </button>
-          </div>
-        ))}
-        <div className="ml-auto">
-          <button className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50">
-            <RefreshCw size={12} />
-            Sinkronkan Ulang Data IPH
+      <div className="bg-white border border-gray-100 rounded-xl p-3 flex flex-wrap items-end gap-3">
+        {loading && rows.length === 0 ? (
+          <span className="text-xs text-gray-400 py-1.5">Memuat data rekap...</span>
+        ) : rows.length === 0 ? (
+          <span className="text-xs text-gray-400 py-1.5">Belum ada data rekap IPH.</span>
+        ) : (
+          <>
+            <div className="flex flex-col gap-0.5">
+              <label htmlFor="filterTahun" className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Tahun Anggaran</label>
+              <div className="relative">
+                <select
+                  id="filterTahun"
+                  value={periode?.tahun ?? ""}
+                  onChange={(e) => handleTahunChange(Number(e.target.value))}
+                  className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                >
+                  {tahunOptions.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <ChevronDown size={11} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-0.5">
+              <label htmlFor="filterBulan" className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Bulan Pelaporan</label>
+              <div className="relative">
+                <select
+                  id="filterBulan"
+                  value={periode?.bulan ?? ""}
+                  onChange={(e) => handleBulanChange(Number(e.target.value))}
+                  className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                >
+                  {bulanOptions.map((b) => (
+                    <option key={b} value={b}>{BULAN[b - 1]}</option>
+                  ))}
+                </select>
+                <ChevronDown size={11} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-0.5">
+              <label htmlFor="filterMinggu" className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Pekan Evaluasi IPH</label>
+              <div className="relative">
+                <select
+                  id="filterMinggu"
+                  value={periode?.minggu ?? ""}
+                  onChange={(e) => simpanPeriode({ tahun: periode!.tahun, bulan: periode!.bulan, minggu: Number(e.target.value) })}
+                  className="appearance-none pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                >
+                  {mingguOptions.map((m) => {
+                    const row = rows.find(
+                      (r) => r.tahun === periode?.tahun && r.bulan === periode?.bulan && r.mingguIndeks === m,
+                    );
+                    return (
+                      <option key={m} value={m}>
+                        {`Minggu ${ROMAWI[m - 1] ?? m} (${row ? `${row.cutoffStart} – ${row.cutoffEnd}` : ""})`}
+                      </option>
+                    );
+                  })}
+                </select>
+                <ChevronDown size={11} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+          </>
+        )}
+
+        <div className="ml-auto flex items-center gap-3">
+          {loadError && <span className="text-xs text-red-600">{loadError}</span>}
+          <span className="flex items-center gap-1 text-xs text-gray-400">
+            <Clock size={10} />
+            {menyegarkan
+              ? "Memeriksa data baru..."
+              : terakhirMuat
+                ? `Terakhir dimuat ${hariJam(terakhirMuat)}`
+                : "Belum dimuat"}
+          </span>
+          <button
+            onClick={handleReload}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+          >
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+            {loading ? "Memuat Data..." : "Sinkronkan Ulang Data IPH"}
           </button>
         </div>
       </div>
+
+      {infoBaru && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl px-3 py-2">
+          <Bell size={12} className="mt-0.5 flex-shrink-0" />
+          <span className="flex-1">{infoBaru}</span>
+          <button onClick={() => setInfoBaru(null)} className="text-amber-700 hover:text-amber-900 font-semibold">
+            Tutup
+          </button>
+        </div>
+      )}
 
       {/* Main 2-col */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-4 items-start">
@@ -140,11 +464,13 @@ export default function AnalisisTeksSiaran() {
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                   <TrendingDown size={9} />
-                  IPH: -0.42% (Deflasi Terkendali)
+                  {selectedRow
+                    ? `IPH: ${selectedRow.nilaiIPH > 0 ? "+" : ""}${selectedRow.nilaiIPH.toFixed(2)}% (${STATUS_IPH[selectedRow.statusIPH] ?? selectedRow.statusIPH})`
+                    : "Belum ada data"}
                 </span>
                 <span className="flex items-center gap-1 text-xs text-gray-400">
                   <Clock size={9} />
-                  Diproses: 18 Apr 2026, 09:15 WIB
+                  {selectedRow ? `Periode ${selectedRow.cutoffStart} – ${selectedRow.cutoffEnd}` : "—"}
                 </span>
               </div>
             </div>
