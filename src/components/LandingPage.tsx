@@ -1,7 +1,6 @@
 import {
   TrendingDown,
   TrendingUp,
-  ShieldCheck,
   Eye,
   BarChart2,
   FileText,
@@ -19,20 +18,13 @@ interface LandingPageProps {
   onLogin: () => void;
 }
 
-const iphSnapshot = {
-  nilai: -0.42,
-  label: "Deflasi Terkendali",
-  periode: "Minggu III April 2026",
-  syncedAt: "20 Apr 2026, 08:30 WIB",
-};
-
 const features = [
   {
     icon: <Eye size={20} className="text-blue-600" />,
     bg: "bg-blue-50",
     border: "border-blue-100",
     title: "Pantau Harga Komoditas",
-    desc: "Lihat harga 20 bahan pokok di Pasar Besar & Pasar Relokasi Batu secara mingguan.",
+    desc: "Lihat andil harga bahan pokok di Pasar Besar & Pasar Relokasi Batu secara mingguan.",
     points: ["Data diperbarui setiap Jumat", "Dibandingkan pekan sebelumnya"],
   },
   {
@@ -49,7 +41,7 @@ const features = [
     border: "border-purple-100",
     title: "Siaran Pers Resmi",
     desc: "Akses ringkasan eksekutif dan siaran pers inflasi langsung dari TPID Kota Batu.",
-    points: ["Format resmi Kemendagri", "Terverifikasi BPS & TPID"],
+    points: ["Format resmi Kemendagri", "Rilis mengikuti periode survei"],
   },
 ];
 
@@ -59,6 +51,21 @@ const instansiList = [
 ];
 
 const LANDING_THEME_KEY = "tpid-landing-theme";
+
+interface PublicSummary {
+  latest: {
+    tahun: number;
+    bulan: number;
+    mingguIndeks: number;
+    iph: number;
+    status: string;
+    pemicu: string | null;
+    penutupan: boolean;
+  } | null;
+  trend: { tahun: number }[];
+  frequency: { tahun: number; items: { name: string; count: number }[] }[];
+  latestDetails: { name: string; nilai: number; isFluktuasi: boolean }[];
+}
 
 function useLandingTheme() {
   const [isDark, setIsDark] = useState(() => {
@@ -82,23 +89,21 @@ function useLandingTheme() {
 
 export default function LandingPage({ onLogin }: LandingPageProps) {
   const { isDark, toggle } = useLandingTheme();
-  const [summary, setSummary] = useState<{
-    latest: { tahun: number; bulan: number; mingguIndeks: number; iph: number; status: string; pemicu: string | null; penutupan: boolean } | null;
-    frequency: { tahun: number; items: { name: string; count: number }[] }[];
-  } | null>(null);
+  const [summary, setSummary] = useState<PublicSummary | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     api
-      .get<{
-        latest: { tahun: number; bulan: number; mingguIndeks: number; iph: number; status: string; pemicu: string | null; penutupan: boolean } | null;
-        frequency: { tahun: number; items: { name: string; count: number }[] }[];
-      }>("/rekap/summary")
+      .get<PublicSummary>("/public/rekap/summary")
       .then((data) => {
         if (!cancelled) setSummary(data);
       })
       .catch(() => {
         if (!cancelled) setSummary(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -106,43 +111,37 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
   }, []);
 
   const latest = summary?.latest;
-  const latestYear = latest?.tahun ?? new Date().getFullYear();
-  const topFreq = summary?.frequency.find((f: { tahun: number; items: { name: string; count: number }[] }) => f.tahun === latestYear)?.items ?? [];
-  const komoditasCount = topFreq.length;
-
   const bulanSingkat = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
   const romawi = ["I", "II", "III", "IV", "V"];
   const periodeLabel = latest
     ? `Minggu ${romawi[latest.mingguIndeks - 1] ?? latest.mingguIndeks} ${bulanSingkat[latest.bulan - 1]} ${latest.tahun}`
-    : iphSnapshot.periode;
-  const iphNilai = latest?.iph ?? iphSnapshot.nilai;
+    : "Memuat data…";
+  const iphNilai = latest?.iph ?? 0;
   const isDeflasi = iphNilai < 0;
-  const syncedAtLabel = latest
-    ? `${new Date().toLocaleDateString("id-ID")}, ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`
-    : iphSnapshot.syncedAt;
   const labelIph = latest
     ? latest.status === "deflasi-signifikan" || latest.status === "deflasi-terkendali"
       ? "Deflasi Terkendali"
-      : latest.status === "stabil-terkendali" || latest.status === "inflasi-ringan"
-      ? "Terkendali"
+      : latest.status === "inflasi-ringan" || latest.status === "inflasi-sedang"
+      ? "Inflasi Terkendali"
       : "Perlu Intervensi"
-    : iphSnapshot.label;
+    : "Memuat data…";
 
-  const commodityHighlightsList = topFreq.slice(0, 4).map((f: { name: string; count: number }, i: number) => {
-    const changes = [0.18, -0.12, -0.25, 0.0];
-    const c = changes[i] ?? 0;
-    return {
-      name: f.name,
-      price: c === 0 ? "Rp —" : c > 0 ? "Rp +" : "Rp",
-      change: c,
-      unit: "/kg",
-    };
-  });
+  const andilTeratas = (summary?.latestDetails ?? [])
+    .filter((d) => !d.isFluktuasi)
+    .sort((a, b) => b.nilai - a.nilai)
+    .slice(0, 4);
+
+  const komoditasCount = new Set(
+    (summary?.frequency.find((f) => f.tahun === latest?.tahun)?.items ?? []).map((i) => i.name)
+  ).size;
+  const mingguData = summary?.trend.filter((t) => t.tahun === latest?.tahun).length ?? 0;
+  const tahunAwal = summary?.trend[0]?.tahun;
+
   const statsList = [
-    { value: String(komoditasCount || 20), label: "Komoditas Dipantau", desc: "Bahan pokok strategis" },
-    { value: "52", label: "Minggu Data", desc: "Siklus TA 2026" },
-    { value: "3", label: "Pasar Referensi", desc: "Besar, Relokasi, Bumiaji" },
-    { value: "100%", label: "Terverifikasi BPS", desc: "Data bersumber resmi" },
+    { value: loading ? "…" : String(komoditasCount), label: "Komoditas Dipantau", desc: latest ? `Terpantau tahun ${latest.tahun}` : "Belum ada data" },
+    { value: loading ? "…" : String(mingguData), label: "Minggu Data", desc: latest ? `Tahun ${latest.tahun}` : "Belum ada data" },
+    { value: loading ? "…" : String(summary?.trend.length ?? 0), label: "Periode Rekap", desc: tahunAwal ? `Sejak ${tahunAwal}` : "Belum ada data" },
+    { value: latest?.pemicu ?? "—", label: "Pemicu Inflasi", desc: loading ? "Memuat data…" : "Andil tertinggi periode ini" },
   ];
 
   return (
@@ -200,10 +199,9 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
 
           {/* Left: copy — dipusatkan & diperbesar */}
           <div className="flex flex-col justify-center lg:pl-8">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 mb-8 w-fit flex-wrap">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Data Terverifikasi BPS • {syncedAtLabel}
-            </div>
+            <p className="text-xs font-semibold text-gray-400 mb-6">
+              Periode data {periodeLabel}
+            </p>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] mb-5">
               Pantau Stabilitas<br />
@@ -261,7 +259,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                 </span>
                 <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live
+                  {latest ? "Terakhir" : "Memuat"}
                 </div>
               </div>
               <div className="text-[11px] text-gray-500 mb-4">{periodeLabel}</div>
@@ -284,17 +282,24 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
 
               {/* Commodity rows */}
               <div className="space-y-3">
-                {commodityHighlightsList.map((c: { name: string; price: string; change: number; unit: string }) => (
-                  <div key={c.name} className="flex items-center justify-between">
-                    <span className="text-[12px] text-gray-400">{c.name}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[12px] font-semibold text-gray-200">{c.price}{c.unit}</span>
-                      <span className={`text-[11px] font-bold w-12 text-right ${
-                        c.change < 0 ? "text-blue-400" :
-                        c.change > 0 ? "text-red-400" :
-                        "text-gray-600"
-                      }`}>
-                        {c.change === 0 ? "—" : `${c.change > 0 ? "+" : ""}${c.change.toFixed(2)}%`}
+                {loading && (
+                  <div className="text-[12px] text-gray-500">Memuat data…</div>
+                )}
+                {!loading && andilTeratas.length === 0 && (
+                  <div className="text-[12px] text-gray-500">Belum ada data andil.</div>
+                )}
+                {andilTeratas.map((d) => (
+                  <div key={d.name} className="flex items-center justify-between gap-3">
+                    <span className="text-[12px] text-gray-400 truncate">{d.name}</span>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-[11px] text-gray-500">andil</span>
+                      <span
+                        className={`text-[12px] font-black w-16 text-right ${
+                          d.nilai > 0 ? "text-red-400" : d.nilai < 0 ? "text-emerald-400" : "text-gray-500"
+                        }`}
+                      >
+                        {d.nilai > 0 ? "+" : ""}
+                        {d.nilai.toFixed(2)} poin
                       </span>
                     </div>
                   </div>
@@ -303,11 +308,10 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
 
               {/* Footer */}
               <div className="mt-6 pt-4 border-t border-gray-800 flex items-center gap-2">
-                <ShieldCheck size={11} className="text-emerald-500" />
-                <span className="text-[10px] text-gray-500">Terverifikasi BPS Kota Batu</span>
+                <span className="text-[10px] text-gray-500">Sumber: BPS Kota Batu, survei harga mingguan</span>
                 <span className="ml-auto text-[10px] text-gray-600 flex items-center gap-1">
                   <RefreshCw size={9} />
-                  Diperbarui tiap Jumat
+                  Periode {periodeLabel}
                 </span>
               </div>
             </div>
@@ -434,8 +438,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-            <ShieldCheck size={10} className="text-emerald-500" />
-            Data resmi BPS Kota Batu • SK Walikota No. 188.45/TPID/2026
+            Data IPH Kota Batu
           </div>
         </div>
       </footer>

@@ -362,9 +362,9 @@ export default function KelolaPegawai() {
           <h1 className="text-2xl font-black text-gray-900 mb-1">
             Kelola Pegawai &amp; Satgas TPID
           </h1>
-          <p className="text-xs text-gray-500 max-w-lg">
-            Direktori resmi dan penugasan personil lintas instansi (Setda, BPS, Disperindag,
-            Dinas Pertanian) dalam tim koordinasi pengendalian inflasi daerah.
+<p className="text-xs text-gray-500 max-w-lg">
+            Daftar petugas dan penugasanpersonil lintas instansi dalam tim koordinasi
+            pengendalian inflasi daerah.
           </p>
         </div>
 
@@ -557,16 +557,11 @@ export default function KelolaPegawai() {
         </div>
       </div>
 
-      {/* Footer: SK Legalitas */}
-      <div className="flex flex-col lg:flex-row items-start justify-between gap-3 bg-white border border-gray-100 rounded-xl px-5 py-3">
+<div className="flex flex-col lg:flex-row items-start justify-between gap-3 bg-white border border-gray-100 rounded-xl px-5 py-3">
         <div className="flex flex-wrap items-center gap-2.5">
-          <ShieldCheck size={14} className="text-emerald-600 flex-shrink-0" />
           <span className="text-sm text-gray-500">
-            Status Legalitas:{" "}
-            <strong className="text-gray-800">SK Walikota No. 188.45/TPID/2026 terverifikasi</strong>
-          </span>
-          <span className="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-full">
-            Masa Berlaku: TA 2026
+            Unit kerja:{" "}
+            <strong className="text-gray-800">TPID Kota Batu</strong>
           </span>
         </div>
         <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50">

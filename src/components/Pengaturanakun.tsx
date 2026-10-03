@@ -457,7 +457,7 @@ export default function PengaturanAkun() {
         <div className="space-y-1">
           {(
             [
-              { key: "emailSync",   label: "Email: Sinkronisasi Data BPS Selesai",    desc: "Notifikasi saat data IPH baru tersedia"          },
+              { key: "emailSync",   label: "Email: Data IPH Baru",                   desc: "Notifikasi saat rekap IPH baru diunggah"           },
               { key: "emailRapat",  label: "Email: Pengingat Rapat",                   desc: "H-1 dan H-0 sebelum jadwal rapat"                },
               { key: "emailSiaran", label: "Email: Distribusi Siaran Pers",            desc: "Konfirmasi saat siaran berhasil dikirim"         },
               { key: "browserPush", label: "Notifikasi Browser",                       desc: "Pop-up langsung di browser saat ada aktivitas"   },

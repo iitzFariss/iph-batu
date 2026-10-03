@@ -1,11 +1,26 @@
-import { useState } from "react";
-import { TrendingUp, Eye, EyeOff, AlertCircle, ArrowRight, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { TrendingUp, TrendingDown, Eye, EyeOff, AlertCircle, ArrowRight, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { api } from "../lib/api";
 import type { UserRole } from "../types/auth";
 
 interface LoginPageProps {
   onGoBack?: () => void;
 }
+
+interface PublicSummary {
+  latest: {
+    tahun: number;
+    bulan: number;
+    mingguIndeks: number;
+    iph: number;
+    status: string;
+    pemicu: string | null;
+  } | null;
+}
+
+const BULAN_SINGKAT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const MINGGU_ROMAWI = ["I", "II", "III", "IV", "V"];
 
 // ─── Role selector data ───────────────────────────────────────────────────────
 
@@ -73,6 +88,22 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
   const [showPass, setShowPass]         = useState(false);
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState("");
+  const [latest, setLatest]             = useState<PublicSummary["latest"]>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<PublicSummary>("/public/rekap/summary")
+      .then((data) => {
+        if (!cancelled) setLatest(data.latest);
+      })
+      .catch(() => {
+        if (!cancelled) setLatest(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -102,6 +133,18 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
   }
 
   const activeRole = roleOptions.find((r) => r.key === selectedRole)!;
+
+  const iphPeriode = latest
+    ? `Minggu ${MINGGU_ROMAWI[latest.mingguIndeks - 1] ?? latest.mingguIndeks} ${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}`
+    : null;
+  const iphDeflasi = (latest?.iph ?? 0) < 0;
+  const iphLabel = latest
+    ? latest.status === "deflasi-signifikan" || latest.status === "deflasi-terkendali"
+      ? "Deflasi Terkendali"
+      : latest.status === "inflasi-ringan" || latest.status === "inflasi-sedang"
+      ? "Inflasi Terkendali"
+      : "Perlu Intervensi"
+    : "Memuat data…";
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
@@ -155,13 +198,28 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
             <div className="mt-2 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-2">
-                IPH Terkini • Minggu III April 2026
+                IPH Terkini{iphPeriode ? ` • ${iphPeriode}` : ""}
               </div>
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1">
-                <span className="text-4xl sm:text-5xl font-black text-emerald-400">-0.42%</span>
-                <span className="text-sm sm:text-base text-emerald-500 font-semibold">Deflasi Terkendali</span>
+                <span
+                  className={`text-4xl sm:text-5xl font-black ${
+                    iphDeflasi ? "text-emerald-400" : "text-amber-400"
+                  }`}
+                >
+                  {latest ? `${latest.iph > 0 ? "+" : ""}${latest.iph.toFixed(2)}%` : "—"}
+                </span>
+                <span
+                  className={`text-sm sm:text-base font-semibold ${
+                    iphDeflasi ? "text-emerald-500" : "text-amber-500"
+                  }`}
+                >
+                  {iphDeflasi ? <TrendingDown size={14} className="inline mb-0.5" /> : <TrendingUp size={14} className="inline mb-0.5" />}{" "}
+                  {iphLabel}
+                </span>
               </div>
-              <div className="text-xs text-gray-600">Terverifikasi BPS Kota Batu</div>
+              <div className="text-xs text-gray-600">
+                {latest ? `Pemicu: ${latest.pemicu ?? "—"}` : "Periode data belum tersedia"}
+              </div>
             </div>
           </div>
         </div>

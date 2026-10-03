@@ -41,6 +41,7 @@ interface SummaryResp {
   weekly: { tahun: number; data: Record<string, number | null> }[];
   frequency: { tahun: number; items: { name: string; count: number }[] }[];
   latest: SummaryTrendPoint | null;
+  latestDetails: { name: string; nilai: number; isFluktuasi: boolean }[];
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -70,19 +71,6 @@ function StatusBadge({ status }: { status: CommodityStatus }) {
   );
 }
 
-function ChangeCell({ change }: { change: number }) {
-  if (change === 0) {
-    return <span className="text-xs text-gray-500 font-medium">0.00%</span>;
-  }
-  const pos = change > 0;
-  return (
-    <span className={`text-xs font-semibold ${pos ? "text-amber-600" : "text-blue-600"}`}>
-      {pos ? "+" : ""}
-      {change.toFixed(2)}%
-    </span>
-  );
-}
-
 // ─── sub-sections ────────────────────────────────────────────────────────────
 
 function HeroMetrics({ latest }: { latest: SummaryTrendPoint | null }) {
@@ -93,11 +81,10 @@ function HeroMetrics({ latest }: { latest: SummaryTrendPoint | null }) {
     <div className="bg-white border border-gray-100 rounded-xl p-5 mb-4">
       <div className="flex flex-wrap items-center gap-1.5 mb-3">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-        <span className="text-sm text-gray-500">Sinkronisasi BPS • </span>
-        <span className="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+        <span className="text-sm text-gray-500">Periode data </span>
+        <span className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
           {periodeLabel}
         </span>
-        <span className="text-sm text-gray-500"> (Terverifikasi)</span>
       </div>
 
       <div className="flex-1">
@@ -260,47 +247,47 @@ function FrequencyChart({ data }: { data: { name: string; count: number }[] }) {
 interface CommodityRow {
   id: string;
   name: string;
-  count: number;
-  changePct: number | null;
+  andil: number;
   status: CommodityStatus;
-  unit: string;
+  isFluktuasi: boolean;
 }
 
-function CommodityTable({ freq, latest }: { freq: { name: string; count: number }[]; latest: SummaryTrendPoint | null }) {
+function CommodityTable({
+  details,
+  latest,
+}: {
+  details: { name: string; nilai: number; isFluktuasi: boolean }[];
+  latest: SummaryTrendPoint | null;
+}) {
   const [showAll, setShowAll] = useState(false);
 
-  const rows = useMemo<CommodityRow[]>(() => {
-    const base = [...freq].sort((a, b) => b.count - a.count);
-    return base.map((f, i) => {
-      const name = f.name;
-      const count = f.count;
-      let changePct: number | null = null;
-      if (i > 0 && base[0]?.count) {
-        changePct = ((count - base[0].count) / Math.max(1, base[0].count)) * 100;
-      } else if (base.length === 1) {
-        changePct = 0;
-      }
-      const status: CommodityStatus =
-        changePct === null || Math.abs(changePct) < 0.01
-          ? "stabil"
-          : changePct > 0.5
-          ? "waspada"
-          : changePct < -0.5
-          ? "deflasi"
-          : "terkendali";
-      return {
-        id: String(i),
-        name,
-        count,
-        changePct: changePct !== null ? Number(changePct.toFixed(2)) : null,
-        status,
-        unit: "Satuan / kg",
-      };
-    });
-  }, [freq]);
+  const sorted = useMemo<CommodityRow[]>(() => {
+    const andil = details
+      .filter((d) => !d.isFluktuasi)
+      .sort((a, b) => b.nilai - a.nilai)
+      .map<CommodityRow>((d, i) => ({
+        id: `a-${i}-${d.name}`,
+        name: d.name,
+        andil: Number(d.nilai.toFixed(2)),
+        status: d.nilai > 0.2 ? "waspada" : d.nilai < -0.2 ? "deflasi" : "terkendali",
+        isFluktuasi: false,
+      }));
 
-  const sorted = rows;
-  const visible = sorted.slice(0, 3);
+    const fluktuasi = details
+      .filter((d) => d.isFluktuasi)
+      .sort((a, b) => Math.abs(b.nilai) - Math.abs(a.nilai))
+      .map<CommodityRow>((d, i) => ({
+        id: `f-${i}-${d.name}`,
+        name: d.name,
+        andil: Number(d.nilai.toFixed(2)),
+        status: Math.abs(d.nilai) < 0.01 ? "stabil" : "waspada",
+        isFluktuasi: true,
+      }));
+
+    return [...andil, ...fluktuasi];
+  }, [details]);
+
+  const visible = showAll ? sorted : sorted.slice(0, 3);
 
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
@@ -309,8 +296,8 @@ function CommodityTable({ freq, latest }: { freq: { name: string; count: number 
           <h2 className="text-sm font-bold text-gray-900">Komoditas Pangan Utama Kota Batu</h2>
           <p className="text-sm text-gray-400">
             {showAll
-              ? "Seluruh komoditas strategis di Pasar Besar Kota Batu"
-              : "3 komoditas dengan kenaikan tertinggi pekan ini di Pasar Besar Kota Batu"}
+              ? "Seluruh andil komoditas pada periode terbaru di Pasar Besar Kota Batu"
+              : "3 komoditas dengan andil tertinggi pekan ini di Pasar Besar Kota Batu"}
           </p>
         </div>
         <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
@@ -324,7 +311,7 @@ function CommodityTable({ freq, latest }: { freq: { name: string; count: number 
         <table className="w-full mt-3 min-w-[560px]">
         <thead>
           <tr className="border-b border-gray-100">
-            {(["Komoditas", "Perubahan (W-to-W)", "Status IPH"] as const).map(
+            {(["Komoditas", "Andil (poin %)", "Status IPH"] as const).map(
               (col, i) => (
                 <th
                   key={col}
@@ -339,6 +326,13 @@ function CommodityTable({ freq, latest }: { freq: { name: string; count: number 
           </tr>
         </thead>
         <tbody>
+          {visible.length === 0 && (
+            <tr>
+              <td colSpan={3} className="py-4 text-xs text-gray-400 text-center">
+                Belum ada data andil untuk periode ini.
+              </td>
+            </tr>
+          )}
           {visible.map((c) => (
             <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
               <td className="py-2.5">
@@ -348,20 +342,29 @@ function CommodityTable({ freq, latest }: { freq: { name: string; count: number 
                   </div>
                   <div>
                     <div className="text-xs font-semibold text-gray-900">{c.name}</div>
-                    <div className="text-xs text-gray-400">{c.unit}</div>
+                    <div className="text-xs text-gray-400">
+                      {c.isFluktuasi ? "Komoditas fluktuasi" : "Andil inflasi/deflasi"}
+                    </div>
                   </div>
                 </div>
               </td>
               <td className="py-2.5 text-right">
                 <div className="flex items-center justify-end gap-1">
-                  {c.changePct === null || Math.abs(c.changePct) < 0.01 ? (
+                  {c.andil === 0 ? (
                     <Minus size={10} className="text-gray-400" />
-                  ) : (c.changePct ?? 0) > 0 ? (
+                  ) : c.andil > 0 ? (
                     <TrendingUp size={10} className="text-amber-500" />
                   ) : (
                     <TrendingDown size={10} className="text-blue-500" />
                   )}
-                  <ChangeCell change={c.changePct ?? 0} />
+                  <span
+                    className={`text-xs font-semibold ${
+                      c.andil > 0 ? "text-amber-600" : c.andil < 0 ? "text-blue-600" : "text-gray-500"
+                    }`}
+                  >
+                    {c.andil > 0 ? "+" : ""}
+                    {c.andil.toFixed(2)}
+                  </span>
                 </div>
               </td>
               <td className="py-2.5 text-right">
@@ -435,7 +438,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-            <CommodityTable freq={freqItems} latest={latest} />
+            <CommodityTable details={summary.latestDetails} latest={latest} />
             <TrendChart points={trendPoints} year={year} />
             <FrequencyChart data={freqItems} />
             <WeeklyDataTable rows={weeklyRows} columns={weeklyColumns} />

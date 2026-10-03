@@ -5,7 +5,6 @@ import {
   TrendingDown,
   Copy,
   Pencil,
-  ShieldCheck,
   Clock,
   Users,
   Link2,
@@ -96,13 +95,6 @@ export default function AnalisisTeksSiaran() {
             resmi pimpinan daerah dan siaran pers Kemendagri.
           </p>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl flex-shrink-0">
-          <ShieldCheck size={13} className="text-emerald-600" />
-          <div>
-            <div className="text-[11px] text-emerald-500 font-semibold uppercase tracking-wide">Status Validasi</div>
-            <div className="text-sm font-bold text-emerald-700">Sinkronisasi Realtime BPS</div>
-          </div>
-        </div>
       </div>
 
       {/* Filter toolbar */}
@@ -158,12 +150,7 @@ export default function AnalisisTeksSiaran() {
             </div>
 
             {/* Tab nav */}
-            <div className="flex items-center gap-0 border-b border-gray-100 px-4">
-              <div className="ml-auto flex items-center gap-2 py-2">
-                <span className="text-xs text-gray-400">Mono</span>
-                <span className="text-xs text-gray-400">↕ 100%</span>
-              </div>
-            </div>
+            <div className="flex items-center gap-0 border-b border-gray-100 px-4" />
 
             {/* Draf content */}
             <div className="p-4">
@@ -218,9 +205,8 @@ export default function AnalisisTeksSiaran() {
 
             {/* Footer note */}
             <div className="px-4 pb-3 flex items-center gap-1.5 border-t border-gray-50 pt-3">
-              <ShieldCheck size={10} className="text-gray-400" />
               <span className="text-xs text-gray-400">
-                Sesuai Standar Template Pelaporan TPID Kemendagri RI No. 500/2026. Checksum: SHA256-789a4b2c
+                Draf, belum dikirim
               </span>
             </div>
           </div>
