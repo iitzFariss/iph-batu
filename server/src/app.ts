@@ -4,6 +4,7 @@ import { errorHandler, notFound } from "./middleware/error";
 import authRoutes from "./routes/auth.routes";
 import masterRoutes from "./routes/master.routes";
 import rekapRoutes from "./routes/rekap.routes";
+import publicRoutes from "./routes/public.routes";
 
 export function createApp() {
   const app = express();
@@ -21,6 +22,7 @@ export function createApp() {
   });
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/public", publicRoutes);
   app.use("/api", masterRoutes);
   app.use("/api/rekap", rekapRoutes);
 
