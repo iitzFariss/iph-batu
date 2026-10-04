@@ -185,7 +185,7 @@ Karena itu, menghitung ulang IPH dari data yang sama membutuhkan keranjang komod
 Fitur berikut masih kosong, jadi tidak ada di antarmuka maupun di backend. Dicatat supaya README dan tampilan aplikasi tidak menjanjikan sesuatu yang tidak dikerjakan.
 
 - **Modul rapat dan notulen.** `Monitoringresume.tsx` dan `Kelolarapat.tsx` masih menampilkan data contoh, dan backend belum punya model maupun route rapat. Jangan dipakai sebagai rujukan data riil.
-- **Integrasi Kemendagri.** Tidak ada integrasi API ke Pusda. Draf siaran pers disusun di browser lalu disalin manual; tidak ada pengiriman otomatis.
+- **Integrasi Kemendagri.** Tidak ada integrasi API ke Pusda. Draf siaran pers disusun di browser, lalu dikirim manual. Tombol "Buka WhatsApp" memakai deep link resmi `wa.me` yang membuka WhatsApp dengan pesan terisi; user sendiri yang memilih kontak dan menekan kirim. Tidak ada nomor tujuan di database.
 - **Notifikasi.** Tidak ada email maupun notifikasi browser. Pengaturan notifikasi tidak ada di UI.
 - **Enkripsi dokumen.** Draf siaran pers berupa teks plaintext di browser. Tidak ada enkripsi saat transit maupun saat disimpan.
 - **PIN dan audit trail.** Koreksi rekap hanya memerlukan akun admin; tidak ada PIN berjenjang dan tidak ada tabel audit. Waktu perubahan tersimpan di `Rekap.updatedAt`.
