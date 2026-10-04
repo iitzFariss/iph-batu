@@ -122,17 +122,45 @@ npm run dev       # tsx watch, reload otomatis
 npm run build     # tsc ke dist/
 npm start         # jalankan hasil build
 npm run import    # impor data Scanning Harga dari CSV
+npm test          # automated test (database terpisah)
 ```
+
+## Automated test
+
+Test backend memakai database SQLite sendiri di `server/prisma/test.db`, **tidak pernah menyentuh `dev.db`**. `globalSetup` meng-*override* `DATABASE_URL` (bukan membaca `.env`), menjalankan `prisma db push` ke database test, dan memverifikasi sidik jari `dev.db` sebelum-sesudah run. `prisma/seed.ts` sengaja tidak dipakai karena isinya menghapus seluruh tabel.
+
+```bash
+cd server
+npm test           # sekali jalan
+npm run test:watch # mode watch
+```
+
+Cakupan test: health check dan header keamanan, login (gagal/berhasil/akun belum aktif/token dimanipulasi), rate limit auth dan tulis, filter `tahun`/`bulan`/`minggu`, endpoint `/api/rekap/periods`, activity log, serta master data.
 
 ## Impor tabel Scanning Harga
 
-`npm run import` membaca CSV hasil ekspor Scanning Harga. Letakkan file di:
+`npm run import` membaca CSV hasil ekspor Scanning Harga:
 
-```
-server/data/Rekap IPH Kota Batu.xlsx - Data IPH Kota Batu.csv
+```bash
+cd server
+npm run import "data/Rekap IPH Kota Batu.xlsx - Data IPH Kota Batu.csv"
+npm run import -- --help   # lihat cara pakai
 ```
 
-Path tersebut masih hardcoded di `server/prisma/importer.ts:135`. Importer akan membuat rekap baru, menimpa rekap periode yang sama, dan mengabaikan baris yang bukan kolom Scanning Harga.
+Tanpa argumen, importer memakai path bawaan `server/data/Rekap IPH Kota Batu.xlsx - Data IPH Kota Batu.csv`.
+
+Importer akan membuat rekap baru, menimpa rekap periode yang sama, dan mengabaikan baris yang bukan kolom Scanning Harga. Aman dijalankan berulang kali karena yang dicocokkan adalah periode (tahun, bulan, minggu).
+
+### Apa yang diimpor
+
+Hanya dua jenis angka, keduanya sudah berbentuk persen:
+
+| Kolom CSV | Pergi ke |
+| --------- | -------- |
+| `Indikator Perubahan Harga (%)` | `Rekap.indikator` — nilai IPH periode itu |
+| `Komoditas Andil Perubahan Harga` | `RekapDetail.nilai` — andil tiap komoditas |
+
+Harga absolut dalam rupiah **tidak diimpor dan tidak dipakai**. Aplikasi menampilkan dan menghitung apa adanya: IPH per periode dan andil tiap komoditas. Lihat [Makna andil](#makna-andil).
 
 ```bash
 cd server
@@ -140,6 +168,17 @@ npm run import
 ```
 
 Importer aman dijalankan berulang kali; ia mencocokkan periode (tahun, bulan, minggu) dan menimpa data lama bila periode sudah ada.
+
+## Makna andil
+
+Andil adalah andil kontribusi tiap komoditas terhadap pergerakan IPH, dalam **persen poin** — bukan rupiah. Beberapa hal yang perlu diketahui saat membaca data:
+
+- **Andil adalah daftar parsial.** File Scanning Harga memuat 2–3 komoditas andil per periode, bukan keranjang lengkap.
+- **Jumlah andil tidak sama dengan IPH.** Contoh data di repo ini: periode September 2026 Minggu IV, IPH `3.06` sedangkan jumlah andil `2.88`. Selisih `0.18` adalah	andil komoditas yang tidak ikut dicantumkan di daftar andil.
+
+Konsekuensinya, aplikasi **tidak pernah menghitung IPH dari andil**. Nilai IPH diambil apa adanya dari kolom `Indikator Perubahan Harga` di CSV, lalu `server/src/lib/rekap.ts` hanya mengelompokkannya (deflasi / inflasi / stabil) berdasarkan angka itu.
+
+Karena itu, menghitung ulang IPH dari data yang sama membutuhkan keranjang komoditas lengkap beserta bobot belanja - data itu tidak ada di repo ini dan tidak diperlukan selama sumbernya tetap file Scanning Harga dari BPS.
 
 ## Catatan produksi (PostgreSQL)
 
