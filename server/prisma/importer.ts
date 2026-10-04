@@ -1,8 +1,22 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+const CSV_BAWAAN = "../data/Rekap IPH Kota Batu.xlsx - Data IPH Kota Batu.csv";
+
+const PETUNUK = `Impor tabel Scanning Harga ke rekap IPH.
+
+Pemakaian:
+  npm run import [file.csv]      impor file yang disebutkan
+  npm run import                impor ${CSV_BAWAAN.replace("../", "server/")}
+
+Opsi:
+  -h, --help                    tampilkan bantuan ini
+
+Importer mencocokkan periode (tahun, bulan, minggu) dan menimpa rekap lama
+bila periode tersebut sudah ada, jadi aman dijalankan berulang kali.`;
 
 const BULAN_MAP: Record<string, number> = {
   Januari: 1,
@@ -132,7 +146,25 @@ function parseFluktuasi(name: string | undefined, value: string | undefined): An
 }
 
 function main() {
-  const file = path.resolve(__dirname, "../data/Rekap IPH Kota Batu.xlsx - Data IPH Kota Batu.csv");
+  const argumen = process.argv[2];
+
+  if (argumen === "-h" || argumen === "--help") {
+    console.log(PETUNUK);
+    return;
+  }
+
+  const file = argumen ? path.resolve(argumen) : path.resolve(__dirname, CSV_BAWAAN);
+  if (!existsSync(file)) {
+    console.error(
+      argumen
+        ? `File tidak ditemukan: ${file}`
+        : `File bawaan tidak ditemukan: ${file}\nJalankan "npm run import <file.csv>" untuk melihat cara pakai.`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`Sumber: ${file}`);
   const text = readFileSync(file, "utf8").replace(/^\uFEFF/, "");
   const rows = parseCSV(text);
   if (rows.length === 0) throw new Error("CSV kosong");
