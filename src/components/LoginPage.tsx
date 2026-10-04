@@ -141,7 +141,7 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
   const iphLabel = latest
     ? latest.status === "deflasi-signifikan" || latest.status === "deflasi-terkendali"
       ? "Deflasi Terkendali"
-      : latest.status === "inflasi-ringan" || latest.status === "inflasi-sedang"
+      : latest.status === "inflasi-ringan"
       ? "Inflasi Terkendali"
       : "Perlu Intervensi"
     : "Memuat data…";
@@ -187,8 +187,7 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
             <span className="text-emerald-400">inflasi daerah.</span>
           </h2>
           <p className="text-sm sm:text-base lg:text-lg text-gray-400 leading-relaxed">
-            Masuk untuk mengakses data IPH, kelola rapat koordinasi, dan distribusi siaran pers
-            ke Kemendagri secara realtime.
+            Masuk untuk mengakses data IPH dan menyusun draf siaran pers.
           </p>
         </div>
 

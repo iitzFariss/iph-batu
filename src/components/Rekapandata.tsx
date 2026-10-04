@@ -10,8 +10,6 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
-  Lock,
   Pencil,
   Plus,
   Trash2,
@@ -886,34 +884,6 @@ export default function RekapanData() {
               <ChevronRight size={13} />
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Koreksi section */}
-      <div className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col md:flex-row md:items-start justify-between gap-6">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-            <ShieldCheck size={18} className="text-amber-600" />
-          </div>
-          <div>
-            <div className="text-sm font-bold text-gray-900 mb-0.5">
-              Koreksi &amp; Hapus Rekapan Data Periode Tertentu
-            </div>
-            <p className="text-xs text-gray-500 max-w-lg">
-              Setiap modifikasi data IPH yang telah terbit memerlukan otentikasi PIN Berjangka
-              Pengawas TPID dan akan dicatat secara permanen di lembar log audit Kemendagri RI.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-            <span className="text-sm text-gray-400 tracking-[0.3em]">• • • • •</span>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800">
-            <Lock size={12} />
-            Buka Akses Koreksi
-          </button>
         </div>
       </div>
 

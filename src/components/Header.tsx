@@ -1,4 +1,4 @@
-import { Menu, Search, Download, Bell, Sun, Moon } from "lucide-react";
+import { Menu, Search, Download, Sun, Moon } from "lucide-react";
 import UserMenu from "./Usermenu";
 import { useTheme } from "../context/ThemeContext";
 
@@ -69,10 +69,6 @@ export default function Header({ onNavigate, onOpenSidebar }: HeaderProps) {
           ) : (
             <Moon size={15} className="text-gray-500" />
           )}
-        </button>
-        <button className="relative p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-          <Bell size={15} className="text-gray-500" />
-          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
         </button>
         <div className="w-px h-6 bg-gray-100" />
         <UserMenu onNavigate={onNavigate} />

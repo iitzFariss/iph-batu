@@ -85,7 +85,7 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
   const labelIph = latest
     ? latest.status === "deflasi-signifikan" || latest.status === "deflasi-terkendali"
       ? "Deflasi Terkendali"
-      : latest.status === "inflasi-ringan" || latest.status === "inflasi-sedang"
+      : latest.status === "inflasi-ringan"
       ? "Inflasi Terkendali"
       : "Perlu Intervensi"
     : "Memuat data…";

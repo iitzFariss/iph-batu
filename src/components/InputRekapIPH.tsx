@@ -593,12 +593,6 @@ export default function InputRekapIPH() {
           </button>
           <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
             <button
-              onClick={() => console.log("Draft disimpan", form)}
-              className="px-4 py-2 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex-1 sm:flex-none"
-            >
-              Simpan Draft
-            </button>
-            <button
               onClick={handleSubmit}
               disabled={busy}
               className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors flex-1 sm:flex-none disabled:opacity-60"

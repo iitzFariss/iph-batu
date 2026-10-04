@@ -6,22 +6,12 @@ import {
   Copy,
   Pencil,
   Clock,
-  Users,
-  Link2,
   Bell,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { buildPublicDashboardLink } from "../lib/publicDashboard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Penerima {
-  initials: string;
-  color: string;
-  name: string;
-  jabatan: string;
-  status: "siap" | "terhubung";
-}
 
 interface AndilItem {
   name: string;
@@ -65,14 +55,6 @@ const STATUS_IPH: Record<string, string> = {
   "inflasi-ringan": "Inflasi Ringan",
   "perlu-intervensi": "Perlu Intervensi",
 };
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const penerimaSiaran: Penerima[] = [
-  { initials: "PW", color: "bg-emerald-600", name: "Pj. Walikota Batu",  jabatan: "Akses Jalur Komando 1",    status: "siap"     },
-  { initials: "SD", color: "bg-blue-600",    name: "Sekretaris Daerah",   jabatan: "Ketua Pelaksana Harian TPID", status: "siap"  },
-  { initials: "KD", color: "bg-purple-600",  name: "Pusda Kemendagri",    jabatan: "Integrasi Pelaporan API",  status: "terhubung" },
-];
 
 const drafKosong = `// Belum ada data rekap untuk periode yang dipilih.
 //
@@ -154,9 +136,7 @@ return baris.join("\n");
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AnalisisTeksSiaran() {
-  const [showPenerima, setShowPenerima] = useState(false);
   const [copied, setCopied]             = useState(false);
-  const [sendingGrafik, setSendingGrafik] = useState(false);
   const [dashboardLink] = useState(() => buildPublicDashboardLink());
 
   const [rows, setRows] = useState<PeriodeRow[]>([]);
@@ -343,11 +323,6 @@ export default function AnalisisTeksSiaran() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function handleSendGrafik() {
-    setSendingGrafik(true);
-    setTimeout(() => setSendingGrafik(false), 2500);
-  }
-
   return (
     <div className="p-4 sm:p-5 space-y-4 w-full">
       {/* Breadcrumb + badge */}
@@ -356,7 +331,11 @@ export default function AnalisisTeksSiaran() {
           Modul Otomasi Siaran V4
         </span>
         <span className="text-gray-300">•</span>
-        <span className="text-sm text-gray-400 font-mono">KEMENDAGRI-IPH-BATU-2026-W16</span>
+        <span className="text-sm text-gray-400 font-mono">
+          {periode
+            ? `KEMENDAGRI-IPH-BATU-${periode.tahun}-M${String(periode.bulan).padStart(2, "0")}W${periode.minggu}`
+            : "KEMENDAGRI-IPH-BATU-"}
+        </span>
       </div>
 
       {/* Page header */}
@@ -472,7 +451,7 @@ export default function AnalisisTeksSiaran() {
       )}
 
       {/* Main 2-col */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_260px] gap-4 items-start">
+      <div className="grid grid-cols-1 gap-4 items-start">
 
         {/* Left: draf */}
         <div className="space-y-3">
@@ -485,7 +464,7 @@ export default function AnalisisTeksSiaran() {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-gray-900">Draf Siaran Resmi &amp; Notulensi Otomatis</div>
-                  <div className="text-xs text-gray-400">Dokumen Terenkripsi • Standar Format Ditjen Bina Bangda</div>
+                  <div className="text-xs text-gray-400">Draf plaintext di browser — dikirim manual, belum dienkripsi</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -525,21 +504,7 @@ export default function AnalisisTeksSiaran() {
 
             {/* Action bar */}
             <div className="px-4 pb-4 space-y-2">
-              {/* Row 1: kirim via WA + salin */}
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={handleSendGrafik}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                    sendingGrafik
-                      ? "bg-purple-400 text-white cursor-wait"
-                      : "bg-purple-600 text-white hover:bg-purple-700"
-                  }`}
-                >
-                  <Link2 size={12} />
-                  {sendingGrafik
-                    ? "Membuat Link..."
-                    : "Kirim Link Dashboard + Teks via WA"}
-                </button>
                 <button
                   onClick={handleCopyTeksLink}
                   className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
@@ -574,51 +539,7 @@ export default function AnalisisTeksSiaran() {
               </span>
             </div>
           </div>
-        </div>
-
-        {/* Right panel */}
-        <div className="space-y-3">
-          {/* Daftar Penerima — collapsible */}
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-            <button
-              onClick={() => setShowPenerima((p) => !p)}
-              className="w-full flex items-center justify-between px-3.5 py-3 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Users size={13} className="text-gray-500" />
-                <span className="text-xs font-bold text-gray-900">Daftar Penerima Siaran Cepat</span>
-              </div>
-              <ChevronDown
-                size={13}
-                className={`text-gray-400 transition-transform ${showPenerima ? "rotate-180" : ""}`}
-              />
-            </button>
-            {showPenerima && (
-              <div className="border-t border-gray-100">
-                {penerimaSiaran.map((p) => (
-                  <div key={p.name} className="flex items-center justify-between px-3.5 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-7 h-7 rounded-full ${p.color} text-white text-xs font-bold flex items-center justify-center flex-shrink-0`}>
-                        {p.initials}
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">{p.name}</div>
-                        <div className="text-xs text-gray-400">{p.jabatan}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${p.status === "siap" ? "bg-emerald-500" : "bg-purple-500"}`} />
-                      <span className={`text-xs font-semibold ${p.status === "siap" ? "text-emerald-600" : "text-purple-600"}`}>
-                        {p.status === "siap" ? "Siap" : "Terhubung"}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </div>
+      </div>
       </div>
     </div>
   );

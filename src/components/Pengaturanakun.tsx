@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Shield,
-  Bell,
   Eye,
   EyeOff,
   Lock,
@@ -18,11 +17,6 @@ import { api, ApiError } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface ToggleProps {
-  checked: boolean;
-  onChange: () => void;
-}
-
 interface SessionRow {
   id: string;
   device: string;
@@ -34,26 +28,6 @@ interface SessionRow {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-function Toggle({ checked, onChange }: ToggleProps) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      className={`w-9 h-5 rounded-full transition-colors relative flex-shrink-0 ${
-        checked ? "bg-emerald-600" : "bg-gray-200"
-      }`}
-    >
-      <span
-        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
-}
 
 function SectionCard({
   title,
@@ -114,21 +88,6 @@ export default function PengaturanAkun() {
   const [passSaved, setPassSaved] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
 
-  // Notification toggles
-  const [notif, setNotif] = useState({
-    emailSync:     true,
-    emailRapat:    true,
-    emailSiaran:   false,
-    browserPush:   true,
-  });
-
-  // Privacy toggles
-  const [privacy, setPrivacy] = useState({
-    showActivity:  true,
-    showInstansi:  true,
-    auditLog:      true,
-  });
-
   // Sessions
   const [sessions, setSessions] = useState<SessionRow[]>([]);
 
@@ -140,35 +99,11 @@ export default function PengaturanAkun() {
       .get<{ rows: SessionRow[] }>("/auth/sessions")
       .then(({ rows }) => setSessions(rows))
       .catch(() => null);
-    api
-      .get<{ preferences?: Record<string, boolean> }>("/auth/me")
-      .then(({ preferences }) => {
-        if (!preferences) return;
-        setNotif((prev) => ({ ...prev, ...preferences }));
-        setPrivacy((prev) => ({ ...prev, ...preferences }));
-      })
-      .catch(() => null);
   }, []);
 
   if (!user) return null;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-
-  function persistPrefs(next: Record<string, boolean>) {
-    api.post("/auth/preferences", { preferences: next }).catch(() => null);
-  }
-
-  function toggleNotif(key: keyof typeof notif) {
-    const next = { ...notif, [key]: !notif[key] };
-    setNotif(next);
-    persistPrefs({ ...next, ...privacy });
-  }
-
-  function togglePrivacy(key: keyof typeof privacy) {
-    const next = { ...privacy, [key]: !privacy[key] };
-    setPrivacy(next);
-    persistPrefs({ ...notif, ...next });
-  }
 
   function handlePassSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -238,7 +173,7 @@ export default function PengaturanAkun() {
         </div>
         <h1 className="text-2xl font-black text-gray-900">Pengaturan Akun</h1>
         <p className="text-xs text-gray-400 mt-0.5">
-          Kelola keamanan, notifikasi, dan preferensi akun Anda.
+          Kelola kata sandi dan sesi login akun Anda.
         </p>
       </div>
 
@@ -445,67 +380,6 @@ export default function PengaturanAkun() {
           <LogOut size={11} />
           Akhiri Semua Sesi Lain
         </button>
-      </SectionCard>
-
-      {/* ── Notifikasi ── */}
-      <SectionCard
-        title="Notifikasi"
-        desc="Atur kapan dan bagaimana Anda menerima pemberitahuan"
-        icon={<Bell size={15} className="text-gray-600" />}
-      >
-        <div className="space-y-1">
-          {(
-            [
-              { key: "emailSync",   label: "Email: Data IPH Baru",                   desc: "Notifikasi saat rekap IPH baru diunggah"           },
-              { key: "emailRapat",  label: "Email: Pengingat Rapat",                   desc: "H-1 dan H-0 sebelum jadwal rapat"                },
-              { key: "emailSiaran", label: "Email: Distribusi Siaran Pers",            desc: "Konfirmasi saat siaran berhasil dikirim"         },
-              { key: "browserPush", label: "Notifikasi Browser",                       desc: "Pop-up langsung di browser saat ada aktivitas"   },
-            ] as { key: keyof typeof notif; label: string; desc: string }[]
-          ).map(({ key, label, desc }) => (
-            <div key={key} className="flex items-center justify-between py-3">
-              <div>
-                <div className="text-xs font-semibold text-gray-800">{label}</div>
-                <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
-              </div>
-              <Toggle
-                checked={notif[key]}
-                onChange={() => toggleNotif(key)}
-              />
-            </div>
-          ))}
-        </div>
-      </SectionCard>
-
-      {/* ── Privasi ── */}
-      <SectionCard
-        title="Privasi & Visibilitas"
-        desc="Kontrol informasi yang dapat dilihat pengguna lain"
-        icon={<Eye size={15} className="text-gray-600" />}
-      >
-        <div className="space-y-1">
-          {(
-            [
-              { key: "showActivity", label: "Tampilkan aktivitas saya di log sistem",    desc: "Admin dapat melihat riwayat aksi Anda"        },
-              { key: "showInstansi", label: "Tampilkan instansi di profil publik",        desc: "Terlihat oleh petugas lain dalam sistem"     },
-              { key: "auditLog",     label: "Catat semua aksi di audit trail",            desc: "Wajib untuk akun petugas & admin"            },
-            ] as { key: keyof typeof privacy; label: string; desc: string }[]
-          ).map(({ key, label, desc }) => (
-            <div key={key} className="flex items-center justify-between py-3">
-              <div>
-                <div className="text-xs font-semibold text-gray-800">{label}</div>
-                <div className="text-xs text-gray-400 mt-0.5">{desc}</div>
-              </div>
-              <Toggle
-                checked={privacy[key]}
-                onChange={() => {
-                  // auditLog cannot be turned off for petugas/admin
-                  if (key === "auditLog" && user.role !== "tamu") return;
-                  togglePrivacy(key);
-                }}
-              />
-            </div>
-          ))}
-        </div>
       </SectionCard>
 
       {/* ── Danger Zone ── */}
