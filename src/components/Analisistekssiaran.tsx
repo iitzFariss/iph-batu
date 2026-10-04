@@ -6,6 +6,7 @@ import {
   Copy,
   Pencil,
   Clock,
+  MessageCircle,
   Bell,
 } from "lucide-react";
 import { api } from "../lib/api";
@@ -317,10 +318,30 @@ export default function AnalisisTeksSiaran() {
 
   const currentDraf = selectedRow ? buildDraf(selectedRow) : detailError ? "Gagal memuat detail rekap." : drafKosong;
 
+  const pesanSiaran = useMemo(
+    () => `${currentDraf}\n\nLink Dashboard Publik: ${dashboardLink}`,
+    [currentDraf, dashboardLink],
+  );
+
+  // Tanpa baris rekap terpilih, isinya cuma placeholder atau pesan error.
+  // Mengirimnya ke kontak WhatsApp akan menyakitkan.
+  const drafSiap = selectedRow !== null;
+
   function handleCopyTeksLink() {
-    navigator.clipboard?.writeText(`${currentDraf}\n\nLink Dashboard Publik: ${dashboardLink}`);
+    navigator.clipboard?.writeText(pesanSiaran);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  // Format resmi WhatsApp untuk pesan terisi tanpa nomor tujuan:
+  // https://wa.me/?text=... membuka WA lalu menampilkan daftar kontak.
+  // Jadi yang terkirim tetap oleh user sendiri, bukan oleh aplikasi ini.
+  function handleBukaWhatsapp() {
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(pesanSiaran)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
 
   return (
@@ -507,10 +528,19 @@ export default function AnalisisTeksSiaran() {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={handleCopyTeksLink}
-                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
+                  disabled={!drafSiap}
+                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
                 >
                   <Copy size={12} />
                   {copied ? "Teks & Link Tersalin!" : "Salin Teks & Link"}
+                </button>
+                <button
+                  onClick={handleBukaWhatsapp}
+                  disabled={!drafSiap}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+                >
+                  <MessageCircle size={12} />
+                  Buka WhatsApp
                 </button>
               </div>
 
@@ -528,7 +558,9 @@ export default function AnalisisTeksSiaran() {
                 <strong>Bahasa Resmi</strong> beserta link{" "}
                 <span className="font-mono text-gray-500 break-all">{dashboardLink}</span> ke
                 clipboard. Link dibuka sebagai dashboard publik — tampilannya sama
-                seperti yang dilihat masyarakat.
+                seperti yang dilihat masyarakat. "Buka WhatsApp" membuka
+                WhatsApp dengan pesan terisi, lalu Anda yang memilih kontak dan
+                menekan kirim.
               </p>
             </div>
 
