@@ -8,6 +8,7 @@ import {
 } from "../lib/schemas";
 import { hashPassword } from "../lib/security";
 import { requireAuth, requireRoles } from "../middleware/auth";
+import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateInstansi, toPegawaiDTO } from "./master.helpers";
 import { invalidateSummary } from "../lib/rekapCache";
 
@@ -39,6 +40,7 @@ router.get(
 // ─── POST /api/komoditas ──────────────────────────────────────────────────
 router.post(
   "/komoditas",
+  writeLimiter,
   requireAuth,
   requireRoles("admin"),
   h(async (req, res) => {
@@ -62,6 +64,7 @@ router.post(
 // ─── DELETE /api/komoditas/:id ────────────────────────────────────────────
 router.delete(
   "/komoditas/:id",
+  writeLimiter,
   requireAuth,
   requireRoles("admin"),
   h(async (req, res) => {
@@ -94,6 +97,7 @@ router.get(
 // ─── POST /api/pegawai (admin) ────────────────────────────────────────────
 router.post(
   "/pegawai",
+  writeLimiter,
   requireAuth,
   requireRoles("admin"),
   h(async (req, res) => {
@@ -160,6 +164,7 @@ router.post(
 // ─── PATCH /api/pegawai/:id (admin) ───────────────────────────────────────
 router.patch(
   "/pegawai/:id",
+  writeLimiter,
   requireAuth,
   requireRoles("admin"),
   h(async (req, res) => {
@@ -204,6 +209,7 @@ router.patch(
 // ─── DELETE /api/pegawai/:id (admin) ──────────────────────────────────────
 router.delete(
   "/pegawai/:id",
+  writeLimiter,
   requireAuth,
   requireRoles("admin"),
   h(async (req, res) => {

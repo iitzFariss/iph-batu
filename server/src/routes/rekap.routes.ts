@@ -11,6 +11,7 @@ import {
   round,
 } from "../lib/rekap";
 import { AuthedRequest, requireAuth, requireRoles } from "../middleware/auth";
+import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateKomoditas } from "./master.helpers";
 import { getSummary, invalidateSummary } from "../lib/rekapCache";
 
@@ -170,6 +171,7 @@ router.get(
 // ─── POST /api/rekap ─────────────────────────────────────────────────────
 router.post(
   "/",
+  writeLimiter,
   requireAuth,
   requireRoles("admin"),
   h(async (req, res) => {
@@ -200,7 +202,7 @@ router.post(
         ...(body.fluktuasi ? [{ ...body.fluktuasi, isFluktuasi: true }] : []),
       ];
       for (const row of rows) {
-        const komoditas = await findOrCreateKomoditas(row.nama);
+        const komoditas = await findOrCreateKomoditas(row.nama, tx);
         await tx.rekapDetail.create({
           data: {
             rekapId: created.id,
@@ -239,6 +241,7 @@ router.get(
 // ─── PATCH /api/rekap/:id ─────────────────────────────────────────────────
 router.patch(
   "/:id",
+  writeLimiter,
   requireAuth,
   requireRoles("admin"),
   h(async (req, res) => {
@@ -283,13 +286,13 @@ router.patch(
       });
       await tx.rekapDetail.deleteMany({ where: { rekapId: rekap.id } });
       for (const d of details) {
-        const komoditas = await findOrCreateKomoditas(d.nama);
+        const komoditas = await findOrCreateKomoditas(d.nama, tx);
         await tx.rekapDetail.create({
           data: { rekapId: rekap.id, komoditasId: komoditas.id, nilai: d.nilai, isFluktuasi: false },
         });
       }
       if (body.fluktuasi && fluktuasiNilai !== null) {
-        const komoditas = await findOrCreateKomoditas(body.fluktuasi.nama);
+        const komoditas = await findOrCreateKomoditas(body.fluktuasi.nama, tx);
         await tx.rekapDetail.create({
           data: { rekapId: rekap.id, komoditasId: komoditas.id, nilai: body.fluktuasi.nilai, isFluktuasi: true },
         });
@@ -308,6 +311,7 @@ router.patch(
 // ─── DELETE /api/rekap/:id ────────────────────────────────────────────────
 router.delete(
   "/:id",
+  writeLimiter,
   requireAuth,
   requireRoles("admin"),
   h(async (req, res) => {

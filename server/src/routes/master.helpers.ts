@@ -1,5 +1,9 @@
+import type { Prisma } from "@prisma/client";
 import prisma from "../lib/prisma";
 import { initialsOf, colorOf } from "../lib/serializers";
+
+/** Client minimal supaya helper bisa dijalankan di dalam prisma.$transaction(). */
+type DbClient = Pick<Prisma.TransactionClient, "komoditas">;
 
 export async function findOrCreateInstansi(nama: string): Promise<{ id: string; nama: string } | null> {
   const trimmed = nama.trim();
@@ -10,13 +14,23 @@ export async function findOrCreateInstansi(nama: string): Promise<{ id: string; 
   return prisma.instansi.create({ data: { nama: trimmed } });
 }
 
-export async function findOrCreateKomoditas(nama: string): Promise<{ id: string; nama: string }> {
+/**
+ * Memakai prisma global di dalam prisma.$transaction() membuka koneksi kedua
+ * yang menunggu lock tulis milik transaksi tersebut, sehingga transaksi lama
+ * expire dan permintaan gagal 500. Karena itu pemanggil dari dalam transaksi
+ * WAJIB mengoper tx-nya; default prisma hanya untuk pemanggil di luar transaksi.
+ * upsert (bukan find-then-create) juga menutup celah race pada kolom unik.
+ */
+export async function findOrCreateKomoditas(
+  nama: string,
+  db: DbClient = prisma
+): Promise<{ id: string; nama: string }> {
   const trimmed = nama.trim();
-  const norm = trimmed.toLowerCase();
-  const all = await prisma.komoditas.findMany();
-  const found = all.find((k) => k.namaNorm === norm);
-  if (found) return found;
-  return prisma.komoditas.create({ data: { nama: trimmed, namaNorm: norm } });
+  return db.komoditas.upsert({
+    where: { namaNorm: trimmed.toLowerCase() },
+    update: {},
+    create: { nama: trimmed, namaNorm: trimmed.toLowerCase() },
+  });
 }
 
 export function toPegawaiDTO(pegawai: {
