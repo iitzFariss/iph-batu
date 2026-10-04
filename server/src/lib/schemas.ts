@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PEGAWAI_STATUSES } from "./enums";
 
 export const loginSchema = z.object({
   email: z.string().trim().min(1, "Email wajib diisi."),
@@ -34,10 +35,6 @@ export const komoditasCreateSchema = z.object({
   unit: z.string().trim().nullish(),
 });
 
-export const namaInstansiSchema = z.object({
-  nama: z.string().trim().min(2, "Nama instansi minimal 2 karakter."),
-});
-
 export const pegawaiSchema = z.object({
   name: z.string().trim().min(3, "Nama minimal 3 karakter."),
   nip: z.string().trim().min(5, "NIP minimal 5 karakter."),
@@ -46,7 +43,7 @@ export const pegawaiSchema = z.object({
   peran: z.string().trim().min(3, "Peran minimal 3 karakter."),
   peranIcon: z.string().trim().max(8).nullish(),
   email: z.string().trim().email("Format email tidak valid.").nullish(),
-  status: z.enum(["aktif", "nonaktif", "cuti"]).optional().default("aktif"),
+  status: z.enum(PEGAWAI_STATUSES).optional().default("aktif"),
 });
 
 export const pegawaiUpdateSchema = pegawaiSchema.partial().extend({});

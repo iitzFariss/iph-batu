@@ -21,7 +21,7 @@ import Error500 from "./components/Error500";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type PageId =
+type PageId =
   | "dashboard"
   | "input-rekap"
   | "rekapan-data"
