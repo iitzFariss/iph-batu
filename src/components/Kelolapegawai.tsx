@@ -19,7 +19,8 @@ import { api, ApiError } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PegawaiStatus = "aktif" | "nonaktif";
+/** Status yang bisa dipilih di form; sama dengan PEGAWAI_STATUSES di backend. */
+type PegawaiStatus = "aktif" | "nonaktif" | "cuti";
 
 interface Pegawai {
   id: string;
@@ -31,17 +32,59 @@ interface Pegawai {
   instansiSub: string;
   peran: string;
   peranIcon: string;
-  status: PegawaiStatus;
+  /** String, bukan PegawaiStatus: dikirim apa adanya oleh API. */
+  status: string;
   email?: string;
   isAccountCreated?: boolean;
 }
 
 // ─── Status config ──────────────────────────────────────────────────────────────
 
-const statusConfig: Record<PegawaiStatus, { label: string; cls: string }> = {
-  aktif:    { label: "Aktif",    cls: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
-  nonaktif: { label: "Nonaktif", cls: "bg-gray-100 text-gray-500 border border-gray-200"         },
+interface StatusMeta {
+  label: string;
+  cls: string;
+  dot: string;
+  selectedCls: string;
+}
+
+/**
+ * Satu-satunya sumber warna status. Badge tabel dan tombol form keduanya membaca
+ * dari sini, sehingga menambah status baru tidak bisa lupa diberi warna.
+ */
+const statusConfig: Record<PegawaiStatus, StatusMeta> = {
+  aktif: {
+    label: "Aktif",
+    cls: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    dot: "bg-emerald-500",
+    selectedCls: "border-emerald-500 bg-emerald-50 text-emerald-700",
+  },
+  nonaktif: {
+    label: "Nonaktif",
+    cls: "bg-gray-100 text-gray-500 border border-gray-200",
+    dot: "bg-gray-400",
+    selectedCls: "border-gray-400 bg-gray-100 text-gray-600",
+  },
+  cuti: {
+    label: "Cuti",
+    cls: "bg-amber-50 text-amber-700 border border-amber-200",
+    dot: "bg-amber-500",
+    selectedCls: "border-amber-500 bg-amber-50 text-amber-700",
+  },
 };
+
+const DAFTAR_STATUS = Object.keys(statusConfig) as PegawaiStatus[];
+
+const statusFallback: StatusMeta = {
+  label: "Tidak Diketahui",
+  cls: "bg-gray-100 text-gray-600 border border-gray-300",
+  dot: "bg-gray-400",
+  selectedCls: "border-gray-400 bg-gray-100 text-gray-600",
+};
+
+/** Lookup defensif: status dari database tidak dijamin ada di daftar di atas. */
+function statusMeta(status: string): StatusMeta {
+  return statusConfig[status as PegawaiStatus] ?? statusFallback;
+}
 
 // ─── Add/Edit Modal ───────────────────────────────────────────────────────────
 
@@ -60,7 +103,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
     instansiSub: initial?.instansiSub ?? "",
     peran:      initial?.peran      ?? "",
     peranIcon:  initial?.peranIcon  ?? "👤",
-    status:     initial?.status     ?? "aktif" as PegawaiStatus,
+    status:     initial?.status     ?? "aktif",
     email:      "",
   });
   const [error, setError] = useState("");
@@ -184,16 +227,14 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               Status Penugasan
             </label>
             <div className="flex gap-2">
-              {(["aktif","nonaktif"] as PegawaiStatus[]).map((s) => (
+              {DAFTAR_STATUS.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setForm({...form, status: s})}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-all capitalize ${
+                  className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-all ${
                     form.status === s
-                      ? s === "aktif"
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                        : "border-gray-400 bg-gray-100 text-gray-600"
+                      ? statusConfig[s].selectedCls
                       : "border-gray-100 text-gray-400 hover:border-gray-200"
                   }`}
                 >
@@ -490,12 +531,15 @@ export default function KelolaPegawai() {
 
                   {/* Status */}
                   <td className="px-5 py-4">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${statusConfig[p.status].cls}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                        p.status === "aktif" ? "bg-emerald-500" : "bg-gray-400"
-                      }`} />
-                      {statusConfig[p.status].label}
-                    </span>
+                    {(() => {
+                      const meta = statusMeta(p.status);
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${meta.cls}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${meta.dot}`} />
+                          {meta.label}
+                        </span>
+                      );
+                    })()}
                   </td>
 
                   {/* Aksi */}

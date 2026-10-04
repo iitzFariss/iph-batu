@@ -110,7 +110,7 @@ function HeroMetrics({ latest }: { latest: SummaryTrendPoint | null }) {
   );
 }
 
-function TrendChart({ points, year }: { points: { label: string; iph: number }[]; year: number }) {
+function TrendChart({ points, year }: { points: { label: string; iph: number }[]; year: number | null }) {
   const maxAbs = Math.max(1, ...points.map((p) => Math.abs(p.iph))) * 1.2;
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4">
@@ -123,9 +123,11 @@ function TrendChart({ points, year }: { points: { label: string; iph: number }[]
             Perubahan harga mingguan komoditas di Pasar Besar Kota Batu (baseline 0.00%)
           </p>
         </div>
-        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
-          {year}
-        </span>
+        {year !== null && (
+          <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
+            {year}
+          </span>
+        )}
       </div>
 
       <div className="overflow-x-auto mt-3 pb-1">
@@ -416,11 +418,18 @@ export default function Dashboard() {
   }, []);
 
   const latest = summary?.latest ?? null;
-  const year = latest?.tahun ?? 2026;
+  // Tanpa data, jangan memaksa ke satu tahun. Anotasi eksplisit wajib: tanpa itu
+  // tahunTersedia[0] bertipe `number` (noUncheckedIndexedAccess mati) sehingga
+  // `?? null` dianggap mati oleh tsc dan tipe sebenarnya jadi(number, bukan
+  // number | null) padahal runtime bisa null.
+  const tahunTersedia = [...new Set((summary?.trend ?? []).map((t) => t.tahun))].sort((a, b) => b - a);
+  const year: number | null = latest?.tahun ?? tahunTersedia[0] ?? null;
   const trendPoints = (summary?.trend ?? [])
-    .filter((t) => t.tahun === year)
+    .filter((t) => year === null || t.tahun === year)
     .map((t) => ({ label: `${BULAN_SINGKAT[t.bulan - 1]} M${t.mingguIndeks}`, iph: t.iph }));
-  const freqItems = summary?.frequency.find((f) => f.tahun === year)?.items ?? [];
+  const freqItems = year === null
+    ? []
+    : summary?.frequency.find((f) => f.tahun === year)?.items ?? [];
   const weeklyRows: WeeklyRow[] = (summary?.weekly ?? []).map((w) => ({ tahun: w.tahun, data: w.data }));
 
   return (

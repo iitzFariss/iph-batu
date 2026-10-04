@@ -46,6 +46,14 @@ interface RekapRow {
   fluktuasi: CommodityTag | null;
 }
 
+interface Periode {
+  tahun: number;
+  bulan: number;
+  mingguIndeks: number;
+  periode: string;
+  nilaiIPH: number;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 interface IPHConfig {
@@ -361,7 +369,8 @@ export default function RekapanData() {
   const isAdmin = user?.role === "admin";
   const [filterTab, setFilterTab] = useState<FilterTab>("semua");
   const [openYear, setOpenYear] = useState(false);
-  const [year, setYear] = useState<string | null>("2026");
+  const [year, setYear] = useState<string | null>(null);
+  const [periodeList, setPeriodeList] = useState<Periode[]>([]);
   const [openAdvanced, setOpenAdvanced] = useState(false);
   const [bulan, setBulan] = useState<number | null>(null);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -403,6 +412,21 @@ export default function RekapanData() {
       cancelled = true;
     };
   }, [filterTab, currentPage, perPage, search, year, bulan, reloadKey]);
+
+  // Daftar tahun dan IPH periode terakhir disimpulkan dari data yang benar-benar
+  // ada, bukan dari daftar tahun atau angka yang ditulis manual.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<{ rows: Periode[] }>("/rekap/periods")
+      .then(({ rows }) => { if (!cancelled) setPeriodeList(rows); })
+      .catch(() => { if (!cancelled) setPeriodeList([]); });
+    return () => { cancelled = true; };
+  }, [reloadKey]);
+
+  const tahunTersedia = [...new Set(periodeList.map((p) => p.tahun))].sort((a, b) => b - a);
+  const tahunTerbaru = tahunTersedia[0];
+  const periodeTerakhir = periodeList[0] ?? null;
 
   const tabs: { key: FilterTab; label: string }[] = [
     { key: "semua",      label: "Semua Periode" },
@@ -491,13 +515,27 @@ export default function RekapanData() {
 
         {/* Stats row */}
         <div className="flex flex-wrap items-center gap-4 flex-shrink-0">
-          <div className="text-center">
-            <div className="text-xs text-gray-400 mb-0.5">Posisi Terkini M–IV</div>
-            <div className="flex items-center gap-1 justify-center">
-              <TrendingDown size={14} className="text-emerald-600" />
-              <span className="text-xl font-black text-emerald-600">-0.38%</span>
+          {periodeTerakhir && (
+            <div className="text-center">
+              <div className="text-xs text-gray-400 mb-0.5">IPH Periode Terakhir</div>
+              <div className="flex items-center gap-1 justify-center">
+                {periodeTerakhir.nilaiIPH < 0 ? (
+                  <TrendingDown size={14} className="text-emerald-600" />
+                ) : (
+                  <TrendingUp size={14} className="text-rose-600" />
+                )}
+                <span
+                  className={`text-xl font-black ${
+                    periodeTerakhir.nilaiIPH < 0 ? "text-emerald-600" : "text-rose-600"
+                  }`}
+                >
+                  {periodeTerakhir.nilaiIPH > 0 ? "+" : ""}
+                  {periodeTerakhir.nilaiIPH.toFixed(2)}%
+                </span>
+              </div>
+              <div className="text-[11px] text-gray-400 mt-0.5">{periodeTerakhir.periode}</div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -539,7 +577,7 @@ export default function RekapanData() {
               openYear ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
             }`}
           >
-            Tahun {year ?? "Semua"}{year === "2026" ? " (Aktif)" : year ? " (Arsip)" : ""}
+            Tahun {year ?? "Semua"}{year && Number(year) === tahunTerbaru ? " · Terbaru" : ""}
             <ChevronDown size={12} className={`transition-transform ${openYear ? "rotate-180" : ""}`} />
           </button>
 
@@ -600,19 +638,22 @@ export default function RekapanData() {
               >
                 Semua Tahun
               </button>
-              {["2026", "2025", "2024", "2023"].map((y) => (
+              {tahunTersedia.map((y) => (
                 <button
                   key={y}
-                  onClick={() => { setYear(y); setCurrentPage(1); setOpenYear(false); }}
+                  onClick={() => { setYear(String(y)); setCurrentPage(1); setOpenYear(false); }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                    year === y
+                    year === String(y)
                       ? "bg-gray-900 text-white border-gray-900"
                       : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  {y} {y === "2026" ? "· Aktif" : "· Arsip"}
+                  {y} {y === tahunTerbaru ? "· Terbaru" : ""}
                 </button>
               ))}
+              {tahunTersedia.length === 0 && (
+                <p className="px-3 py-1.5 text-xs text-gray-400">Belum ada data IPH tersimpan.</p>
+              )}
             </div>
             <p className="text-xs text-gray-400 mt-2">
               Menampilkan data per tahun pencatatan IPH; aktifkan sesuai periode yang ingin ditinjau.

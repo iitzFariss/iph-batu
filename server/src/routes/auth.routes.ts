@@ -354,7 +354,14 @@ router.get(
     }
 
     items.sort((a, b) => b.at.getTime() - a.at.getTime());
-    res.json({ items: items.slice(0, 8) });
+    res.json({
+      items: items.slice(0, 8),
+      ringkasan: {
+        rekap: rekapCount,
+        perangkat: perangkat.size,
+        terakhirMasuk: user?.lastLoginAt ?? null,
+      },
+    });
   })
 );
 

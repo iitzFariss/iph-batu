@@ -56,11 +56,18 @@ export default function ProfilSaya() {
   const [bio, setBio]                 = useState(user?.bio ?? "");
   const [activity, setActivity]       = useState<ActivityItem[]>([]);
   const [activityError, setActivityError] = useState("");
+  const [ringkasan, setRingkasan]     = useState<{ rekap: number; perangkat: number; terakhirMasuk: string | null } | null>(null);
 
   useEffect(() => {
     api
-      .get<{ items: { label: string; at: string }[] }>("/auth/me/activity")
-      .then(({ items }) => setActivity(items.map((i) => ({ label: i.label, at: i.at }))))
+      .get<{
+        items: { label: string; at: string }[];
+        ringkasan: { rekap: number; perangkat: number; terakhirMasuk: string | null };
+      }>("/auth/me/activity")
+      .then(({ items, ringkasan: r }) => {
+        setActivity(items.map((i) => ({ label: i.label, at: i.at })));
+        setRingkasan(r);
+      })
       .catch(() => setActivityError("Gagal memuat riwayat aktivitas."));
   }, []);
 
@@ -162,17 +169,23 @@ export default function ProfilSaya() {
           {/* Stats */}
           <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
             <div className="text-sm font-bold text-gray-500 uppercase tracking-wide">Statistik Aktivitas</div>
-            {[
-              { label: "Total Entri Data",   value: "47" },
-              { label: "Rapat Dihadiri",     value: "18" },
-              { label: "Notulensi Dibuat",   value: "12" },
-              { label: "Siaran Dikirim",     value: "8"  },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">{label}</span>
-                <span className="text-xs font-black text-gray-900">{value}</span>
-              </div>
-            ))}
+            {ringkasan ? (
+              [
+                { label: "Rekap IPH Disimpan", value: String(ringkasan.rekap) },
+                { label: "Perangkat Login Aktif", value: String(ringkasan.perangkat) },
+                {
+                  label: "Login Terakhir",
+                  value: ringkasan.terakhirMasuk ? formatWaktu(ringkasan.terakhirMasuk) : "Belum pernah",
+                },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-gray-500">{label}</span>
+                  <span className="text-xs font-black text-gray-900 text-right">{value}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-gray-400">Statistik belum tersedia.</p>
+            )}
           </div>
         </div>
 

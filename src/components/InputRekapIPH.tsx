@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Minus, X, TrendingDown, TrendingUp } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type KomoditasNilai = {
   nama: string;
@@ -18,29 +18,11 @@ type FormState = {
   fluktuasi: KomoditasNilai;
 };
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const BULAN = [
   "Januari","Februari","Maret","April","Mei","Juni",
   "Juli","Agustus","September","Oktober","November","Desember",
-];
-
-const DEFAULT_KOMODITAS = [
-  "Beras Medium",
-  "Beras Premium",
-  "Jagung",
-  "Kedelai",
-  "Bawang Merah",
-  "Bawang Putih",
-  "Cabai Merah Keriting",
-  "Cabai Rawit Merah",
-  "Daging Sapi Murni",
-  "Daging Ayam Ras",
-  "Telur Ayam Ras",
-  "Ikan Tongkol",
-  "Gula Pasir",
-  "Minyak Goreng Kemasan",
-  "Tepung Terigu",
 ];
 
 const now = new Date();
@@ -58,7 +40,7 @@ const emptyForm = (): FormState => ({
 
 const monthIndex = (name: string) => Math.max(0, BULAN.indexOf(name))
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const parseNum = (val: string) => {
   const n = parseFloat(val.replace(",", "."));
@@ -66,7 +48,7 @@ const parseNum = (val: string) => {
 };
 
 const formatPct = (value: number | null) => {
-  if (value === null) return "—";
+  if (value === null) return "â€”";
   const pos = value > 0;
   const sign = pos ? "+" : value < 0 ? "" : "";
   return `${sign}${value.toFixed(2)}%`;
@@ -74,7 +56,7 @@ const formatPct = (value: number | null) => {
 
 function PctCell({ value }: { value: number | null }) {
   if (value === null) {
-    return <span className="text-xs text-gray-400">—</span>;
+    return <span className="text-xs text-gray-400">â€”</span>;
   }
   if (value === 0) {
     return <span className="text-xs font-semibold text-gray-500">0.00%</span>;
@@ -90,7 +72,7 @@ function PctCell({ value }: { value: number | null }) {
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function InputRekapIPH() {
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -99,23 +81,30 @@ export default function InputRekapIPH() {
   const [submitError, setSubmitError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const [komoditasList, setKomoditasList] = useState<string[]>(DEFAULT_KOMODITAS);
+  const [komoditasList, setKomoditasList] = useState<string[]>([]);
   const [komoditasIds, setKomoditasIds] = useState<Record<string, string>>({});
+  const [komoditasError, setKomoditasError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [newKomoditas, setNewKomoditas] = useState("");
   const [addError, setAddError] = useState("");
 
-  useEffect(() => {
+  // Daftar commodities harus berasal dari database. Fallback ke daftar hardcoded
+  // akan membuat pengguna memilih komoditas yang tidak ada, lalu POST /rekap
+  // ditolak karena nama tidak ditemukan.
+  const loadKomoditas = useCallback(() => {
     api
       .get<{ rows: { id: string; nama: string }[] }>("/komoditas")
       .then(({ rows }) => {
         setKomoditasList(rows.map((k) => k.nama));
         setKomoditasIds(Object.fromEntries(rows.map((k) => [k.nama, k.id])));
+        setKomoditasError("");
       })
-      .catch(() => {
-        setKomoditasList(DEFAULT_KOMODITAS);
-      });
+      .catch(() => setKomoditasError("Gagal memuat daftar komoditas. Periksa koneksi lalu muat ulang."));
   }, []);
+
+  useEffect(() => {
+    loadKomoditas();
+  }, [loadKomoditas]);
 
   const updateField = <K extends keyof FormState>(key: K, val: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -226,7 +215,7 @@ export default function InputRekapIPH() {
     setSubmitError("");
   };
 
-  // ── Success screen ─────────────────────────────────────────────────────────
+  // â”€â”€ Success screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   if (submitted) {
     const indikator = parseNum(form.indikator);
@@ -285,7 +274,7 @@ export default function InputRekapIPH() {
     );
   }
 
-  // ── Main form ──────────────────────────────────────────────────────────────
+  // â”€â”€ Main form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
     <div className="p-4 sm:p-6 space-y-5 bg-gray-50 min-h-full">
@@ -295,7 +284,7 @@ export default function InputRekapIPH() {
         <div>
           <h1 className="text-base font-bold text-gray-900">Input Rekap IPH</h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            Indeks Perkembangan Harga Mingguan — TPID Kota Batu
+            Indeks Perkembangan Harga Mingguan â€” TPID Kota Batu
           </p>
         </div>
         <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-full px-3 py-1.5 text-xs text-gray-500 font-medium shadow-sm">
@@ -356,7 +345,7 @@ export default function InputRekapIPH() {
           Indikator Perubahan Harga
         </h2>
         <p className="text-xs text-gray-400 mb-3">
-          Tulis angka persen — nilai negatif (<Minus size={10} className="inline" />) berarti turun
+          Tulis angka persen â€” nilai negatif (<Minus size={10} className="inline" />) berarti turun
           (deflasi), positif berarti naik (inflasi).
         </p>
         <div className="flex items-center gap-2 w-full sm:max-w-xs">
@@ -379,7 +368,7 @@ export default function InputRekapIPH() {
           Komoditas Andil Pergerakan Harga
         </h2>
         <p className="text-xs text-gray-400 mb-4">
-          Komoditas dengan kenaikan &amp; penurunan tertinggi minggu ini (maks. 3). Nilai dalam persen —
+          Komoditas dengan kenaikan &amp; penurunan tertinggi minggu ini (maks. 3). Nilai dalam persen â€”
           negatif turun, positif naik.
         </p>
 
@@ -465,6 +454,19 @@ export default function InputRekapIPH() {
         </div>
       </div>
 
+      {komoditasError && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+          <span className="text-xs text-red-600">{komoditasError}</span>
+          <button
+            type="button"
+            onClick={loadKomoditas}
+            className="rounded-lg border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-100"
+          >
+            Muat Ulang
+          </button>
+        </div>
+      )}
+
       <datalist id="daftar-komoditas">
         {komoditasList.map((k) => (
           <option key={k} value={k} />
@@ -479,7 +481,7 @@ export default function InputRekapIPH() {
               Daftar Komoditas ({komoditasList.length})
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Jenis komoditas yang dipantau — bisa ditambah atau dihapus sesuai kebutuhan survei.
+              Jenis komoditas yang dipantau â€” bisa ditambah atau dihapus sesuai kebutuhan survei.
             </p>
           </div>
           <button
