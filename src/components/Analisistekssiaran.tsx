@@ -28,19 +28,22 @@ interface AndilItem {
   change: number;
 }
 
-interface RekapRow {
+interface PeriodeRow {
   id: string;
+  tahun: number;
+  bulan: number;
+  mingguIndeks: number;
   periode: string;
   cutoffStart: string;
   cutoffEnd: string;
   nilaiIPH: number;
   statusIPH: string;
+}
+
+interface RekapRow extends PeriodeRow {
   deflasi: AndilItem[];
   inflasi: AndilItem[];
   fluktuasi: AndilItem | null;
-  tahun: number;
-  bulan: number;
-  mingguIndeks: number;
 }
 
 interface Periode {
@@ -88,17 +91,17 @@ function hariJam(value: Date): string {
   return value.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
 
-function urutRekap(a: RekapRow, b: RekapRow): number {
+function urutRekap(a: PeriodeRow, b: PeriodeRow): number {
   return b.tahun - a.tahun || b.bulan - a.bulan || b.mingguIndeks - a.mingguIndeks;
 }
 
-function mingguTersediaPada(rows: RekapRow[], tahun: number, bulan: number): number[] {
+function mingguTersediaPada(rows: PeriodeRow[], tahun: number, bulan: number): number[] {
   return [...new Set(rows.filter((r) => r.tahun === tahun && r.bulan === bulan).map((r) => r.mingguIndeks))].sort(
     (a, b) => a - b,
   );
 }
 
-function periodeCadangan(rows: RekapRow[], saatIni: Periode): Periode | null {
+function periodeCadangan(rows: PeriodeRow[], saatIni: Periode): Periode | null {
   const samaBulan = rows.filter((r) => r.tahun === saatIni.tahun && r.bulan === saatIni.bulan);
   if (samaBulan.length > 0) {
     const minggu = Math.max(...samaBulan.map((r) => r.mingguIndeks));
@@ -156,7 +159,10 @@ export default function AnalisisTeksSiaran() {
   const [sendingGrafik, setSendingGrafik] = useState(false);
   const [dashboardLink] = useState(() => buildPublicDashboardLink());
 
-  const [rows, setRows] = useState<RekapRow[]>([]);
+  const [rows, setRows] = useState<PeriodeRow[]>([]);
+  const [detail, setDetail] = useState<{ key: string; row: RekapRow | null } | null>(null);
+  const [detailError, setDetailError] = useState(false);
+  
   const [loading, setLoading] = useState(true);
   const [menyegarkan, setMenyegarkan] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -164,11 +170,11 @@ export default function AnalisisTeksSiaran() {
   const [terakhirMuat, setTerakhirMuat] = useState<Date | null>(null);
   const [infoBaru, setInfoBaru] = useState<string | null>(null);
 
-  const rowsRef = useRef<RekapRow[]>([]);
+  const rowsRef = useRef<PeriodeRow[]>([]);
   const periodeRef = useRef<Periode | null>(null);
   const memuatRef = useRef(false);
 
-  const terapkan = useCallback((urut: RekapRow[], awal: boolean) => {
+  const terapkan = useCallback((urut: PeriodeRow[], awal: boolean) => {
     const terbaru = urut[0];
     const sebelumnya = rowsRef.current[0];
 
@@ -209,7 +215,7 @@ export default function AnalisisTeksSiaran() {
       else setLoading(true);
 
       try {
-        const data = await api.get<{ rows: RekapRow[] }>("/rekap?perPage=100");
+        const data = await api.get<{ rows: PeriodeRow[] }>("/rekap/periods");
         terapkan([...data.rows].sort(urutRekap), false);
       } catch (e) {
         setLoadError(
@@ -227,7 +233,7 @@ export default function AnalisisTeksSiaran() {
   useEffect(() => {
     let batal = false;
     api
-      .get<{ rows: RekapRow[] }>("/rekap?perPage=100")
+      .get<{ rows: PeriodeRow[] }>("/rekap/periods")
       .then((data) => {
         if (!batal) terapkan([...data.rows].sort(urutRekap), true);
       })
@@ -241,6 +247,35 @@ export default function AnalisisTeksSiaran() {
       batal = true;
     };
   }, [terapkan]);
+
+  const detailKey = periode ? `${periode.tahun}-${periode.bulan}-${periode.minggu}` : null;
+  const detailQuery = periode
+    ? `/rekap?tahun=${periode.tahun}&bulan=${periode.bulan}&minggu=${periode.minggu}&perPage=1`
+    : null;
+
+  useEffect(() => {
+    if (!detailKey || !detailQuery) return;
+    let batal = false;
+    api
+      .get<{ rows: RekapRow[] }>(detailQuery)
+      .then((data) => {
+        if (!batal) {
+          setDetail({ key: detailKey, row: data.rows[0] ?? null });
+          setDetailError(false);
+        }
+      })
+      .catch(() => {
+        if (!batal) {
+          setDetail({ key: detailKey, row: null });
+          setDetailError(true);
+        }
+      });
+    return () => {
+      batal = true;
+    };
+  }, [detailKey, detailQuery]);
+
+  const detailLoading = detailKey !== null && detail?.key !== detailKey;
 
   useEffect(() => {
     let timer: number | undefined;
@@ -298,17 +333,9 @@ export default function AnalisisTeksSiaran() {
     if (!periode) return [];
     return mingguTersediaPada(rows, periode.tahun, periode.bulan);
   }, [rows, periode]);
-  const selectedRow = useMemo(
-    () =>
-      periode
-        ? rows.find(
-            (r) => r.tahun === periode.tahun && r.bulan === periode.bulan && r.mingguIndeks === periode.minggu,
-          ) ?? null
-        : null,
-    [rows, periode],
-  );
+  const selectedRow = detail?.row ?? null;
 
-  const currentDraf = selectedRow ? buildDraf(selectedRow) : drafKosong;
+  const currentDraf = selectedRow ? buildDraf(selectedRow) : detailError ? "Gagal memuat detail rekap." : drafKosong;
 
   function handleCopyTeksLink() {
     navigator.clipboard?.writeText(`${currentDraf}\n\nLink Dashboard Publik: ${dashboardLink}`);
@@ -464,13 +491,24 @@ export default function AnalisisTeksSiaran() {
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                   <TrendingDown size={9} />
-                  {selectedRow
-                    ? `IPH: ${selectedRow.nilaiIPH > 0 ? "+" : ""}${selectedRow.nilaiIPH.toFixed(2)}% (${STATUS_IPH[selectedRow.statusIPH] ?? selectedRow.statusIPH})`
-                    : "Belum ada data"}
+                  {detailLoading
+                    ? "Memuat..."
+                    : selectedRow
+                      ? `IPH: ${selectedRow.nilaiIPH > 0 ? "+" : ""}${selectedRow.nilaiIPH.toFixed(2)}% (${STATUS_IPH[selectedRow.statusIPH] ?? selectedRow.statusIPH})`
+                      : "Belum ada data"}
                 </span>
                 <span className="flex items-center gap-1 text-xs text-gray-400">
                   <Clock size={9} />
-                  {selectedRow ? `Periode ${selectedRow.cutoffStart} – ${selectedRow.cutoffEnd}` : "—"}
+                  {(() => {
+                    const baris = rows.find(
+                      (r) =>
+                        periode &&
+                        r.tahun === periode.tahun &&
+                        r.bulan === periode.bulan &&
+                        r.mingguIndeks === periode.minggu,
+                    );
+                    return baris ? `Periode ${baris.cutoffStart} – ${baris.cutoffEnd}` : "—";
+                  })()}
                 </span>
               </div>
             </div>

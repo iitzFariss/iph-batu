@@ -1,10 +1,10 @@
-import { type WeeklyColumn, type WeeklyRow, weeklyColumns, weeklyRows } from "../data/weeklyData";
+import { type WeeklyColumn, type WeeklyRow, weeklyColumns } from "../data/weeklyData";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 interface WeeklyDataTableProps {
+  rows: WeeklyRow[];
   columns?: WeeklyColumn[];
-  rows?: WeeklyRow[];
   title?: string;
   description?: string;
 }
@@ -33,7 +33,7 @@ function ValueCell({ value }: { value: number | null }) {
 
 export default function WeeklyDataTable({
   columns = weeklyColumns,
-  rows = weeklyRows,
+  rows,
   title = "Data Detail Mingguan:",
   description,
 }: WeeklyDataTableProps) {

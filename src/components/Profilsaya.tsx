@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   User,
   Mail,
@@ -9,8 +9,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  FileText,
-  Calendar,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api, ApiError } from "../lib/api";
@@ -30,16 +28,22 @@ const roleBadgeCls: Record<UserRole, string> = {
   tamu:    "bg-sky-100 text-sky-700 border border-sky-200",
 };
 
-// ─── Mock activity log ────────────────────────────────────────────────────────
-
-const recentActivity = [
-  { icon: <FileText size={12} />,  label: "Mengunggah Tabel Komoditas IPH Minggu III",  time: "24 Apr 2026, 08:15", color: "text-emerald-600 bg-emerald-50" },
-  { icon: <Calendar size={12} />,  label: "Membuat jadwal Rakor Kemendagri",             time: "23 Apr 2026, 14:00", color: "text-blue-600 bg-blue-50"     },
-  { icon: <FileText size={12} />,  label: "Finalisasi notulensi Rapat ID #RPT-018",      time: "22 Apr 2026, 16:30", color: "text-purple-600 bg-purple-50"  },
-  { icon: <CheckCircle2 size={12}/>, label: "Verifikasi data IPH Minggu II April",       time: "19 Apr 2026, 09:00", color: "text-emerald-600 bg-emerald-50" },
-];
-
 // ─── Component ────────────────────────────────────────────────────────────────
+
+interface ActivityItem {
+  label: string;
+  at: string;
+}
+
+function formatWaktu(iso: string): string {
+  return new Date(iso).toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function ProfilSaya() {
   const { user, refresh } = useAuth();
@@ -50,6 +54,15 @@ export default function ProfilSaya() {
   const [displayName, setDisplayName] = useState(user?.name ?? "");
   const [phone, setPhone]             = useState(user?.phone ?? "");
   const [bio, setBio]                 = useState(user?.bio ?? "");
+  const [activity, setActivity]       = useState<ActivityItem[]>([]);
+  const [activityError, setActivityError] = useState("");
+
+  useEffect(() => {
+    api
+      .get<{ items: { label: string; at: string }[] }>("/auth/me/activity")
+      .then(({ items }) => setActivity(items.map((i) => ({ label: i.label, at: i.at }))))
+      .catch(() => setActivityError("Gagal memuat riwayat aktivitas."));
+  }, []);
 
   if (!user) return null;
 
@@ -306,26 +319,30 @@ export default function ProfilSaya() {
           <div className="bg-white border border-gray-100 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-gray-900">Aktivitas Terkini</h2>
-              <button className="text-sm text-emerald-600 font-semibold hover:text-emerald-700">
-                Lihat Semua
-              </button>
+              <span className="text-xs text-gray-400">dari data akun ini</span>
             </div>
-            <div className="space-y-3">
-              {recentActivity.map((act, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${act.color}`}>
-                    {act.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-gray-700 leading-snug">{act.label}</div>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Clock size={9} className="text-gray-400" />
-                      <span className="text-xs text-gray-400">{act.time}</span>
+            {activityError ? (
+              <p className="text-xs text-red-600">{activityError}</p>
+            ) : activity.length === 0 ? (
+              <p className="text-xs text-gray-400">Belum ada aktivitas tercatat untuk akun ini.</p>
+            ) : (
+              <div className="space-y-3">
+                {activity.map((act) => (
+                  <div key={`${act.label}-${act.at}`} className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-emerald-600 bg-emerald-50">
+                      <Clock size={12} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-700 leading-snug">{act.label}</div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Clock size={9} className="text-gray-400" />
+                        <span className="text-xs text-gray-400">{formatWaktu(act.at)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>

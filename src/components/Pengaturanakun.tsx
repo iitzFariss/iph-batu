@@ -120,7 +120,6 @@ export default function PengaturanAkun() {
     emailRapat:    true,
     emailSiaran:   false,
     browserPush:   true,
-    whatsapp:      true,
   });
 
   // Privacy toggles
@@ -461,7 +460,6 @@ export default function PengaturanAkun() {
               { key: "emailRapat",  label: "Email: Pengingat Rapat",                   desc: "H-1 dan H-0 sebelum jadwal rapat"                },
               { key: "emailSiaran", label: "Email: Distribusi Siaran Pers",            desc: "Konfirmasi saat siaran berhasil dikirim"         },
               { key: "browserPush", label: "Notifikasi Browser",                       desc: "Pop-up langsung di browser saat ada aktivitas"   },
-              { key: "whatsapp",    label: "WhatsApp: Disposisi Cepat",                desc: "Pesan otomatis ke nomor terdaftar"               },
             ] as { key: keyof typeof notif; label: string; desc: string }[]
           ).map(({ key, label, desc }) => (
             <div key={key} className="flex items-center justify-between py-3">
