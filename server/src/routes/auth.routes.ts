@@ -19,6 +19,7 @@ import {
   verifyRefreshTokenSignature,
 } from "../lib/security";
 import { toUserDTO } from "../lib/serializers";
+import { periodeLabel } from "../lib/rekap";
 import { AuthedRequest, requireAuth } from "../middleware/auth";
 import { findOrCreateInstansi } from "./master.helpers";
 
@@ -299,6 +300,61 @@ router.get(
       isCurrent: s.id === (req as AuthedRequest).user!.sessionId,
     }));
     res.json({ rows });
+  })
+);
+
+// ─── GET /api/auth/me/activity ──────────────────────────────────────────────
+// Aktivitas yang benar-benar tercatat: login terakhir, sesi aktif, dan rekap
+// IPH yang dibuat/diubah oleh akun ini. Bukan audit log|access log lengkap.
+router.get(
+  "/me/activity",
+  requireAuth,
+  h(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+
+    const [user, sessions, rekapCount, rekapTerakhir] = await Promise.all([
+      prisma.user.findUnique({ where: { id: me.id }, select: { lastLoginAt: true } }),
+      prisma.session.findMany({
+        where: { userId: me.id, revokedAt: null },
+        select: { id: true, device: true, lastActiveAt: true },
+        orderBy: { lastActiveAt: "desc" },
+      }),
+      prisma.rekap.count({ where: { createdById: me.id } }),
+      prisma.rekap.findFirst({
+        where: { createdById: me.id },
+        select: { tahun: true, bulan: true, mingguIndeks: true, createdAt: true, updatedAt: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+    ]);
+
+    const items: { label: string; at: Date }[] = [];
+    if (user?.lastLoginAt) items.push({ label: "Login terakhir", at: user.lastLoginAt });
+
+    const perangkat = new Map<string, Date>();
+    for (const s of sessions) {
+      const nama = s.device ?? "perangkat tidak dikenal";
+      const sebelumnya = perangkat.get(nama);
+      if (!sebelumnya || s.lastActiveAt > sebelumnya) perangkat.set(nama, s.lastActiveAt);
+    }
+    for (const [nama, at] of perangkat) {
+      items.push({ label: `Sesi aktif di ${nama}`, at });
+    }
+
+    if (rekapTerakhir) {
+      items.push({
+        label: `Rekap ${periodeLabel(rekapTerakhir)} disimpan`,
+        at: rekapTerakhir.updatedAt ?? rekapTerakhir.createdAt,
+      });
+      if (rekapCount > 1) {
+        items.push({
+          label: `Total ${rekapCount} rekap IPH tersimpan atas nama akun ini`,
+          at: rekapTerakhir.createdAt,
+        });
+      }
+    }
+
+    items.sort((a, b) => b.at.getTime() - a.at.getTime());
+    res.json({ items: items.slice(0, 8) });
   })
 );
 

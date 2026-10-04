@@ -61,8 +61,10 @@ router.get(
     if (tab === "deflasi") where.indikator = { lt: 0 };
     else if (tab === "inflasi") where.indikator = { gt: 0 };
     else if (tab === "intervensi") where.indikator = { gte: 1 };
+    const minggu = q.minggu ? Number(q.minggu) : undefined;
     if (tahun) where.tahun = tahun;
     if (bulan && bulan >= 1 && bulan <= 12) where.bulan = bulan;
+    if (minggu && minggu >= 1 && minggu <= 5) where.mingguIndeks = minggu;
 
     if (search) {
       const activeKom = await prisma.komoditas.findMany();
@@ -89,6 +91,36 @@ router.get(
     ]);
 
     res.json({ rows: records.map(toRekapRow), total, page, perPage, totalPages: Math.ceil(total / perPage) });
+  })
+);
+
+// ─── GET /api/rekap/periods ───────────────────────────────────────────────
+// Daftar periode yang tersedia tanpa join detail komoditas. Dipakai untuk
+// mengisi dropdown tahun/bulan/pekan supaya tidak terpaginasikan.
+router.get(
+  "/periods",
+  requireAuth,
+  requireRoles("admin", "petugas"),
+  h(async (_req, res) => {
+    const records = await prisma.rekap.findMany({
+      select: { id: true, tahun: true, bulan: true, mingguIndeks: true, indikator: true },
+      orderBy: [{ tahun: "desc" }, { bulan: "desc" }, { mingguIndeks: "desc" }],
+    });
+
+    const rows = records.map((r) => {
+      const periodic = { tahun: r.tahun, bulan: r.bulan, mingguIndeks: r.mingguIndeks };
+      return {
+        id: r.id,
+        ...periodic,
+        periode: periodeLabel(periodic),
+        ...computeCutoff(periodic),
+        nilaiIPH: round(r.indikator),
+        statusIPH: computeStatusIPH(r.indikator),
+      };
+    });
+
+    res.setHeader("Cache-Control", "private, max-age=60");
+    res.json({ rows, total: rows.length });
   })
 );
 
