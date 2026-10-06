@@ -51,5 +51,19 @@ export const CLIENT_ORIGIN = (() => {
 export const JWT_ACCESS_SECRET = wajib("JWT_ACCESS_SECRET", "dev-access-secret");
 export const JWT_REFRESH_SECRET = wajib("JWT_REFRESH_SECRET", "dev-refresh-secret");
 
-/** True kalau token disimpan di cookie httpOnly, bukan di localStorage. */
-export const COOKIE_AUTH = IS_PROD;
+// Refresh token disimpan di cookie supaya JavaScript tidak bisa membacanya.
+// Kalau token ini ada di localStorage, satu XSS apa pun cukup untuk mencuri
+// sesi 30 hari tanpa perlu password.
+export const REFRESH_COOKIE = "tpid_refresh";
+
+export const REFRESH_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30);
+
+export const COOKIE_OPTIONS = {
+  httpOnly: true,
+  // Lax sudah memblokir cookie pada POST lintas situs, jadi vektor CSRF ke
+  // /auth/refresh dan /auth/logout tertutup. Strict would've lebih ketat tapi
+  // langsung rusak kalau frontend dan API suatu saat terpisah subdomain.
+  sameSite: "lax" as const,
+  secure: IS_PROD,
+  path: "/api/auth",
+};

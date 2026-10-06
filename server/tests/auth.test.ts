@@ -2,9 +2,18 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app";
 import prisma from "../src/lib/prisma";
+import { REFRESH_COOKIE } from "../src/lib/env";
 import { PASSWORD, bersihkanSemua, hash, login } from "./fixtures";
 
 const app = createApp();
+
+/** Ambil nilai cookie refresh dari header Set-Cookie, bukan dari body. */
+function cookieRefresh(res: request.Response): string {
+  const header = res.headers["set-cookie"];
+  const list = Array.isArray(header) ? header : header ? [header] : [];
+  const match = list.find((c) => c.startsWith(`${REFRESH_COOKIE}=`));
+  return match ? match.slice(REFRESH_COOKIE.length + 1).split(";")[0] : "";
+}
 
 async function token(email: string, password = PASSWORD) {
   const res = await request(app).post("/api/auth/login").send({ email, password });
@@ -53,8 +62,29 @@ describe("POST /api/auth/login", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.accessToken).toEqual(expect.any(String));
-    expect(res.body.refreshToken).toEqual(expect.any(String));
     expect(res.body.user.email).toBe("petugas@uji.test");
+
+    // Refresh token tidak boleh muncul di body; kalau bocor ke localStorage
+    // frontend, satu XSS bisa mencuri sesi 30 hari.
+    expect(res.body).not.toHaveProperty("refreshToken");
+    expect(cookieRefresh(res)).toEqual(expect.any(String));
+  });
+
+  it("mengganti refresh token saat login berhasil", async () => {
+    const sebelum = cookieRefresh(
+      await request(app)
+        .post("/api/auth/login")
+        .send({ email: "petugas@uji.test", password: PASSWORD })
+    );
+
+    const sesudah = cookieRefresh(
+      await request(app)
+        .post("/api/auth/login")
+        .send({ email: "petugas@uji.test", password: PASSWORD })
+    );
+
+    expect(sesudah).not.toBe(sebelum);
+    expect(sesudah).toEqual(expect.any(String));
   });
 
   it("menolak akun yang belum diaktifkan", async () => {
@@ -149,5 +179,144 @@ describe("token dan sesi", () => {
 
     expect(cabut.status).toBe(200);
     expect(cabut.body.message).toMatch(/diakhiri/i);
+  });
+});
+
+describe("refresh token lewat cookie httpOnly", () => {
+  beforeAll(async () => {
+    await bersihkanSemua();
+    await login("kuki@uji.test", "petugas");
+  });
+
+  afterAll(async () => {
+    await bersihkanSemua();
+    await prisma.$disconnect();
+  });
+
+  /** Login fresh lalu kembalikan access token dan nilai cookie refresh. */
+  async function masuk() {
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "kuki@uji.test", password: PASSWORD });
+    expect(res.status).toBe(200);
+    return { accessToken: res.body.accessToken as string, refresh: cookieRefresh(res) };
+  }
+
+  it("menyimpan refresh token di cookie httpOnly, bukan di body", async () => {
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "kuki@uji.test", password: PASSWORD });
+
+    expect(res.body).not.toHaveProperty("refreshToken");
+
+    const header = res.headers["set-cookie"];
+    const daftar = Array.isArray(header) ? header : header ? [header] : [];
+    const mentah = daftar.find((c) => c.startsWith(`${REFRESH_COOKIE}=`));
+
+    expect(mentah).toBeDefined();
+    expect(mentah).toMatch(/HttpOnly/i);
+    expect(mentah).toMatch(/SameSite=Lax/i);
+    expect(mentah).toMatch(/Path=\/api\/auth/i);
+  });
+
+  it("memberi access token baru dari cookie dan merotasi refresh token", async () => {
+    const awal = await masuk();
+
+    const res = await request(app)
+      .post("/api/auth/refresh")
+      .set("Cookie", `${REFRESH_COOKIE}=${awal.refresh}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.accessToken).toEqual(expect.any(String));
+    expect(res.body).not.toHaveProperty("refreshToken");
+
+    const baru = cookieRefresh(res);
+    expect(baru).toEqual(expect.any(String));
+    expect(baru).not.toBe(awal.refresh);
+  });
+
+  it("menolak refresh token lama yang sudah dipakai", async () => {
+    const awal = await masuk();
+
+    const dipakai = await request(app)
+      .post("/api/auth/refresh")
+      .set("Cookie", `${REFRESH_COOKIE}=${awal.refresh}`);
+    expect(dipakai.status).toBe(200);
+
+    // Rotasi harus membuat token lama tidak bisa dipakai ulang.
+    const ulang = await request(app)
+      .post("/api/auth/refresh")
+      .set("Cookie", `${REFRESH_COOKIE}=${awal.refresh}`);
+
+    expect(ulang.status).toBe(401);
+  });
+
+  it("menolak refresh tanpa cookie dan dengan cookie sampah", async () => {
+    const tanpa = await request(app).post("/api/auth/refresh");
+    expect(tanpa.status).toBe(401);
+
+    const sampah = await request(app)
+      .post("/api/auth/refresh")
+      .set("Cookie", `${REFRESH_COOKIE}=bukan-token`);
+    expect(sampah.status).toBe(401);
+  });
+
+  it("melepas cookie saat refresh ditolak, supaya browser tidak mengulang gagal terus", async () => {
+    const res = await request(app)
+      .post("/api/auth/refresh")
+      .set("Cookie", `${REFRESH_COOKIE}=bukan-token`);
+
+    const header = res.headers["set-cookie"];
+    const daftar = Array.isArray(header) ? header : header ? [header] : [];
+    const mentah = daftar.find((c) => c.startsWith(`${REFRESH_COOKIE}=`));
+
+    expect(mentah).toBeDefined();
+    // Nilai dikosongkan dan tanggal kedaluwarsa dipindah ke masa lalu.
+    expect(mentah).toMatch(new RegExp(`^${REFRESH_COOKIE}=;`));
+    const kedaluwarsa = new Date((mentah!.match(/Expires=([^;]+)/i)?.[1] ?? "") || 0);
+    expect(kedaluwarsa.getTime()).toBeLessThan(Date.now());
+  });
+
+  it("mencabut sesi dan mengosongkan cookie saat logout tanpa access token", async () => {
+    // Sengaja tanpa Authorization: access token bisa kedaluwarsa lebih dulu
+    // daripada cookie, dan logout tetap harus membersihkan sesi di server.
+    const { refresh } = await masuk();
+
+    const sebelum = await prisma.session.count({ where: { revokedAt: null } });
+    expect(sebelum).toBeGreaterThan(0);
+
+    const res = await request(app)
+      .post("/api/auth/logout")
+      .set("Cookie", `${REFRESH_COOKIE}=${refresh}`);
+
+    expect(res.status).toBe(200);
+    expect(cookieRefresh(res)).toBe("");
+
+    const sesudah = await prisma.session.count({ where: { revokedAt: null } });
+    expect(sesudah).toBe(sebelum - 1);
+  });
+
+  it("mencabut hanya sesi yang dipakai, bukan semua sesi pengguna", async () => {
+    const pertama = await masuk();
+    const kedua = await masuk();
+    expect(pertama.refresh).not.toBe(kedua.refresh);
+
+    const keluar = await request(app)
+      .post("/api/auth/logout")
+      .set("Cookie", `${REFRESH_COOKIE}=${pertama.refresh}`);
+    expect(keluar.status).toBe(200);
+
+    // Sesi pertama sudah mati.
+    const mati = await request(app)
+      .post("/api/auth/refresh")
+      .set("Cookie", `${REFRESH_COOKIE}=${pertama.refresh}`);
+    expect(mati.status).toBe(401);
+
+    // Sesi kedua dari perangkat lain harus tetap hidup: keluar dari satu
+    // perangkat tidak boleh mencabut login di perangkat yang lain.
+    const hidup = await request(app)
+      .post("/api/auth/refresh")
+      .set("Cookie", `${REFRESH_COOKIE}=${kedua.refresh}`);
+    expect(hidup.status).toBe(200);
   });
 });

@@ -15,7 +15,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, getAccessToken } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -465,8 +465,9 @@ export default function RekapanData() {
   };
 
   const handleExport = async () => {
-    const token = localStorage.getItem("tpid_access_token") ?? "";
+    const token = getAccessToken();
     const res = await fetch("/api/rekap/export", {
+      credentials: "include",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) {

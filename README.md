@@ -78,7 +78,16 @@ npm run db:studio      # buka Prisma Studio untuk melihat data
 
 ## Menjalankan aplikasi
 
-Butuh dua terminal terpisah — frontend dan backend tidak digabung.
+Satu perintah menyalakan API dan web sekaligus dari root:
+
+```bash
+npm run dev
+```
+
+- API: `http://localhost:4000`
+- Web: `http://localhost:5173`
+
+Kalau ingin memisahkan terminal (misal log API lebih mudah dibaca):
 
 ```bash
 # Terminal 1 — API di http://localhost:4000
@@ -92,6 +101,10 @@ npm run dev
 ```
 
 Buka `http://localhost:5173`. Health check API: `GET http://localhost:4000/api/health`.
+
+Kalau web masih bisa dibuka tapi setiap request `/api` gagal dengan
+`ECONNREFUSED`, berarti API belum jalan. Jalankan `npm run dev` dari root, atau
+nyalakan `npm run dev:api` di terminal terpisah.
 
 ### Akun seed (development)
 
@@ -135,7 +148,33 @@ npm test           # sekali jalan
 npm run test:watch # mode watch
 ```
 
-Cakupan test: health check dan header keamanan, login (gagal/berhasil/akun belum aktif/token dimanipulasi), rate limit auth dan tulis, filter `tahun`/`bulan`/`minggu`, endpoint `/api/rekap/periods`, activity log, serta master data.
+Cakupan test: health check dan header keamanan, login (gagal/berhasil/akun belum aktif/token dimanipulasi), siklus hidup refresh token lewat cookie httpOnly (rotasi, penolakan token lama, pencabutan saat logout), rate limit auth dan tulis, filter `tahun`/`bulan`/`minggu`, endpoint `/api/rekap/periods`, activity log, serta master data.
+
+## Cara kerja sesi
+
+Access token (umur 15 menit) disimpan di `localStorage` dan dikirim sebagai
+header `Authorization: Bearer`. Refresh token (umur 30 hari) **tidak pernah
+disimpan di `localStorage` dan tidak pernah dikirim di body JSON** — ia hanya
+berada di cookie `httpOnly` bernama `tpid_refresh`, dengan atribut
+`SameSite=Lax`, `Path=/api/auth`, dan `Secure` saat HTTPS. Karena `httpOnly`,
+JavaScript di browser tidak bisa membacanya, jadi satu celah XSS tidak cukup
+untuk mencuri sesi 30 hari.
+
+Alur sesi:
+
+1. Login atau akses sebagai tamu mengembalikan `{ user, accessToken }` dan
+   sekaligus memasang cookie refresh.
+2. Saat access token habis masa berlaku, frontend memanggil
+   `POST /api/auth/refresh` dengan `credentials: "include"`. Server memutar
+   refresh token (token lama langsung tidak berlaku) dan mengembalikan access
+   token baru.
+3. `POST /api/auth/logout` mencabut sesi di server dan mengosongkan cookie.
+   Endpoint ini tidak mewajibkan access token yang masih valid, karena access
+   token bisa kedaluwarsa lebih dulu daripada cookie — kalau tidak, cookie
+   tidak pernah bisa dibersihkan.
+
+Kalau refresh ditolak, server juga mengosongkan cookie-nya supaya browser
+tidak mencoba refresh gagal berulang kali.
 
 ## Impor tabel Scanning Harga
 

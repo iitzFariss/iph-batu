@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import prisma from "../lib/prisma";
 import { h } from "../lib/asyncHandler";
 import {
@@ -20,12 +20,42 @@ import {
 } from "../lib/security";
 import { toUserDTO } from "../lib/serializers";
 import { periodeLabel } from "../lib/rekap";
+import { COOKIE_OPTIONS, REFRESH_COOKIE, REFRESH_TTL_DAYS } from "../lib/env";
 import { AuthedRequest, requireAuth } from "../middleware/auth";
 import { findOrCreateInstansi } from "./master.helpers";
 
 export const router = Router();
 
-async function issueSession(userId: string, role: string, req: AuthedRequest) {
+/**
+ * Express 4 tidak mem-parsing header Cookie tanpa dependency tambahan, dan
+ * satu cookie ini memang tidak perlu parser umum.
+ */
+function ambilCookie(req: Request, nama: string): string {
+  const header = req.headers.cookie;
+  if (!header) return "";
+  for (const bagian of header.split(";")) {
+    const sama = bagian.indexOf("=");
+    if (sama === -1) continue;
+    if (bagian.slice(0, sama).trim() === nama) {
+      return decodeURIComponent(bagian.slice(sama + 1).trim());
+    }
+  }
+  return "";
+}
+
+/** Refresh token hanya lewat cookie; tidak pernah dikembalikan di body. */
+function pasangCookieRefresh(res: Response, token: string): void {
+  res.cookie(REFRESH_COOKIE, token, {
+    ...COOKIE_OPTIONS,
+    maxAge: REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
+  });
+}
+
+function lepasCookieRefresh(res: Response): void {
+  res.clearCookie(REFRESH_COOKIE, COOKIE_OPTIONS);
+}
+
+async function issueSession(userId: string, role: string, req: AuthedRequest, res: Response) {
   const sessionId = newRefreshJti();
   const refreshToken = signRefreshToken({ sub: userId, jti: sessionId });
   await prisma.session.create({
@@ -39,10 +69,8 @@ async function issueSession(userId: string, role: string, req: AuthedRequest) {
       expiresAt: refreshExpiry(),
     },
   });
-  return {
-    accessToken: signAccessToken({ sub: userId, role, jti: sessionId }),
-    refreshToken,
-  };
+  pasangCookieRefresh(res, refreshToken);
+  return { accessToken: signAccessToken({ sub: userId, role, jti: sessionId }) };
 }
 
 // ─── POST /api/auth/login ─────────────────────────────────────────────────
@@ -68,14 +96,13 @@ router.post(
       return;
     }
 
-    const { accessToken, refreshToken } = await issueSession(user!.id, user!.role, req);
+    const { accessToken } = await issueSession(user!.id, user!.role, req, res);
     await prisma.user.update({ where: { id: user!.id }, data: { lastLoginAt: new Date() } });
 
     res.json({
       message: "Login berhasil.",
       user: toUserDTO(user!),
       accessToken,
-      refreshToken,
     });
   })
 );
@@ -93,14 +120,13 @@ router.post(
       return;
     }
 
-    const { accessToken, refreshToken } = await issueSession(guest.id, guest.role, req);
+    const { accessToken } = await issueSession(guest.id, guest.role, req, res);
     await prisma.user.update({ where: { id: guest.id }, data: { lastLoginAt: new Date() } });
 
     res.json({
       message: "Berhasil masuk sebagai tamu.",
       user: toUserDTO(guest),
       accessToken,
-      refreshToken,
     });
   })
 );
@@ -109,7 +135,7 @@ router.post(
 router.post(
   "/refresh",
   h(async (req, res) => {
-    const refreshToken = (req.body as { refreshToken?: string })?.refreshToken;
+    const refreshToken = ambilCookie(req, REFRESH_COOKIE);
     if (!refreshToken) {
       res.status(401).json({ message: "Refresh token tidak valid." });
       return;
@@ -129,11 +155,13 @@ router.post(
         },
       });
       if (!session) {
+        lepasCookieRefresh(res);
         res.status(401).json({ message: "Sesi tidak ditemukan atau telah berakhir." });
         return;
       }
       const ok = await verifyRefreshToken(refreshToken, session.refreshHash);
       if (!ok) {
+        lepasCookieRefresh(res);
         res.status(401).json({ message: "Sesi tidak valid." });
         return;
       }
@@ -149,35 +177,41 @@ router.post(
           expiresAt: refreshExpiry(),
         },
       });
+      pasangCookieRefresh(res, newRefreshToken);
 
       res.json({
         accessToken: signAccessToken({ sub: session.userId, role: session.user.role, jti: newJti }),
-        refreshToken: newRefreshToken,
         user: toUserDTO(session.user),
       });
     } catch {
+      lepasCookieRefresh(res);
       res.status(401).json({ message: "Sesi berakhir. Silakan masuk kembali." });
     }
   })
 );
 
 // ─── POST /api/auth/logout ────────────────────────────────────────────────
+// Sengaja tanpa requireAuth. Access token bisa saja sudah kedaluwarsa saat
+// pengguna menekan tombol keluar; kalau route mewajibkan access token yang
+// valid, cookie refresh tidak pernah tercabut dan sesi tetap hidup di server.
 router.post(
   "/logout",
-  requireAuth,
   h(async (req, res) => {
-    const { refreshToken } = (req.body ?? {}) as { refreshToken?: string };
+    const refreshToken = ambilCookie(req, REFRESH_COOKIE);
     if (refreshToken) {
-      const sessions = await prisma.session.findMany({
-        where: { userId: (req as AuthedRequest).user!.id, revokedAt: null },
-      });
-      for (const s of sessions) {
-        if (await verifyRefreshToken(refreshToken, s.refreshHash)) {
-          await prisma.session.update({ where: { id: s.id }, data: { revokedAt: new Date() } });
-          break;
+      try {
+        const payload = verifyRefreshTokenSignature(refreshToken);
+        const session = await prisma.session.findFirst({
+          where: { id: payload.jti, userId: payload.sub, revokedAt: null },
+        });
+        if (session && (await verifyRefreshToken(refreshToken, session.refreshHash))) {
+          await prisma.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } });
         }
+      } catch {
+        // Token rusak: cookie tetap dicabut di bawah, sesi tidak bisa dipakai lagi.
       }
     }
+    lepasCookieRefresh(res);
     res.json({ message: "Berhasil keluar." });
   })
 );

@@ -1,10 +1,9 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } from "./env";
+import { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, REFRESH_TTL_DAYS } from "./env";
 
 const ACCESS_TTL_MIN = Number(process.env.ACCESS_TOKEN_TTL_MINUTES ?? 15);
-const REFRESH_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30);
 
 const ACCESS_EXP: jwt.SignOptions["expiresIn"] = `${ACCESS_TTL_MIN}m`;
 const REFRESH_EXP: jwt.SignOptions["expiresIn"] = `${REFRESH_TTL_DAYS}d`;

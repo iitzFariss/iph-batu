@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User, UserRole, AuthState } from "../types/auth";
-import { api, ApiError, clearTokens, getTokens, setTokens } from "../lib/api";
+import { api, ApiError, clearTokens, getAccessToken, setAccessToken } from "../lib/api";
 
 // ─── Tipe data dari server ───────────────────────────────────────────────────
 
@@ -19,7 +19,6 @@ interface ApiUser {
 interface AuthResponse {
   user: ApiUser;
   accessToken: string;
-  refreshToken: string;
 }
 
 function toAppUser(u: ApiUser): User {
@@ -62,9 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const { access, refresh } = getTokens();
-        if (!access && !refresh) return;
-        if (!access) {
+        // Cookie httpOnly tidak bisa dilihat dari JS, jadi "apakah masih ada
+        // sesi" tidak bisa dijawab tanpa mencoba. Karena itu saat mount kita
+        // selalu mencoba refresh kalau access token belum ada; kalau cookie-nya
+        // memang habis, refresh menolak dan kita berhenti di sini.
+        if (!getAccessToken()) {
           const ok = await refreshTokensDirect();
           if (!ok) return;
         }
@@ -80,17 +81,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function refreshTokensDirect(): Promise<boolean> {
-    const { refresh } = getTokens();
-    if (!refresh) return false;
     try {
       const res = await fetch("/api/auth/refresh", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken: refresh }),
       });
       if (!res.ok) return false;
-      const data = (await res.json()) as { accessToken: string; refreshToken: string };
-      setTokens(data.accessToken, data.refreshToken);
+      const data = (await res.json()) as { accessToken: string };
+      setAccessToken(data.accessToken);
       return true;
     } catch {
       return false;
@@ -100,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     try {
       const data = await api.post<AuthResponse>("/auth/login", { email, password });
-      setTokens(data.accessToken, data.refreshToken);
+      setAccessToken(data.accessToken);
       applyUser(toAppUser(data.user));
       return { success: true, message: "Login berhasil." };
     } catch (e) {
@@ -111,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function loginAsGuest() {
     try {
       const data = await api.post<AuthResponse>("/auth/guest");
-      setTokens(data.accessToken, data.refreshToken);
+      setAccessToken(data.accessToken);
       applyUser(toAppUser(data.user));
       return { success: true, message: "Berhasil masuk sebagai tamu." };
     } catch (e) {
@@ -121,10 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function logout() {
     try {
-      const { refresh } = getTokens();
-      if (refresh) {
-        await api.post("/auth/logout", { refreshToken: refresh }).catch(() => null);
-      }
+      await api.post("/auth/logout").catch(() => null);
     } finally {
       clearTokens();
       setState({ user: null, isAuthenticated: false });

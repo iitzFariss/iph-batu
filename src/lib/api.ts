@@ -11,40 +11,38 @@ export class ApiError extends Error {
 }
 
 const ACCESS_KEY = "tpid_access_token";
-const REFRESH_KEY = "tpid_refresh_token";
 
-export function getTokens() {
-  return {
-    access: localStorage.getItem(ACCESS_KEY) ?? "",
-    refresh: localStorage.getItem(REFRESH_KEY) ?? "",
-  };
+// Hanya access token yang disimpan di sini. Refresh token hidup di cookie
+// httpOnly yang tidak bisa dibaca JavaScript, jadi satu XSS tidak cukup untuk
+// mencuri sesi yang bertahan 30 hari. Access token hanya 15 menit, jadi
+// risikonya kecil selama tidak disimpan persisten bersama refresh token.
+export function getAccessToken(): string {
+  return localStorage.getItem(ACCESS_KEY) ?? "";
 }
 
-export function setTokens(access: string, refresh: string) {
+export function setAccessToken(access: string) {
   localStorage.setItem(ACCESS_KEY, access);
-  localStorage.setItem(REFRESH_KEY, refresh);
 }
 
 export function clearTokens() {
   localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
 }
 
 async function refreshTokens(): Promise<boolean> {
-  const { refresh } = getTokens();
-  if (!refresh) return false;
   try {
+    // Refresh token dikirim lewat cookie, bukan body. credentials wajib
+    // supaya browser ikut mengirimnya.
     const res = await fetch("/api/auth/refresh", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken: refresh }),
     });
     if (!res.ok) {
       clearTokens();
       return false;
     }
-    const data = (await res.json()) as { accessToken: string; refreshToken: string };
-    setTokens(data.accessToken, data.refreshToken);
+    const data = (await res.json()) as { accessToken: string };
+    setAccessToken(data.accessToken);
     return true;
   } catch {
     clearTokens();
@@ -58,11 +56,12 @@ interface RequestOptions {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { access } = getTokens();
+  const access = getAccessToken();
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
       method: options.method ?? "GET",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...(access ? { Authorization: `Bearer ${access}` } : {}),
