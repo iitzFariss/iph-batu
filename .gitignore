@@ -26,8 +26,13 @@ dist-ssr
 # Server (backend)
 server/node_modules
 server/dist
+server/tsconfig.tsbuildinfo
 server/.env
 server/prisma/dev.db
 server/prisma/dev.db-journal
 server/prisma/test.db
 server/prisma/test.db-journal
+
+# Data sumber (NIP/csv mentah) — jangan masuk repo
+server/data/
+!server/data/README.md

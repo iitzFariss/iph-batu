@@ -17,6 +17,18 @@ import { getSummary, invalidateSummary } from "../lib/rekapCache";
 
 export const router = Router();
 
+/**
+ * Query string bisa berasal dari URL mana pun, sehingga `?page=abc` menghasilkan
+ * NaN. Prisma menolak skip/take NaN dan errornya berujung 500 tanpa penjelasan.
+ * Angka yang tidak berhingga dikembalikan sebagai undefined supaya pemanggil
+ * memakai nilai defaultnya masing-masing.
+ */
+function bacaAngka(nilai: string | undefined): number | undefined {
+  if (nilai == null || nilai.trim() === "") return undefined;
+  const n = Number(nilai);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 function toRekapRow(rekap: {
   id: string;
   tahun: number;
@@ -52,23 +64,23 @@ router.get(
   h(async (req, res) => {
     const q = req.query as Record<string, string | undefined>;
     const tab = q.tab ?? "semua";
-    const tahun = q.tahun ? Number(q.tahun) : undefined;
-    const bulan = q.bulan ? Number(q.bulan) : undefined;
+    const tahun = bacaAngka(q.tahun);
+    const bulan = bacaAngka(q.bulan);
+    const minggu = bacaAngka(q.minggu);
     const search = q.q?.trim();
-    const page = Math.max(1, Number(q.page ?? 1));
-    const perPage = Math.min(100, Math.max(1, Number(q.perPage ?? 10)));
+    const page = Math.min(100_000, Math.max(1, bacaAngka(q.page) ?? 1));
+    const perPage = Math.min(100, Math.max(1, bacaAngka(q.perPage) ?? 10));
 
     const where: Record<string, unknown> = {};
     if (tab === "deflasi") where.indikator = { lt: 0 };
     else if (tab === "inflasi") where.indikator = { gt: 0 };
     else if (tab === "intervensi") where.indikator = { gte: 1 };
-    const minggu = q.minggu ? Number(q.minggu) : undefined;
     if (tahun) where.tahun = tahun;
     if (bulan && bulan >= 1 && bulan <= 12) where.bulan = bulan;
     if (minggu && minggu >= 1 && minggu <= 5) where.mingguIndeks = minggu;
 
     if (search) {
-      const activeKom = await prisma.komoditas.findMany();
+      const activeKom = await prisma.komoditas.findMany({ where: { isActive: true } });
       const matched = activeKom
         .filter((k) => k.nama.toLowerCase().includes(search.toLowerCase()))
         .map((k) => k.id);

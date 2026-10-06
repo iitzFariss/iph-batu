@@ -6,7 +6,7 @@ import {
   pegawaiSchema,
   pegawaiUpdateSchema,
 } from "../lib/schemas";
-import { hashPassword } from "../lib/security";
+import { generateTemporaryPassword, hashPassword } from "../lib/security";
 import { requireAuth, requireRoles } from "../middleware/auth";
 import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateInstansi, toPegawaiDTO } from "./master.helpers";
@@ -120,9 +120,7 @@ router.post(
         res.status(409).json({ message: "Email sudah terdaftar sebagai akun pengguna." });
         return;
       }
-      createUserPassword = Array.from({ length: 8 }, () =>
-        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".charAt(Math.floor(Math.random() * 32))
-      ).join("");
+      createUserPassword = generateTemporaryPassword();
       const user = await prisma.user.create({
         data: {
           name: body.name,

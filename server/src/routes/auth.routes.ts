@@ -21,6 +21,10 @@ import { toUserDTO } from "../lib/serializers";
 import { periodeLabel } from "../lib/rekap";
 import { COOKIE_OPTIONS, REFRESH_COOKIE, REFRESH_TTL_DAYS } from "../lib/env";
 import { AuthedRequest, requireAuth } from "../middleware/auth";
+// Endpoint tulis auth dibatasi sama seperti master/rekap. change-password
+// paling penting: tanpa batas, pemegang sesi yang dicuri bisa menebak kata
+// sandi lama tanpa batas sampai cocok.
+import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateInstansi } from "./master.helpers";
 
 export const router = Router();
@@ -236,6 +240,7 @@ router.get(
 // ─── PATCH /api/auth/me ───────────────────────────────────────────────────
 router.patch(
   "/me",
+  writeLimiter,
   requireAuth,
   h(async (req, res) => {
     const me = (req as AuthedRequest).user!;
@@ -275,6 +280,7 @@ router.patch(
 // ─── POST /api/auth/change-password ───────────────────────────────────────
 router.post(
   "/change-password",
+  writeLimiter,
   requireAuth,
   h(async (req, res) => {
     const me = (req as AuthedRequest).user!;
@@ -294,6 +300,20 @@ router.post(
       where: { id: user.id },
       data: { password: await hashPassword(body.passwordBaru) },
     });
+
+    // Cabut sesi lain setelah password berubah. Tanpa ini akun yang
+    // dikompromikan tetap hidup lewat cookie refresh-nya sampai 30 hari,
+    // walaupun korban sudah mengganti password. Sesi yang sedang dipakai
+    // untuk permintaan ini dibiarkan supaya user tidak langsung keluar.
+    await prisma.session.updateMany({
+      where: {
+        userId: user.id,
+        revokedAt: null,
+        ...(me.sessionId ? { id: { not: me.sessionId } } : {}),
+      },
+      data: { revokedAt: new Date() },
+    });
+
     res.json({ message: "Kata sandi berhasil diperbarui." });
   })
 );
@@ -386,6 +406,7 @@ router.get(
 // ─── POST /api/auth/sessions/revoke ───────────────────────────────────────
 router.post(
   "/sessions/revoke",
+  writeLimiter,
   requireAuth,
   h(async (req, res) => {
     const me = (req as AuthedRequest).user!;
@@ -407,6 +428,7 @@ router.post(
 // ─── DELETE /api/auth/me ──────────────────────────────────────────────────
 router.delete(
   "/me",
+  writeLimiter,
   requireAuth,
   h(async (req, res) => {
     const me = (req as AuthedRequest).user!;

@@ -55,6 +55,18 @@ export function newRefreshJti(): string {
   return crypto.randomUUID();
 }
 
+// 32 karakter tanpa I, O, 0, 1 agar tidak membingungkan saat dibaca dari
+// layar — password sementara ini ditampilkan ke admin, lalu dititipkan ke petugas.
+const PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+export function generateTemporaryPassword(length = 8): string {
+  let out = "";
+  for (let i = 0; i < length; i++) {
+    out += PASSWORD_ALPHABET[crypto.randomInt(PASSWORD_ALPHABET.length)];
+  }
+  return out;
+}
+
 export function refreshExpiry(): Date {
   return new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
 }
