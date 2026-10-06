@@ -20,34 +20,38 @@ interface KaderPersonil {
   peran: string;
 }
 
-const KADER_FALLBACK: KaderPersonil[] = [
-  { name: "Drs. Eko Prasetyo",      peran: "Sekretaris TPID / Notulis" },
-  { name: "Siti Rahmawati, S.E.",   peran: "Analis Data BPS" },
-  { name: "Budi Santoso M.Si.",     peran: "Bidang Distribusi Disperindag" },
-  { name: "Agus Wibowo, S.E.",      peran: "Dinas Pertanian" },
-  { name: "Rini Puspita, S.E.",     peran: "Dinas Perdagangan & UKM" },
-  { name: "Hendra Gunawan, S.E.",   peran: "Sekretariat Daerah" },
-];
+type StatusKader = "memuat" | "siap" | "gagal";
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function KelolaRapat() {
-  const [petugas, setPetugas] = useState<string[]>([
-    "Drs. Eko Prasetyo",
-    "Siti Rahmawati, S.E.",
-    "Budi Santoso M.Si.",
-  ]);
-  const [kader, setKader] = useState<KaderPersonil[]>(KADER_FALLBACK);
+  const [petugas, setPetugas] = useState<string[]>([]);
+  const [kader, setKader] = useState<KaderPersonil[]>([]);
+  const [status, setStatus] = useState<StatusKader>("memuat");
+  const [percobaan, setPercobaan] = useState(0);
   const [openPicker, setOpenPicker] = useState(false);
 
+  // Daftar personil selalu berasal dari server. Kalau pemanggilan gagal,
+  // halaman menampilkan pesan error, bukan nama-nama placeholder, karena
+  // nama placeholder akan terbaca sebagai data nyata.
   useEffect(() => {
+    let batal = false;
     api
-      .get<{ rows: KaderPersonil[] }>("/pegawai")
+      .get<{ rows: { name: string; peran: string }[] }>("/pegawai")
       .then(({ rows }) => {
-        if (rows && rows.length) setKader(rows.map((p) => ({ name: p.name, peran: p.peran })));
+        if (batal) return;
+        setKader(rows.map((p) => ({ name: p.name, peran: p.peran })));
+        setStatus("siap");
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        if (batal) return;
+        setKader([]);
+        setStatus("gagal");
+      });
+    return () => {
+      batal = true;
+    };
+  }, [percobaan]);
 
   const available = kader.filter((k) => !petugas.includes(k.name));
 
@@ -221,9 +225,31 @@ export default function KelolaRapat() {
             {/* Pick daftar personil (flip card) */}
             {openPicker && (
               <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                {available.length === 0 ? (
+                {status === "memuat" ? (
                   <div className="px-3 py-3 text-xs text-gray-400 text-center">
-                    Semua personil sudah ditambahkan.
+                    Memuat data pegawai…
+                  </div>
+                ) : status === "gagal" ? (
+                  <div className="px-3 py-3 text-center space-y-2">
+                    <p className="text-xs text-amber-700">
+                      Gagal memuat data pegawai. Daftar personil tidak dapat ditampilkan.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatus("memuat");
+                        setPercobaan((n) => n + 1);
+                      }}
+                      className="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
+                    >
+                      Coba lagi
+                    </button>
+                  </div>
+                ) : available.length === 0 ? (
+                  <div className="px-3 py-3 text-xs text-gray-400 text-center">
+                    {kader.length === 0
+                      ? "Belum ada data pegawai. Tambahkan pegawai di menu Kelola Pegawai terlebih dahulu."
+                      : "Semua personil sudah ditambahkan."}
                   </div>
                 ) : (
                   <div className="max-h-40 overflow-y-auto divide-y divide-gray-50">
