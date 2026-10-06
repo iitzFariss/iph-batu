@@ -11,6 +11,7 @@ export interface PetugasRapatRow {
 export interface NotulensiRow {
   submittedAt: string;
   by: string;
+  isi: string;
 }
 
 export interface RapatDTO {
@@ -38,7 +39,7 @@ interface RapatQueryRow {
     peran: string;
     pegawai: { id: string; name: string; instansi: { nama: string } | null; userId: string | null };
   }[];
-  notulensi: { submittedAt: Date; notulis: { name: string } } | null;
+  notulensi: { submittedAt: Date; isi: string; notulis: { name: string } } | null;
 }
 
 export interface Peminta {
@@ -62,7 +63,11 @@ export function toRapatDTO(rapat: RapatQueryRow, me?: Peminta): RapatDTO {
       peran: p.peran,
     })),
     notulensi: rapat.notulensi
-      ? { submittedAt: rapat.notulensi.submittedAt.toISOString(), by: rapat.notulensi.notulis.name }
+      ? {
+          submittedAt: rapat.notulensi.submittedAt.toISOString(),
+          by: rapat.notulensi.notulis.name,
+          isi: rapat.notulensi.isi,
+        }
       : null,
     dapatNotulensi: me
       ? me.role === "admin" ||
