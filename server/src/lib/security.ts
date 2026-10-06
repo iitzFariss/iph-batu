@@ -1,9 +1,8 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } from "./env";
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? "dev-access-secret";
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? "dev-refresh-secret";
 const ACCESS_TTL_MIN = Number(process.env.ACCESS_TOKEN_TTL_MINUTES ?? 15);
 const REFRESH_TTL_DAYS = Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30);
 
@@ -38,19 +37,19 @@ interface RefreshPayload {
 }
 
 export function signAccessToken(payload: AccessPayload): string {
-  return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXP });
+  return jwt.sign(payload, JWT_ACCESS_SECRET, { expiresIn: ACCESS_EXP });
 }
 
 export function signRefreshToken(payload: RefreshPayload): string {
-  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: REFRESH_EXP });
+  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: REFRESH_EXP });
 }
 
 export function verifyAccessToken(token: string): AccessPayload & jwt.JwtPayload {
-  return jwt.verify(token, ACCESS_SECRET) as AccessPayload & jwt.JwtPayload;
+  return jwt.verify(token, JWT_ACCESS_SECRET) as AccessPayload & jwt.JwtPayload;
 }
 
 export function verifyRefreshTokenSignature(token: string): RefreshPayload & jwt.JwtPayload {
-  return jwt.verify(token, REFRESH_SECRET) as RefreshPayload & jwt.JwtPayload;
+  return jwt.verify(token, JWT_REFRESH_SECRET) as RefreshPayload & jwt.JwtPayload;
 }
 
 export function newRefreshJti(): string {

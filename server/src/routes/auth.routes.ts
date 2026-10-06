@@ -50,30 +50,30 @@ router.post(
   "/login",
   h(async (req, res) => {
     const body = loginSchema.parse(req.body);
+    const emailNorm = body.email.toLowerCase();
     const user = await prisma.user.findUnique({
-      where: { emailNorm: body.email.toLowerCase() },
+      where: { emailNorm },
       include: { instansi: true },
     });
-    if (!user || !(await verifyPassword(body.password, user.password))) {
+
+    // Password salah dan akun tidak aktif memakai pesan yang sama. Kalau
+    // dibedakan, siapa pun bisa menebak email mana yang terdaftar hanya dari
+    // teks respons. Password tetap diverifikasi untuk akun nonaktif supaya
+    // waktu prosesnya tidak membocorkan keberadaan akun.
+    const passwordBenar = user ? await verifyPassword(body.password, user.password) : false;
+    const bolehMasuk = passwordBenar && user!.status === "aktif";
+
+    if (!bolehMasuk) {
       res.status(401).json({ message: "Email atau kata sandi tidak valid." });
       return;
     }
-    if (user.status !== "aktif") {
-      res.status(403).json({
-        message:
-          user.status === "pending"
-            ? "Akun Anda belum diverifikasi. Administrator TPID akan mengaktifkannya melalui menu Kelola Pegawai."
-            : "Akun Anda dinonaktifkan. Hubungi administrator.",
-      });
-      return;
-    }
 
-    const { accessToken, refreshToken } = await issueSession(user.id, user.role, req);
-    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    const { accessToken, refreshToken } = await issueSession(user!.id, user!.role, req);
+    await prisma.user.update({ where: { id: user!.id }, data: { lastLoginAt: new Date() } });
 
     res.json({
       message: "Login berhasil.",
-      user: toUserDTO(user),
+      user: toUserDTO(user!),
       accessToken,
       refreshToken,
     });

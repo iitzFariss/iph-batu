@@ -6,8 +6,15 @@ import authRoutes from "./routes/auth.routes";
 import masterRoutes from "./routes/master.routes";
 import rekapRoutes from "./routes/rekap.routes";
 import publicRoutes from "./routes/public.routes";
-import { authLimiter, guestLimiter, publicLimiter, refreshLimiter } from "./middleware/rateLimit";
+import {
+  authLimiter,
+  guestLimiter,
+  loginPerEmailLimiter,
+  publicLimiter,
+  refreshLimiter,
+} from "./middleware/rateLimit";
 import { checkDatabase } from "./lib/health";
+import { CLIENT_ORIGIN } from "./lib/env";
 
 export function createApp() {
   const app = express();
@@ -16,7 +23,7 @@ export function createApp() {
   app.use(helmet());
   app.use(
     cors({
-      origin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
+      origin: CLIENT_ORIGIN,
       credentials: true,
       methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
@@ -35,7 +42,7 @@ export function createApp() {
     });
   });
 
-  app.use("/api/auth/login", authLimiter);
+  app.use("/api/auth/login", authLimiter, loginPerEmailLimiter);
   app.use("/api/auth/guest", guestLimiter);
   app.use("/api/auth/refresh", refreshLimiter);
   app.use("/api/public", publicLimiter);

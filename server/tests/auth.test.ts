@@ -73,8 +73,35 @@ describe("POST /api/auth/login", () => {
       .post("/api/auth/login")
       .send({ email: "pending@uji.test", password: PASSWORD });
 
-    expect(res.status).toBe(403);
-    expect(res.body.message).toMatch(/belum diverifikasi/i);
+    expect(res.status).toBe(401);
+    expect(res.body).not.toHaveProperty("accessToken");
+  });
+
+  // Password benar tapi akun belum aktif harus memberi respons yang sama
+  // dengan password salah. Kalau berbeda, siapa pun bisa memetakan email
+  // mana yang terdaftar hanya dari teks respons, tanpa perlu menebak sandi.
+  it("menyamakan respons untuk akun belum aktif dan password salah", async () => {
+    await prisma.user.create({
+      data: {
+        name: "nonaktif",
+        email: "nonaktif@uji.test",
+        emailNorm: "nonaktif@uji.test",
+        password: await hash(PASSWORD),
+        role: "petugas",
+        status: "nonaktif",
+      },
+    });
+
+    const akunNonaktif = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "nonaktif@uji.test", password: PASSWORD });
+
+    const sandiSalah = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "petugas@uji.test", password: "salah-sekali" });
+
+    expect(akunNonaktif.status).toBe(sandiSalah.status);
+    expect(akunNonaktif.body).toEqual(sandiSalah.body);
   });
 });
 
