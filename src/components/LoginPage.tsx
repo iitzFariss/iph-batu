@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { TrendingUp, TrendingDown, Eye, EyeOff, AlertCircle, ArrowRight, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
@@ -72,12 +72,18 @@ const roleOptions: RoleOption[] = [
   },
 ];
 
-// Demo hint accounts per role
-const demoHints: Record<UserRole, { email: string; password: string }> = {
-  admin:   { email: "admin@tpid-batu.go.id",         password: "admin123"   },
-  petugas: { email: "siti.rahmawati@bps-batu.go.id", password: "petugas123" },
-  tamu:    { email: "Tanpa kredensial",              password: "—"          },
-};
+// Kredensial demo (email + password yang sama dengan prisma/seed.ts) hanya
+// boleh muncul di build development.
+//
+// Penting: jangan menuliskan nilai passwordnya di file ini, bahkan di balik
+// gating pada JSX. Minifier tetap menyimpan helper di module scope, jadi
+// gating pada tampilan saja tidak cukup. Modul kredensialnya ada di
+// LoginDemoHints.tsx, dimuat lewat import() dinamis yang dijaga
+// import.meta.env.DEV, sehingga di build produksi file itu tidak ikut
+// ter-emit sama sekali.
+type DemoHint = { email: string; password: string };
+
+const CARI_DEMO = import.meta.env.DEV;
 
 export default function LoginPage({ onGoBack }: LoginPageProps) {
   const { login, loginAsGuest } = useAuth();
@@ -89,6 +95,24 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState("");
   const [latest, setLatest]             = useState<PublicSummary["latest"]>(null);
+  const [DemoHints, setDemoHints]       = useState<ComponentType<{
+    role: UserRole;
+    label: string;
+    onFill: (hint: DemoHint) => void;
+  }> | null>(null);
+
+  // Modul kredensial demo dimuat terpisah dan hanya saat development, supaya
+  // password seed tidak pernah ikut ter-bundle ke build produksi.
+  useEffect(() => {
+    if (!CARI_DEMO) return;
+    let cancelled = false;
+    import("./LoginDemoHints").then((m) => {
+      if (!cancelled) setDemoHints(() => m.default);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,8 +149,7 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
     setLoading(false);
   }
 
-  function fillDemo() {
-    const hint = demoHints[selectedRole];
+  function fillDemo(hint: DemoHint) {
     setEmail(hint.email);
     setPassword(hint.password);
     setError("");
@@ -330,9 +353,7 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                placeholder={
-                  selectedRole === "admin" ? "admin@tpid-batu.go.id" : "nama@instansi.go.id"
-                }
+                placeholder={selectedRole === "admin" ? "email@tpid-batu.go.id" : "nama@instansi.go.id"}
                 className="w-full px-4 py-3.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300 transition"
               />
             </div>
@@ -385,20 +406,13 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
           </form>
           )}
 
-          {/* Demo hint */}
-          {selectedRole !== "tamu" && (
-          <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
-                Akun Demo — {activeRole.label}
-              </span>
-              <button type="button" onClick={fillDemo} className="text-xs text-emerald-600 font-bold hover:text-emerald-700">
-                Isi Otomatis →
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 font-mono">{demoHints[selectedRole].email}</p>
-            <p className="text-xs text-gray-500 font-mono">{demoHints[selectedRole].password}</p>
-          </div>
+          {/* Demo hint — hanya di build development */}
+          {DemoHints && selectedRole !== "tamu" && (
+            <DemoHints
+              role={selectedRole}
+              label={activeRole.label}
+              onFill={fillDemo}
+            />
           )}
 
           {selectedRole !== "tamu" && (
