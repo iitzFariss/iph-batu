@@ -45,6 +45,23 @@ model Session {
   expiresAt DateTime
   revokedAt DateTime?
   createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─── Audit log ────────────────────────────────────────────────────────────
+// Jejak aksi sensitif (hapus akun, kelola pegawai, nonaktifkan komoditas,
+// hapus rekap). actorId sengaja TIDAK memakai relasi FK supaya barisnya tetap
+// tersimpan walau akun pelakunya dihapus.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  aksi      String
+  detail    String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // ─── Master data ────────────────────────────────────────────────────────
@@ -83,6 +100,11 @@ model Pegawai {
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  petugasRapat PetugasRapat[]
+  notulensi    Notulensi[]
+
+  @@index([status])
 }
 
 // ─── Rekap IPH ──────────────────────────────────────────────────────────
@@ -101,6 +123,7 @@ model Rekap {
   details RekapDetail[]
 
   @@unique([tahun, bulan, mingguIndeks])
+  @@index([createdById])
 }
 
 model RekapDetail {
@@ -112,4 +135,48 @@ model RekapDetail {
   nilai       Float // andil (persen poin)
   isFluktuasi Boolean   @default(false)
   createdAt   DateTime  @default(now())
+
+  @@index([rekapId])
+}
+
+// ─── Modul rapat & notulensi ─────────────────────────────────────────────
+model Rapat {
+  id          String   @id @default(cuid())
+  topik       String
+  tanggal     DateTime // saat rapat dimulai
+  lokasi      String?
+  catatan     String?
+  status      String   @default("terjadwal") // terjadwal | selesai | dibatalkan
+  createdById String   // tanpa FK relasi; bareng AuditLog, tahan dihapus
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  petugas   PetugasRapat[]
+  notulensi Notulensi?
+
+  @@index([createdById])
+  @@index([tanggal])
+}
+
+model PetugasRapat {
+  id        String  @id @default(cuid())
+  rapatId   String
+  rapat     Rapat   @relation(fields: [rapatId], references: [id], onDelete: Cascade)
+  pegawaiId String
+  pegawai   Pegawai @relation(fields: [pegawaiId], references: [id], onDelete: Cascade)
+  peran     String  @default("peserta") // notulis | peserta
+  createdAt DateTime @default(now())
+
+  @@unique([rapatId, pegawaiId])
+}
+
+model Notulensi {
+  id               String   @id @default(cuid())
+  rapatId          String   @unique
+  rapat            Rapat    @relation(fields: [rapatId], references: [id], onDelete: Cascade)
+  isi              String
+  notulisPegawaiId String
+  notulis          Pegawai  @relation(fields: [notulisPegawaiId], references: [id])
+  submittedAt      DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
