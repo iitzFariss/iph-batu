@@ -15,7 +15,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { api, ApiError, getAccessToken } from "../lib/api";
+import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -470,22 +470,18 @@ export default function RekapanData() {
   };
 
   const handleExport = async () => {
-    const token = getAccessToken();
-    const res = await fetch("/api/rekap/export", {
-      credentials: "include",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) {
-      setLoadError("Gagal mengekspor data.");
-      return;
+    setLoadError("");
+    try {
+      const blob = await api.download("/rekap/export");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "rekap-iph.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setLoadError(e instanceof ApiError ? `Gagal mengekspor: ${e.message}` : "Gagal mengekspor data.");
     }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "rekap-iph.csv";
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const pageStart = total === 0 ? 0 : (currentPage - 1) * perPage + 1;

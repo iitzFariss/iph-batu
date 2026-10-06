@@ -26,6 +26,8 @@ import { AuthedRequest, requireAuth } from "../middleware/auth";
 // sandi lama tanpa batas sampai cocok.
 import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateInstansi } from "./master.helpers";
+import { bersihkanSesiLama } from "../lib/session";
+import { catatAudit } from "../lib/audit";
 
 export const router = Router();
 
@@ -101,6 +103,7 @@ router.post(
 
     const { accessToken } = await issueSession(user!.id, user!.role, req, res);
     await prisma.user.update({ where: { id: user!.id }, data: { lastLoginAt: new Date() } });
+    await bersihkanSesiLama();
 
     res.json({
       message: "Login berhasil.",
@@ -125,6 +128,7 @@ router.post(
 
     const { accessToken } = await issueSession(guest.id, guest.role, req, res);
     await prisma.user.update({ where: { id: guest.id }, data: { lastLoginAt: new Date() } });
+    await bersihkanSesiLama();
 
     res.json({
       message: "Berhasil masuk sebagai tamu.",
@@ -215,6 +219,7 @@ router.post(
       }
     }
     lepasCookieRefresh(res);
+    await bersihkanSesiLama();
     res.json({ message: "Berhasil keluar." });
   })
 );
@@ -441,6 +446,7 @@ router.delete(
       res.status(403).json({ message: "Akun administrator tidak dapat dihapus melalui menu ini." });
       return;
     }
+    await catatAudit(req, "akun.dihapus", user.email);
     await prisma.user.delete({ where: { id: user.id } });
     res.json({ message: "Akun Anda telah dihapus." });
   })

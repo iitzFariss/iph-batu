@@ -11,6 +11,7 @@ import { requireAuth, requireRoles } from "../middleware/auth";
 import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateInstansi, toPegawaiDTO } from "./master.helpers";
 import { invalidateSummary } from "../lib/rekapCache";
+import { catatAudit } from "../lib/audit";
 
 export const router = Router();
 
@@ -75,6 +76,7 @@ router.delete(
       return;
     }
     await prisma.komoditas.update({ where: { id }, data: { isActive: false } });
+    await catatAudit(req, "komoditas.nonaktif", kom.nama);
     res.json({ message: "Komoditas dinonaktifkan." });
     invalidateSummary();
   })
@@ -151,6 +153,8 @@ router.post(
       include: { instansi: true, user: { select: { id: true } } },
     });
 
+    await catatAudit(req, "pegawai.dibuat", `${body.name} (${body.nip})`);
+
     res.status(201).json({
       message: "Pegawai berhasil ditambahkan.",
       pegawai: toPegawaiDTO(peg),
@@ -217,6 +221,7 @@ router.delete(
       res.status(404).json({ message: "Pegawai tidak ditemukan." });
       return;
     }
+    await catatAudit(req, "pegawai.dihapus", `${pegawai.name} (${pegawai.nip})`);
     await prisma.pegawai.delete({ where: { id } });
     res.json({ message: "Pegawai berhasil dihapus." });
   })

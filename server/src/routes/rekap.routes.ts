@@ -14,6 +14,7 @@ import { AuthedRequest, requireAuth, requireRoles } from "../middleware/auth";
 import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateKomoditas } from "./master.helpers";
 import { getSummary, invalidateSummary } from "../lib/rekapCache";
+import { catatAudit } from "../lib/audit";
 
 export const router = Router();
 
@@ -332,6 +333,7 @@ router.delete(
       res.status(404).json({ message: "Rekap tidak ditemukan." });
       return;
     }
+    await catatAudit(req, "rekap.dihapus", `${rekap.tahun}-${rekap.bulan}-m${rekap.mingguIndeks}`);
     await prisma.rekap.delete({ where: { id: rekap.id } });
     res.json({ message: "Rekap berhasil dihapus." });
     invalidateSummary();

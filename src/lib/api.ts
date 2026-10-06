@@ -96,4 +96,32 @@ export const api = {
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: "PATCH", body }),
   put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  download: (path: string) => unduh(path),
 };
+
+async function unduh(path: string, sudahCobaRefresh = false): Promise<Blob> {
+  const access = getAccessToken();
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, {
+      method: "GET",
+      credentials: "include",
+      headers: access ? { Authorization: `Bearer ${access}` } : {},
+    });
+  } catch {
+    throw new ApiError(0, "Tidak dapat terhubung ke server. Pastikan backend berjalan.");
+  }
+
+  if (res.status === 401 && !sudahCobaRefresh && !path.includes("/auth/login")) {
+    if (await refreshTokens()) {
+      return unduh(path, true);
+    }
+  }
+
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { message?: string };
+    throw new ApiError(res.status, data.message ?? "Gagal mengunduh data.");
+  }
+
+  return res.blob();
+}

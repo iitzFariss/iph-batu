@@ -5,12 +5,14 @@ import { errorHandler, notFound } from "./middleware/error";
 import authRoutes from "./routes/auth.routes";
 import masterRoutes from "./routes/master.routes";
 import rekapRoutes from "./routes/rekap.routes";
+import rapatRoutes from "./routes/rapat.routes";
 import publicRoutes from "./routes/public.routes";
 import {
   authLimiter,
   guestLimiter,
   loginPerEmailLimiter,
   publicLimiter,
+  refreshIpLimiter,
   refreshLimiter,
 } from "./middleware/rateLimit";
 import { checkDatabase } from "./lib/health";
@@ -44,13 +46,14 @@ export function createApp() {
 
   app.use("/api/auth/login", authLimiter, loginPerEmailLimiter);
   app.use("/api/auth/guest", guestLimiter);
-  app.use("/api/auth/refresh", refreshLimiter);
+  app.use("/api/auth/refresh", refreshLimiter, refreshIpLimiter);
   app.use("/api/public", publicLimiter);
 
   app.use("/api/auth", authRoutes);
   app.use("/api/public", publicRoutes);
   app.use("/api", masterRoutes);
   app.use("/api/rekap", rekapRoutes);
+  app.use("/api/rapat", rapatRoutes);
 
   app.use(notFound);
   app.use(errorHandler);
