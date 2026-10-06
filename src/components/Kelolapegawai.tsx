@@ -271,7 +271,8 @@ export default function KelolaPegawai() {
   const [pegawai, setPegawai]         = useState<Pegawai[]>([]);
   const [loading, setLoading]         = useState(true);
   const [loadError, setLoadError]     = useState("");
-  const [message, setMessage]         = useState("");
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"info" | "error">("info");
   const [search, setSearch]           = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [modal, setModal]             = useState<null | { mode: "add" | "edit"; data?: Pegawai }>(null);
@@ -306,6 +307,7 @@ export default function KelolaPegawai() {
 
   async function handleSave(p: Pegawai) {
     setMessage("");
+    setMessageType("info");
     const payload = {
       name: p.name,
       nip: p.nip,
@@ -329,14 +331,22 @@ export default function KelolaPegawai() {
       }
       setModal(null);
     } catch (e) {
-      setLoadError(e instanceof ApiError ? e.message : "Gagal menyimpan pegawai.");
+      setMessage(e instanceof ApiError ? `Gagal menyimpan: ${e.message}` : "Gagal menyimpan pegawai.");
+      setMessageType("error");
     }
   }
 
   async function handleDelete(id: string) {
     setMessage("");
-    await api.delete(`/pegawai/${id}`).catch(() => null);
-    setPegawai((prev) => prev.filter((p) => p.id !== id));
+    try {
+      await api.delete(`/pegawai/${id}`);
+      setMessage("Pegawai berhasil dihapus.");
+      setMessageType("info");
+      setPegawai((prev) => prev.filter((p) => p.id !== id));
+    } catch (e) {
+      setMessage(e instanceof ApiError ? `Gagal menghapus: ${e.message}` : "Gagal menghapus pegawai.");
+      setMessageType("error");
+    }
     setDeleteId(null);
   }
 
@@ -381,11 +391,19 @@ export default function KelolaPegawai() {
         </div>
       )}
 
-      {/* Success message */}
+      {/* Feedback message */}
       {message && (
-        <div className="flex items-start gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-          <span className="text-xs text-emerald-700">{message}</span>
-          <button onClick={() => setMessage("")} className="ml-auto text-emerald-500 hover:text-emerald-700">
+        <div
+          className={`flex items-start gap-2 p-3 border rounded-xl ${
+            messageType === "error"
+              ? "bg-red-50 border-red-200"
+              : "bg-emerald-50 border-emerald-200"
+          }`}
+        >
+          <span className={`text-xs ${messageType === "error" ? "text-red-700" : "text-emerald-700"}`}>
+            {message}
+          </span>
+          <button onClick={() => setMessage("")} className={`ml-auto hover:opacity-70 ${messageType === "error" ? "text-red-500" : "text-emerald-500"}`}>
             <X size={12} />
           </button>
         </div>

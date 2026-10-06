@@ -55,7 +55,7 @@ interface RequestOptions {
   body?: unknown;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(path: string, options: RequestOptions = {}, sudahCobaRefresh = false): Promise<T> {
   const access = getAccessToken();
   let res: Response;
   try {
@@ -72,9 +72,12 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw new ApiError(0, "Tidak dapat terhubung ke server. Pastikan backend berjalan.");
   }
 
-  if (res.status === 401 && !path.includes("/auth/login") && !path.includes("/auth/refresh")) {
+  // Refresh token hanya dicoba SEKALI. Jika setelah refresh masih 401, biarkan
+  // error diteruskan — kalau tidak, sesi lama yang kedaluwarsa bisa memicu
+  // perulangan refresh tanpa batas.
+  if (res.status === 401 && !sudahCobaRefresh && !path.includes("/auth/login") && !path.includes("/auth/refresh")) {
     if (await refreshTokens()) {
-      return request<T>(path, options);
+      return request<T>(path, options, true);
     }
   }
 

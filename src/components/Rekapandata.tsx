@@ -459,9 +459,14 @@ export default function RekapanData() {
   };
 
   const handleDeleteRow = async (id: string) => {
-    await api.delete(`/rekap/${id}`).catch(() => null);
-    setSelectedRows((prev) => prev.filter((r) => r !== id));
-    setReloadKey((k) => k + 1);
+    setLoadError("");
+    try {
+      await api.delete(`/rekap/${id}`);
+      setSelectedRows((prev) => prev.filter((r) => r !== id));
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      setLoadError(e instanceof ApiError ? `Gagal menghapus: ${e.message}` : "Gagal menghapus rekap.");
+    }
   };
 
   const handleExport = async () => {
@@ -540,6 +545,14 @@ export default function RekapanData() {
 
       {/* Toolbar */}
       <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+        {loadError && (
+          <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+            <span className="text-xs text-red-700">{loadError}</span>
+            <button onClick={() => setLoadError("")} className="ml-auto text-red-400 hover:text-red-700">
+              <X size={12} />
+            </button>
+          </div>
+        )}
         {/* Row 1: search + export */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Search */}

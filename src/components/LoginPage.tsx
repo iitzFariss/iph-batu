@@ -145,8 +145,9 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
   async function handleGuest() {
     setError("");
     setLoading(true);
-    await loginAsGuest();
+    const result = await loginAsGuest();
     setLoading(false);
+    if (!result.success) setError(result.message);
   }
 
   function fillDemo(hint: DemoHint) {
@@ -306,8 +307,8 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
             <div>
               <p className={`text-sm font-bold ${activeRole.color}`}>{activeRole.label}</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                {selectedRole === "admin" && "Akses penuh: manajemen pengguna, konfigurasi sistem, semua modul data."}
-                {selectedRole === "petugas" && "Akses: rekapan & monitoring data IPH, verifikasi notulensi rapat, visualisasi tren, dan analisis siaran pers."}
+                {selectedRole === "admin" && "Akses penuh: manajemen pengguna, kelola komoditas, dan semua modul data."}
+                {selectedRole === "petugas" && "Akses: rekapan data IPH, visualisasi tren, dan analisis siaran pers."}
                 {selectedRole === "tamu" && "Masuk langsung tanpa kredensial — lihat dashboard dan data publik."}
               </p>
             </div>

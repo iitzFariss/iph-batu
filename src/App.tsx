@@ -47,6 +47,8 @@ const PETUGAS_ALLOWED: PageId[] = [
   "monitoring-resume",
   "visualisasi-tren",
   "analisis-teks",
+  "profil-saya",
+  "pengaturan-akun",
 ];
 
 // Semua halaman (untuk memblokir akses tamu selain dashboard)
@@ -209,9 +211,13 @@ function AppShell() {
     typeof window !== "undefined" &&
     window.location.hash === PUBLIC_DASHBOARD_HASH;
 
+  const [publicLoad, setPublicLoad] = useState<"memuat" | "siap" | "gagal">(isPublicView ? "memuat" : "siap");
+
   useEffect(() => {
     if (isPublicView && !isAuthenticated) {
-      loginAsGuest();
+      loginAsGuest().then((r) => {
+        setPublicLoad(r.success ? "siap" : "gagal");
+      });
     }
     // hanya jalankan sekali saat terbuka
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -221,6 +227,18 @@ function AppShell() {
   // Kecuali link publik dashboard (#/publik) yang langsung auto login.
   if (!isAuthenticated || !user) {
     if (isPublicView) {
+      if (publicLoad === "gagal") {
+        // Akun tamu tidak tersedia / API mati: jangan menampilkan dashboard
+        // yang membingungkan, kembalikan ke beranda agar bisa masuk manual.
+        return <LandingPage onLogin={() => setAuthView("login")} />;
+      }
+      if (publicLoad === "memuat") {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-white">
+            <span className="text-sm text-gray-500 animate-pulse">Menyiapkan tampilan publik…</span>
+          </div>
+        );
+      }
       return (
         <div className={isDark ? "dark h-full" : "h-full"}>
           <InternalApp />

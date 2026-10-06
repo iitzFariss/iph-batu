@@ -55,16 +55,23 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
   const { isDark, toggle } = useLandingTheme();
   const [summary, setSummary] = useState<PublicSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [gagal, setGagal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     api
       .get<PublicSummary>("/public/rekap/summary")
       .then((data) => {
-        if (!cancelled) setSummary(data);
+        if (!cancelled) {
+          setSummary(data);
+          setGagal(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setSummary(null);
+        if (!cancelled) {
+          setSummary(null);
+          setGagal(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -79,16 +86,20 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
   const romawi = ["I", "II", "III", "IV", "V"];
   const periodeLabel = latest
     ? `Minggu ${romawi[latest.mingguIndeks - 1] ?? latest.mingguIndeks} ${bulanSingkat[latest.bulan - 1]} ${latest.tahun}`
-    : "Memuat data…";
+    : gagal
+    ? "Gagal memuat data"
+    : loading
+    ? "Memuat data…"
+    : "Belum ada data";
   const iphNilai = latest?.iph ?? 0;
-  const isDeflasi = iphNilai < 0;
+  const isDeflasi = latest ? iphNilai < 0 : false;
   const labelIph = latest
     ? latest.status === "deflasi-signifikan" || latest.status === "deflasi-terkendali"
       ? "Deflasi Terkendali"
       : latest.status === "inflasi-ringan"
       ? "Inflasi Terkendali"
       : "Perlu Intervensi"
-    : "Memuat data…";
+    : null;
 
   const andilTeratas = (summary?.latestDetails ?? [])
     .filter((d) => !d.isFluktuasi)
@@ -102,10 +113,10 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
   const tahunAwal = summary?.trend[0]?.tahun;
 
   const statsList = [
-    { value: loading ? "…" : String(komoditasCount), label: "Komoditas Dipantau", desc: latest ? `Terpantau tahun ${latest.tahun}` : "Belum ada data" },
-    { value: loading ? "…" : String(mingguData), label: "Minggu Data", desc: latest ? `Tahun ${latest.tahun}` : "Belum ada data" },
-    { value: loading ? "…" : String(summary?.trend.length ?? 0), label: "Periode Rekap", desc: tahunAwal ? `Sejak ${tahunAwal}` : "Belum ada data" },
-    { value: latest?.pemicu ?? "—", label: "Pemicu Inflasi", desc: loading ? "Memuat data…" : "Andil tertinggi periode ini" },
+    { value: loading ? "…" : gagal ? "—" : String(komoditasCount), label: "Komoditas Dipantau", desc: latest ? `Terpantau tahun ${latest.tahun}` : gagal ? "Data tidak dapat dimuat" : "Belum ada data" },
+    { value: loading ? "…" : gagal ? "—" : String(mingguData), label: "Minggu Data", desc: latest ? `Tahun ${latest.tahun}` : gagal ? "Data tidak dapat dimuat" : "Belum ada data" },
+    { value: loading ? "…" : gagal ? "—" : String(summary?.trend.length ?? 0), label: "Periode Rekap", desc: gagal ? "Data tidak dapat dimuat" : tahunAwal ? `Sejak ${tahunAwal}` : "Belum ada data" },
+    { value: latest?.pemicu ?? (gagal ? "—" : loading ? "…" : "—"), label: "Pemicu Inflasi", desc: loading ? "Memuat data…" : gagal ? "Data tidak dapat dimuat" : "Andil tertinggi periode ini" },
   ];
 
   return (
@@ -196,22 +207,30 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                   IPH Terkini
                 </span>
                 <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  {latest ? "Terakhir" : "Memuat"}
+                  <div className={`w-1.5 h-1.5 rounded-full ${!gagal ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
+                  {latest ? "Terakhir" : gagal ? "Gagal" : loading ? "Memuat" : "Belum ada data"}
                 </div>
               </div>
               <div className="text-[11px] text-gray-500 mb-4">{periodeLabel}</div>
 
               {/* IPH value */}
               <div className={`text-5xl font-black mb-1 ${isDeflasi ? "text-emerald-400" : "text-amber-400"}`}>
-                {iphNilai > 0 ? "+" : ""}{iphNilai.toFixed(2)}%
+                {latest ? (
+                  <>
+                    {iphNilai > 0 ? "+" : ""}{iphNilai.toFixed(2)}%
+                  </>
+                ) : (
+                  <span className="text-4xl text-gray-600">—</span>
+                )}
               </div>
               <div className="flex items-center gap-1.5 mb-6">
-                {isDeflasi
+                {isDeflasi && latest
                   ? <TrendingDown size={14} className="text-emerald-400" />
-                  : <TrendingUp size={14} className="text-amber-400" />}
-                <span className={`text-sm font-bold ${isDeflasi ? "text-emerald-400" : "text-amber-400"}`}>
-                  {labelIph}
+                  : latest
+                  ? <TrendingUp size={14} className="text-amber-400" />
+                  : null}
+                <span className={`text-sm font-bold ${isDeflasi ? "text-emerald-400" : latest ? "text-amber-400" : "text-gray-500"}`}>
+                  {labelIph ?? (gagal ? "Data tidak dapat dimuat saat ini" : loading ? "Memuat data…" : "Belum ada data IPH")}
                 </span>
               </div>
 
@@ -244,14 +263,16 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
                 ))}
               </div>
 
-              {/* Footer */}
-              <div className="mt-6 pt-4 border-t border-gray-800 flex items-center gap-2">
-                <span className="text-[10px] text-gray-500">Sumber: BPS Kota Batu, survei harga mingguan</span>
-                <span className="ml-auto text-[10px] text-gray-600 flex items-center gap-1">
-                  <RefreshCw size={9} />
-                  Periode {periodeLabel}
-                </span>
-              </div>
+              {/* Footer — sumber hanya diklaim bila ada data sungguhan */}
+                {latest && (
+                <div className="mt-6 pt-4 border-t border-gray-800 flex items-center gap-2">
+                  <span className="text-[10px] text-gray-500">Sumber: BPS Kota Batu, survei harga mingguan</span>
+                  <span className="ml-auto text-[10px] text-gray-600 flex items-center gap-1">
+                    <RefreshCw size={9} />
+                    Periode {periodeLabel}
+                  </span>
+                </div>
+                )}
             </div>
           </div>
         </div>
@@ -337,16 +358,16 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
               Akses untuk petugas<br />pengendalian inflasi daerah.
             </h2>
             <p className="text-sm text-gray-400 leading-relaxed max-w-lg">
-              Petugas mencatat rekap IPH mingguan, memverifikasi andil tiap
-              komoditas, dan mengelola data petugas TPID.
+              Petugas memantau pergerakan rekap IPH mingguan, menelusuri andil
+              tiap komoditas, dan menyusun draf siaran pers tanpa mengubah data.
             </p>
           </div>
           <div className="flex flex-col">
             {[
-              "Input rekap IPH mingguan",
-              "Verifikasi andil dan komoditas fluktuasi",
               "Visualisasi tren IPH antarperiode",
-              "Pengelolaan data petugas TPID",
+              "Unduh rekap IPH dalam format CSV",
+              "Pantau andil komoditas penyumbang inflasi",
+              "Susun draf siaran pers untuk dibagikan",
             ].map((label) => (
               <div
                 key={label}
