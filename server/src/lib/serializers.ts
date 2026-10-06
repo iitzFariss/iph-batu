@@ -2,14 +2,6 @@ import type { Instansi, User } from "@prisma/client";
 
 type UserWithInstansi = User & { instansi?: Instansi | null };
 
-export function safeJson(value: string, fallback: unknown): unknown {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-}
-
 export function toUserDTO(user: UserWithInstansi) {
   return {
     id: user.id,
@@ -20,9 +12,7 @@ export function toUserDTO(user: UserWithInstansi) {
     nip: user.nip ?? null,
     phone: user.phone ?? null,
     bio: user.bio ?? null,
-    auditLog: user.auditLog,
     instansi: user.instansi ? { id: user.instansi.id, nama: user.instansi.nama } : null,
-    preferences: safeJson(user.preferences, {}),
     createdAt: user.createdAt,
   };
 }

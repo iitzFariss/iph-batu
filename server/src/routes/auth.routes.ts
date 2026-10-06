@@ -4,7 +4,6 @@ import { h } from "../lib/asyncHandler";
 import {
   changePasswordSchema,
   loginSchema,
-  preferencesSchema,
   updateMeSchema,
 } from "../lib/schemas";
 import {
@@ -296,21 +295,6 @@ router.post(
       data: { password: await hashPassword(body.passwordBaru) },
     });
     res.json({ message: "Kata sandi berhasil diperbarui." });
-  })
-);
-
-// ─── POST /api/auth/preferences ───────────────────────────────────────────
-router.post(
-  "/preferences",
-  requireAuth,
-  h(async (req, res) => {
-    const me = (req as AuthedRequest).user!;
-    const { preferences } = preferencesSchema.parse(req.body);
-    await prisma.user.update({
-      where: { id: me.id },
-      data: { preferences: JSON.stringify(preferences) },
-    });
-    res.json({ message: "Preferensi berhasil disimpan." });
   })
 );
 

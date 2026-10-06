@@ -26,10 +26,6 @@ export const changePasswordSchema = z
     path: ["konfirmasi"],
   });
 
-export const preferencesSchema = z.object({
-  preferences: z.record(z.boolean()),
-});
-
 export const komoditasCreateSchema = z.object({
   nama: z.string().trim().min(2, "Nama komoditas minimal 2 karakter."),
   unit: z.string().trim().nullish(),

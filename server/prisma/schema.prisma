@@ -24,8 +24,6 @@ model User {
   nip       String?
   phone     String?
   bio       String?
-  auditLog  Boolean  @default(true)
-  preferences String @default("{}") // JSON string
   lastLoginAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
