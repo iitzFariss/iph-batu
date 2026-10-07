@@ -12,6 +12,7 @@ import {
   Users,
   MessageCircle,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -134,6 +135,8 @@ export default function MonitoringResume() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [pesan, setPesan] = useState("");
+  const [pesanSukses, setPesanSukses] = useState("");
+  const [hapusId, setHapusId] = useState<string | null>(null);
 
   const muat = useCallback(() => {
     api
@@ -186,6 +189,21 @@ export default function MonitoringResume() {
     }
   }
 
+  async function hapusRapat(id: string) {
+    setPesan("");
+    setPesanSukses("");
+    try {
+      await api.delete(`/rapat/${id}`);
+      setRapatList((cur) => cur.filter((r) => r.id !== id));
+      setReminderList((cur) => cur.filter((it) => it.rapatId !== id));
+      setPesanSukses("Jadwal rapat berhasil dihapus.");
+      muatReminder();
+    } catch (e) {
+      setPesan(e instanceof ApiError ? e.message : "Gagal menghapus jadwal rapat.");
+    }
+    setHapusId(null);
+  }
+
   function pilihFilter(tab: FilterTab) {
     setFilterTab(tab);
     setHalaman(1);
@@ -213,7 +231,7 @@ export default function MonitoringResume() {
   const tabs: { key: FilterTab; label: string; count: number }[] = [
     { key: "semua", label: "Semua Rapat", count: denganStatus.length },
     { key: "mendatang", label: "Mendatang", count: denganStatus.filter((x) => x.st === "mendatang").length },
-    { key: "menunggu", label: "Menunggu Resume", count: denganStatus.filter((x) => x.st === "belum-diisi").length },
+    { key: "menunggu", label: "Menunggu Notulensi", count: denganStatus.filter((x) => x.st === "belum-diisi").length },
     { key: "selesai", label: "Selesai", count: denganStatus.filter((x) => x.st === "selesai").length },
   ];
 
@@ -227,8 +245,41 @@ export default function MonitoringResume() {
     (it) => !(it.tipe === "notulensi" && sudahAdaNotulensi.has(it.rapatId))
   );
 
+  const rapatHapus = rapatList.find((r) => r.id === hapusId) ?? null;
+
   return (
     <div className="p-4 sm:p-5 space-y-5 w-full">
+      {/* Konfirmasi hapus jadwal (admin) */}
+      {hapusId && rapatHapus && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+              <Trash2 size={20} className="text-red-500" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Hapus Jadwal Rapat?</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Rapat &ldquo;{rapatHapus.topik}&rdquo; akan dihapus permanen
+              {rapatHapus.notulensi
+                ? ", termasuk notulensi dan penugasan petugasnya."
+                : ", termasuk penugasan petugasnya."}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setHapusId(null)}
+                className="flex-1 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => hapusRapat(hapusId)}
+                className="flex-1 py-2 text-xs font-bold text-white bg-red-600 rounded-xl hover:bg-red-700"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
         <CheckCircle2 size={14} className="text-emerald-600" />
@@ -238,11 +289,11 @@ export default function MonitoringResume() {
       </div>
       <div>
         <h1 className="text-2xl font-black text-gray-900 mb-1">
-          Monitoring Resume &amp; Risalah Rapat TPID
+          Monitoring Rapat &amp; Risalah TPID
         </h1>
         <p className="text-xs text-gray-500">
-          Monitoring jadwal rapat koordinasi pengendalian inflasi, kepatuhan notulensi resume,
-          dan pengingat WhatsApp untuk petugas. Notulis bertugas mengisi resume yang menunggu input.
+          Monitoring jadwal rapat koordinasi pengendalian inflasi, kepatuhan pengisian notulensi,
+          dan pengingat WhatsApp untuk petugas. Notulis bertugas mengisi notulensi yang menunggu input.
         </p>
       </div>
 
@@ -253,11 +304,18 @@ export default function MonitoringResume() {
         </div>
       )}
 
+      {pesanSukses && (
+        <div className="flex items-start gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+          <CheckCircle2 size={13} className="flex-shrink-0 mt-0.5" />
+          {pesanSukses}
+        </div>
+      )}
+
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: "Total Agenda Terjadwal", value: statusData === "memuat" ? "—" : rapatList.filter((r) => r.status !== "dibatalkan").length, icon: <Calendar size={16} className="text-gray-400" />, cls: "" },
-          { label: "Menunggu Resume Notulis", value: statusData === "memuat" ? "—" : pendingCount, icon: <AlertCircle size={16} className="text-red-500" />, cls: "border-l-2 border-l-red-400" },
+          { label: "Menunggu Notulensi", value: statusData === "memuat" ? "—" : pendingCount, icon: <AlertCircle size={16} className="text-red-500" />, cls: "border-l-2 border-l-red-400" },
           { label: "Selesai", value: statusData === "memuat" ? "—" : doneCount, icon: <CheckCircle2 size={16} className="text-emerald-500" />, cls: "border-l-2 border-l-emerald-400" },
         ].map(({ label, value, icon, cls }) => (
           <div key={label} className={`bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between ${cls}`}>
@@ -358,7 +416,7 @@ export default function MonitoringResume() {
           <div>
             <h2 className="text-sm font-bold text-gray-900">Daftar Agenda Rapat Terjadwal</h2>
             <p className="text-xs sm:text-sm text-gray-400">
-              Monitoring jadwal berkala, notulensi resume, dan distribusi hasil rapat koordinasi.
+              Monitoring jadwal berkala, kelengkapan notulensi, dan distribusi hasil rapat koordinasi.
             </p>
           </div>
           <div className="relative">
@@ -538,11 +596,25 @@ export default function MonitoringResume() {
                           Ubah
                         </button>
                       )}
+                      {isAdmin && (
+                        <button
+                          onClick={() => {
+                            setPesan("");
+                            setPesanSukses("");
+                            setHapusId(r.id);
+                          }}
+                          title="Hapus jadwal rapat"
+                          className="flex items-center gap-1 px-3 py-1 rounded text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50"
+                        >
+                          <Trash2 size={9} />
+                          Hapus
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Flip card: notulensi / input resume */}
+                {/* Flip card: notulensi / input notulensi */}
                 {buka && (
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     {r.notulensi && draft === "" ? (
@@ -582,7 +654,7 @@ export default function MonitoringResume() {
                         <div className="flex items-center gap-2">
                           <FileText size={12} className="text-red-500" />
                           <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">
-                            {r.notulensi ? "Ubah Notulensi / Resume Rapat" : "Input Notulensi / Resume Rapat"}
+                            {r.notulensi ? "Ubah Notulensi Rapat" : "Input Notulensi Rapat"}
                           </span>
                           <button
                             onClick={() => setExpandedId(null)}
@@ -606,7 +678,7 @@ export default function MonitoringResume() {
                             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <CheckCircle2 size={11} />
-                            Simpan Resume
+                            Simpan Notulensi
                           </button>
                         </div>
                       </div>

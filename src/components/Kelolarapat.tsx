@@ -182,7 +182,7 @@ export default function KelolaRapat() {
           </h1>
           <p className="text-xs text-gray-500">
             Penjadwalan rapat koordinasi pengendalian inflasi daerah dan penugasan aparatur
-            notulen. Pengingat WhatsApp dibuat otomatis di halaman Monitoring Resume.
+            notulen. Pengingat WhatsApp dibuat otomatis di halaman Monitoring Rapat.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 w-full lg:w-auto">
@@ -200,8 +200,8 @@ export default function KelolaRapat() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: "Total Rapat Terjadwal", value: kini === 0 ? "—" : totalTerjadwal, sub: "Seluruh jadwal aktif", icon: <Calendar size={18} className="text-gray-400" />, accent: "" },
-          { label: "Menunggu Resume", value: kini === 0 ? "—" : menungguResume, sub: "Notulensi belum diisi", icon: <AlertTriangle size={18} className="text-amber-500" />, accent: "border-l-2 border-l-amber-400" },
-          { label: "Notulensi Diisi", value: kini === 0 ? "—" : selesaiTervalidasi, sub: "Rapat dengan resume lengkap", icon: <CheckCircle2 size={18} className="text-emerald-500" />, accent: "border-l-2 border-l-emerald-400" },
+          { label: "Menunggu Notulensi", value: kini === 0 ? "—" : menungguResume, sub: "Notulensi belum diisi", icon: <AlertTriangle size={18} className="text-amber-500" />, accent: "border-l-2 border-l-amber-400" },
+          { label: "Notulensi Diisi", value: kini === 0 ? "—" : selesaiTervalidasi, sub: "Rapat dengan notulensi lengkap", icon: <CheckCircle2 size={18} className="text-emerald-500" />, accent: "border-l-2 border-l-emerald-400" },
         ].map(({ label, value, sub, icon, accent }) => (
           <div key={label} className={`bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between ${accent}`}>
             <div>
@@ -316,7 +316,7 @@ export default function KelolaRapat() {
           {/* Petugas Rapat */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-gray-700">Petugas Notulis / Resume</label>
+              <label className="text-xs font-semibold text-gray-700">Petugas Notulis</label>
               <button
                 onClick={() => setOpenPicker((v) => !v)}
                 className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700"
@@ -357,7 +357,7 @@ export default function KelolaRapat() {
                 type="text"
                 readOnly
                 value={petugas.length === 0 ? "" : `${petugas.length} personil terpilih`}
-                placeholder="Pilih aparatur penugasan resume di sini..."
+                placeholder="Pilih aparatur penugasan notulis di sini..."
                 className="w-full text-xs text-gray-500 focus:outline-none cursor-pointer"
                 onClick={() => setOpenPicker((v) => !v)}
               />
@@ -435,7 +435,7 @@ export default function KelolaRapat() {
             {menyimpan ? "Menyimpan…" : "Buat Jadwal Rapat"}
           </button>
           <p className="text-center text-xs text-gray-400">
-            Pengingat WhatsApp H-1/H-0 dan notulensi terlambat dibuat otomatis di Monitoring Resume.
+            Pengingat WhatsApp H-1/H-0 dan notulensi terlambat dibuat otomatis di Monitoring Rapat.
           </p>
         </div>
       </div>

@@ -23,7 +23,7 @@ const navItems = [
   { id: "input-rekap", label: "Input Rekap IPH", icon: FileInput },
   { id: "rekapan-data", label: "Rekapan Data", icon: Database },
   { id: "kelola-rapat", label: "Kelola Rapat", icon: Users },
-  { id: "monitoring-resume", label: "Monitoring Resume", icon: Monitor },
+  { id: "monitoring-rapat", label: "Monitoring Rapat", icon: Monitor },
   { id: "kelola-pegawai", label: "Kelola Pegawai", icon: UserCog },
   { id: "visualisasi-tren", label: "Visualisasi Tren IPH", icon: TrendingUp },
   { id: "analisis-teks", label: "Analisis Teks Siaran", icon: Radio },

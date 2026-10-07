@@ -26,7 +26,7 @@ type PageId =
   | "input-rekap"
   | "rekapan-data"
   | "kelola-rapat"
-  | "monitoring-resume"
+  | "monitoring-rapat"
   | "kelola-pegawai"
   | "visualisasi-tren"
   | "analisis-teks"
@@ -44,7 +44,7 @@ const ADMIN_ONLY: PageId[] = ["kelola-pegawai"];
 const PETUGAS_ALLOWED: PageId[] = [
   "dashboard",
   "rekapan-data",
-  "monitoring-resume",
+  "monitoring-rapat",
   "visualisasi-tren",
   "analisis-teks",
   "profil-saya",
@@ -57,7 +57,7 @@ const ALL_PAGES: PageId[] = [
   "input-rekap",
   "rekapan-data",
   "kelola-rapat",
-  "monitoring-resume",
+  "monitoring-rapat",
   "kelola-pegawai",
   "visualisasi-tren",
   "analisis-teks",
@@ -105,7 +105,7 @@ function PageContent({
       return <RekapanData />;
     case "kelola-rapat":
       return <KelolaRapat />;
-    case "monitoring-resume":
+    case "monitoring-rapat":
       return <MonitoringResume />;
     case "kelola-pegawai":
       return <KelolaPegawai />;
