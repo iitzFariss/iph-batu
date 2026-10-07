@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PEGAWAI_STATUSES } from "./enums";
+import { PEGAWAI_STATUSES, RAPAT_STATUSES } from "./enums";
 
 /**
  * Angka yang boleh datang sebagai string dari input form ("1,5" atau "1.5")
@@ -120,7 +120,9 @@ export const rapatCreateSchema = z.object({
     .refine((p) => p.some((x) => x.peran === "notulis"), "Minimal satu petugas berperan notulis."),
 });
 
-export const rapatUpdateSchema = rapatCreateSchema.partial();
+export const rapatUpdateSchema = rapatCreateSchema
+  .partial()
+  .extend({ status: z.enum(RAPAT_STATUSES).optional() });
 
 export const notulensiSchema = z.object({
   isi: z.string().trim().min(10, "Notulensi minimal 10 karakter."),

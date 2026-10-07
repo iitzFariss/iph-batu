@@ -32,6 +32,16 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
       res.status(404).json({ message: "Data tidak ditemukan.", requestId });
       return;
     }
+    // P2003 = foreign key constraint gagal. Menghapus/mengubah baris yang masih
+    // direferensikan baris lain bukan kesalahan server, jadi jawab 409 dengan
+    // pesan yang bisa ditindaklanjuti, bukan 500 generik.
+    if (err.code === "P2003") {
+      res.status(409).json({
+        message: "Data tidak dapat dihapus karena masih dipakai data lain.",
+        requestId,
+      });
+      return;
+    }
   }
 
   const bodyErr = err as BodyParserError;

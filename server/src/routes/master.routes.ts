@@ -19,6 +19,7 @@ export const router = Router();
 router.get(
   "/instansi",
   requireAuth,
+  requireRoles("admin", "petugas"),
   h(async (_req, res) => {
     const rows = await prisma.instansi.findMany({ orderBy: { nama: "asc" } });
     res.json({ rows: rows.map((i) => ({ id: i.id, nama: i.nama })) });
@@ -219,6 +220,17 @@ router.delete(
     const pegawai = await prisma.pegawai.findUnique({ where: { id } });
     if (!pegawai) {
       res.status(404).json({ message: "Pegawai tidak ditemukan." });
+      return;
+    }
+    // Notulensi mereferensikan pegawai dengan onDelete Restrict. Tanpa cek ini,
+    // admin menghapus notulis dan menerima 500 FK alih-alih arahan yang jelas.
+    const jumlahNotulensi = await prisma.notulensi.count({
+      where: { notulisPegawaiId: id },
+    });
+    if (jumlahNotulensi > 0) {
+      res.status(409).json({
+        message: `Pegawai masih menjadi notulis pada ${jumlahNotulensi} notulensi. Nonaktifkan pegawai, atau hapus/ganti notulensi tersebut lebih dulu.`,
+      });
       return;
     }
     await catatAudit(req, "pegawai.dihapus", `${pegawai.name} (${pegawai.nip})`);

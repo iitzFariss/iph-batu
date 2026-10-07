@@ -198,6 +198,7 @@ router.patch(
           ...(body.tanggal ? { tanggal: body.tanggal } : {}),
           ...(body.lokasi !== undefined ? { lokasi: body.lokasi ?? null } : {}),
           ...(body.catatan !== undefined ? { catatan: body.catatan ?? null } : {}),
+          ...(body.status ? { status: body.status } : {}),
         },
         include: RAPAT_INCLUDE,
       });
@@ -273,14 +274,21 @@ router.post(
     }
 
     const body = notulensiSchema.parse(req.body);
-    await prisma.notulensi.upsert({
-      where: { rapatId: rapat.id },
-      create: {
-        rapatId: rapat.id,
-        isi: body.isi,
-        notulisPegawaiId,
-      },
-      update: { isi: body.isi, notulisPegawaiId },
+    await prisma.$transaction(async (tx) => {
+      await tx.notulensi.upsert({
+        where: { rapatId: rapat.id },
+        create: {
+          rapatId: rapat.id,
+          isi: body.isi,
+          notulisPegawaiId,
+        },
+        update: { isi: body.isi, notulisPegawaiId },
+      });
+      // Notulensi yang tersimpan menandai rapat selesai. Rapat yang sudah
+      // dibatalkan tidak dihidupkan lagi oleh notulensi yang telat masuk.
+      if (rapat.status !== "dibatalkan") {
+        await tx.rapat.update({ where: { id: rapat.id }, data: { status: "selesai" } });
+      }
     });
 
     const final = await prisma.rapat.findUnique({
