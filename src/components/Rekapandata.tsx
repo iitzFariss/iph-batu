@@ -444,8 +444,12 @@ export default function RekapanData() {
       await api.patch(`/rekap/${updated.id}`, {
         periode: updated.periode,
         nilaiIPH: updated.nilaiIPH,
-        deflasi: updated.deflasi.filter((t) => t.name.trim()),
-        inflasi: updated.inflasi.filter((t) => t.name.trim()),
+        deflasi: updated.deflasi
+          .filter((t) => t.name.trim())
+          .map((t) => ({ nama: t.name.trim(), nilai: t.change })),
+        inflasi: updated.inflasi
+          .filter((t) => t.name.trim())
+          .map((t) => ({ nama: t.name.trim(), nilai: t.change })),
         fluktuasi:
           updated.fluktuasi && updated.fluktuasi.name.trim()
             ? { nama: updated.fluktuasi.name.trim(), nilai: updated.fluktuasi.change }

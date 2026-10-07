@@ -153,7 +153,7 @@ export default function MonitoringResume() {
     muat();
   }, [muat, percobaan]);
 
-  useEffect(() => {
+  const muatReminder = useCallback(() => {
     if (!isAdmin) return;
     api
       .get<{ rows: ReminderItem[] }>("/rapat/reminders")
@@ -165,7 +165,11 @@ export default function MonitoringResume() {
         setReminderList([]);
         setStatusReminder("gagal");
       });
-  }, [isAdmin, percobaan]);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    muatReminder();
+  }, [muatReminder, percobaan]);
 
   async function simpanNotulensi(r: Rapat) {
     const isi = draft.trim();
@@ -176,6 +180,7 @@ export default function MonitoringResume() {
       setRapatList((cur) => cur.map((x) => (x.id === r.id ? res.rapat : x)));
       setExpandedId(null);
       setDraft("");
+      muatReminder();
     } catch (e) {
       setPesan(e instanceof ApiError ? e.message : "Gagal menyimpan notulensi.");
     }
@@ -214,6 +219,13 @@ export default function MonitoringResume() {
 
   const doneCount = denganStatus.filter((x) => x.st === "selesai").length;
   const pendingCount = denganStatus.filter((x) => x.st === "belum-diisi").length;
+
+  const sudahAdaNotulensi = new Set(
+    rapatList.filter((r) => r.notulensi).map((r) => r.id)
+  );
+  const pengingatTampil = reminderList.filter(
+    (it) => !(it.tipe === "notulensi" && sudahAdaNotulensi.has(it.rapatId))
+  );
 
   return (
     <div className="p-4 sm:p-5 space-y-5 w-full">
@@ -292,7 +304,7 @@ export default function MonitoringResume() {
               Gagal memuat pengingat. Tekan Muat Ulang untuk mencoba lagi.
             </div>
           )}
-          {statusReminder === "siap" && reminderList.length === 0 && (
+          {statusReminder === "siap" && pengingatTampil.length === 0 && (
             <div className="py-5 text-center text-xs text-gray-400">
               Tidak ada pengingat yang jatuh tempo.
             </div>
@@ -300,7 +312,7 @@ export default function MonitoringResume() {
 
           <div className="space-y-2">
             {statusReminder === "siap" &&
-              reminderList.map((item) => (
+              pengingatTampil.map((item) => (
                 <div
                   key={item.id}
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border border-gray-100 rounded-lg px-3 py-2"
