@@ -7,6 +7,9 @@ import {
   Clock,
   MessageCircle,
   Bell,
+  Pencil,
+  Check,
+  RotateCcw,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { buildPublicDashboardLink } from "../lib/publicDashboard";
@@ -139,6 +142,11 @@ export default function AnalisisTeksSiaran() {
   const [copied, setCopied]             = useState(false);
   const [dashboardLink] = useState(() => buildPublicDashboardLink());
 
+  // Penyuntingan manual draf. drafKustom === null → pakai draf otomatis.
+  const [drafKustom, setDrafKustom] = useState<string | null>(null);
+  const [mengedit, setMengedit] = useState(false);
+  const [drafEdit, setDrafEdit] = useState("");
+
   const [rows, setRows] = useState<PeriodeRow[]>([]);
   const [detail, setDetail] = useState<{ key: string; row: RekapRow | null } | null>(null);
   const [detailError, setDetailError] = useState(false);
@@ -242,6 +250,8 @@ export default function AnalisisTeksSiaran() {
         if (!batal) {
           setDetail({ key: detailKey, row: data.rows[0] ?? null });
           setDetailError(false);
+          setDrafKustom(null);
+          setMengedit(false);
         }
       })
       .catch(() => {
@@ -316,15 +326,35 @@ export default function AnalisisTeksSiaran() {
   const selectedRow = detail?.row ?? null;
 
   const currentDraf = selectedRow ? buildDraf(selectedRow) : detailError ? "Gagal memuat detail rekap." : drafKosong;
+  const drafEfektif = drafKustom ?? currentDraf;
 
   const pesanSiaran = useMemo(
-    () => `${currentDraf}\n\nLink Dashboard Publik: ${dashboardLink}`,
-    [currentDraf, dashboardLink],
+    () => `${drafEfektif}\n\nLink Dashboard Publik: ${dashboardLink}`,
+    [drafEfektif, dashboardLink],
   );
 
   // Tanpa baris rekap terpilih, isinya cuma placeholder atau pesan error.
   // Mengirimnya ke kontak WhatsApp akan menyakitkan.
   const drafSiap = selectedRow !== null;
+
+  function mulaiEdit() {
+    setDrafEdit(drafKustom ?? currentDraf);
+    setMengedit(true);
+  }
+
+  function simpanEdit() {
+    setDrafKustom(drafEdit);
+    setMengedit(false);
+  }
+
+  function batalEdit() {
+    setMengedit(false);
+  }
+
+  function resetKustom() {
+    setDrafKustom(null);
+    setMengedit(false);
+  }
 
   function handleCopyTeksLink() {
     navigator.clipboard?.writeText(pesanSiaran);
@@ -496,6 +526,16 @@ export default function AnalisisTeksSiaran() {
                       ? `IPH: ${selectedRow.nilaiIPH > 0 ? "+" : ""}${selectedRow.nilaiIPH.toFixed(2)}% (${STATUS_IPH[selectedRow.statusIPH] ?? selectedRow.statusIPH})`
                       : "Belum ada data"}
                 </span>
+                {mengedit && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    Menyunting…
+                  </span>
+                )}
+                {drafKustom !== null && !mengedit && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                    Disunting manual
+                  </span>
+                )}
                 <span className="flex items-center gap-1 text-xs text-gray-400">
                   <Clock size={9} />
                   {(() => {
@@ -517,9 +557,24 @@ export default function AnalisisTeksSiaran() {
 
             {/* Draf content */}
             <div className="p-4">
-              <pre className="text-sm text-gray-700 leading-relaxed font-mono whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-100 max-h-72 overflow-y-auto">
-                {currentDraf}
-              </pre>
+              {mengedit ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={drafEdit}
+                    onChange={(e) => setDrafEdit(e.target.value)}
+                    aria-label="Sunting draf siaran"
+                    className="w-full min-h-48 resize-y font-mono text-sm leading-relaxed text-gray-700 bg-gray-50 rounded-lg p-4 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                  />
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <span>Draf masih bisa disesuaikan sampai tombol Simpan ditekan.</span>
+                    <span>{drafEdit.length} karakter</span>
+                  </div>
+                </div>
+              ) : (
+                <pre className="text-sm text-gray-700 leading-relaxed font-mono whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-100 max-h-72 overflow-y-auto">
+                  {drafEfektif}
+                </pre>
+              )}
             </div>
 
             {/* Action bar */}
@@ -541,6 +596,47 @@ export default function AnalisisTeksSiaran() {
                   <MessageCircle size={12} />
                   Buka WhatsApp
                 </button>
+
+                <span className="flex-1" />
+
+                {mengedit ? (
+                  <>
+                    <button
+                      onClick={simpanEdit}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                    >
+                      <Check size={12} />
+                      Simpan Perubahan
+                    </button>
+                    <button
+                      onClick={batalEdit}
+                      className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      <RotateCcw size={12} />
+                      Batal
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={mulaiEdit}
+                      disabled={!drafSiap}
+                      className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+                    >
+                      <Pencil size={12} />
+                      Edit Draf
+                    </button>
+                    {drafKustom !== null && (
+                      <button
+                        onClick={resetKustom}
+                        className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
+                      >
+                        <RotateCcw size={12} />
+                        Reset Draf Otomatis
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Hint */}
@@ -548,10 +644,11 @@ export default function AnalisisTeksSiaran() {
                 "Salin Teks &amp; Link" menyalin draf{" "}
                 <strong>Bahasa Resmi</strong> beserta link{" "}
                 <span className="font-mono text-gray-500 break-all">{dashboardLink}</span> ke
-                clipboard. Link dibuka sebagai dashboard publik — tampilannya sama
-                seperti yang dilihat masyarakat. "Buka WhatsApp" membuka
-                WhatsApp dengan pesan terisi, lalu Anda yang memilih kontak dan
-                menekan kirim.
+                clipboard. Klik <strong>Edit Draf</strong> untuk menyesuaikan
+                kalimatnya sebelum disalin/dikirim; <strong>Reset Draf Otomatis</strong>{" "}
+                mengembalikan draf hasil olah otomatis (editan hilang saat periode
+                diganti). "Buka WhatsApp" membuka WhatsApp dengan pesan terisi, lalu
+                Anda yang memilih kontak dan menekan kirim.
               </p>
             </div>
 
