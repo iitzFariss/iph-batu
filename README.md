@@ -223,11 +223,11 @@ Karena itu, menghitung ulang IPH dari data yang sama membutuhkan keranjang komod
 
 Fitur berikut masih kosong, jadi tidak ada di antarmuka maupun di backend. Dicatat supaya README dan tampilan aplikasi tidak menjanjikan sesuatu yang tidak dikerjakan.
 
-- **Modul rapat dan notulen.** `Monitoringresume.tsx` dan `Kelolarapat.tsx` masih menampilkan data contoh, dan backend belum punya model maupun route rapat. Jangan dipakai sebagai rujukan data riil.
+- **Modul rapat dan notulen.** Sudah ada: backend punya model `Rapat`, `PetugasRapat`, dan `Notulensi` lengkap dengan route CRUD di `server/src/routes/rapat.routes.ts`. Admin menjadwalkan rapat serta mengubah, membatalkan, atau menghapus agenda di `Kelolarapat.tsx`; notulis mengisi notulensi di `Monitoringresume.tsx`, dan rapat yang sudah bernotulensi otomatis ditandai selesai. Pengingat WhatsApp H-1/H-0 dan notulensi terlambat disusun aplikasi dari jadwal terkini (pengiriman tetap manual lewat tautan `wa.me`, lihat Integrasi Kemendagri).
 - **Integrasi Kemendagri.** Tidak ada integrasi API ke Pusda. Draf siaran pers disusun di browser, lalu dikirim manual. Tombol "Buka WhatsApp" memakai deep link resmi `wa.me` yang membuka WhatsApp dengan pesan terisi; user sendiri yang memilih kontak dan menekan kirim. Tidak ada nomor tujuan di database.
-- **Notifikasi.** Tidak ada email maupun notifikasi browser. Pengaturan notifikasi tidak ada di UI.
+- **Notifikasi.** Tidak ada email maupun notifikasi browser. Satu-satunya pengingat adalah *reminder* WhatsApp (H-1/H-0 rapat dan notulensi terlambat) di halaman Monitoring Rapat, yang disusun aplikasi dan dikirim manual oleh admin.
 - **Enkripsi dokumen.** Draf siaran pers berupa teks plaintext di browser. Tidak ada enkripsi saat transit maupun saat disimpan.
-- **PIN dan audit trail.** Koreksi rekap hanya memerlukan akun admin; tidak ada PIN berjenjang dan tidak ada tabel audit. Waktu perubahan tersimpan di `Rekap.updatedAt`.
+- **PIN berjenjang.** Koreksi rekap hanya memerlukan akun admin; tidak ada PIN berjenjang. Trail audit sudah ada: aksi sensitif (hapus/koreksi rekap, kelola akun, reset kata sandi, jadwal rapat, komoditas, pegawai) tercatat di tabel `AuditLog` beserta pelaku, aksi, rincian, dan IP. Waktu perubahan juga tersimpan di `Rekap.updatedAt`.
 - **Unggah Scanning Harga dari web.** Impor lewat CLI (`npm run import`).
 - **Harga absolut.** Data yang tersedia hanya IPH dan andil lihat [Makna andil](#makna-andil).
 
