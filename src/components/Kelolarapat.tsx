@@ -10,6 +10,11 @@ import {
   Printer,
   Plus,
   UserPlus,
+  Pencil,
+  Trash2,
+  Ban,
+  Clock,
+  MapPin,
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 
@@ -27,13 +32,285 @@ interface PetugasTerpilih {
   peran: string;
 }
 
-interface RapatRow {
-  status: string;
+interface RapatAgenda {
+  id: string;
+  topik: string;
   tanggal: string;
+  lokasi: string | null;
+  catatan: string | null;
+  status: string;
+  petugas: { pegawaiId: string; name: string; peran: string }[];
   notulensi: { submittedAt: string; by: string; isi: string } | null;
 }
 
 type StatusKader = "memuat" | "siap" | "gagal";
+
+// ─── Format helper ────────────────────────────────────────────────────────────
+
+/** ISO → "YYYY-MM-DD" lokal untuk input type="date". */
+function tanggalInput(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** ISO → "HH:mm" lokal untuk input type="time". */
+function waktuInput(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+const FORMAT_TANGGAL = new Intl.DateTimeFormat("id-ID", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
+function formatJadwal(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? "-"
+    : `${FORMAT_TANGGAL.format(d)} • ${waktuInput(iso)} WIB`;
+}
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
+const statusBadge: Record<string, { label: string; cls: string; dot: string }> = {
+  terjadwal: { label: "Terjadwal", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200", dot: "bg-emerald-500" },
+  selesai: { label: "Selesai", cls: "bg-blue-50 text-blue-700 border border-blue-200", dot: "bg-blue-500" },
+  dibatalkan: { label: "Dibatalkan", cls: "bg-red-50 text-red-600 border border-red-200", dot: "bg-red-500" },
+};
+
+const statusFallback = { label: "Tidak Diketahui", cls: "bg-gray-100 text-gray-600 border border-gray-300", dot: "bg-gray-400" };
+
+function badgeStatus(status: string) {
+  return statusBadge[status] ?? statusFallback;
+}
+
+// ─── Edit Rapat Modal ─────────────────────────────────────────────────────────
+
+interface EditRapatModalProps {
+  rapat: RapatAgenda;
+  kader: KaderPersonil[];
+  onClose: () => void;
+  onSaved: (rapat: RapatAgenda) => void;
+}
+
+function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps) {
+  const [form, setForm] = useState({
+    topik: rapat.topik,
+    tanggal: tanggalInput(rapat.tanggal),
+    waktu: waktuInput(rapat.tanggal),
+    lokasi: rapat.lokasi ?? "",
+    catatan: rapat.catatan ?? "",
+  });
+  const [petugas, setPetugas] = useState<PetugasTerpilih[]>(
+    rapat.petugas.map((p) => ({ pegawaiId: p.pegawaiId, name: p.name, peran: p.peran }))
+  );
+  const [openPicker, setOpenPicker] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const available = kader.filter((k) => !petugas.some((p) => p.pegawaiId === k.id));
+
+  function tambah(k: KaderPersonil) {
+    setPetugas((cur) => [...cur, { pegawaiId: k.id, name: k.name, peran: cur.length === 0 ? "notulis" : "peserta" }]);
+    setOpenPicker(false);
+  }
+
+  async function simpan() {
+    setErr("");
+    if (!form.topik.trim()) { setErr("Topik / agenda rapat wajib diisi."); return; }
+    if (!form.tanggal || !form.waktu) { setErr("Tanggal dan waktu pelaksanaan wajib diisi."); return; }
+    if (petugas.length === 0) { setErr("Pilih minimal satu petugas rapat."); return; }
+    if (!petugas.some((p) => p.peran === "notulis")) { setErr("Minimal satu petugas berperan notulis."); return; }
+
+    setBusy(true);
+    try {
+      const res = await api.patch<{ rapat: RapatAgenda }>(`/rapat/${rapat.id}`, {
+        topik: form.topik.trim(),
+        tanggal: new Date(`${form.tanggal}T${form.waktu}`).toISOString(),
+        lokasi: form.lokasi.trim() || null,
+        catatan: form.catatan.trim() || null,
+        petugas: petugas.map((p) => ({ pegawaiId: p.pegawaiId, peran: p.peran })),
+      });
+      onSaved(res.rapat);
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "Gagal memperbarui rapat.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h3 className="text-sm font-bold text-gray-900">Ubah Jadwal Rapat</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Perbarui agenda, waktu, lokasi, atau personil rapat</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
+          {err && (
+            <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={12} className="text-red-500 flex-shrink-0" />
+              <span className="text-xs text-red-600">{err}</span>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Topik / Agenda Koordinasi <span className="text-red-500 font-normal">*Wajib</span>
+            </label>
+            <input
+              type="text"
+              value={form.topik}
+              onChange={(e) => setForm({ ...form, topik: e.target.value })}
+              className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Tanggal Rapat <span className="text-red-500 font-normal">*Wajib</span></label>
+              <input
+                type="date"
+                value={form.tanggal}
+                onChange={(e) => setForm({ ...form, tanggal: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Waktu Pelaksanaan <span className="text-red-500 font-normal">*Wajib</span></label>
+              <input
+                type="time"
+                value={form.waktu}
+                onChange={(e) => setForm({ ...form, waktu: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Ruang Rapat / Tautan Virtual</label>
+            <input
+              type="text"
+              value={form.lokasi}
+              onChange={(e) => setForm({ ...form, lokasi: e.target.value })}
+              className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-gray-700">Petugas Notulis</label>
+              <button
+                onClick={() => setOpenPicker((v) => !v)}
+                className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700"
+              >
+                <UserPlus size={12} />
+                + Tambah Personil
+              </button>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-2 min-h-[44px]">
+              <div className="flex flex-wrap gap-1.5 mb-1.5">
+                {petugas.map((p) => (
+                  <div key={p.pegawaiId} className="flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-md">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-sm text-emerald-800 font-medium">{p.name}</span>
+                    <select
+                      value={p.peran}
+                      onChange={(e) => setPetugas((cur) => cur.map((x) => (x.pegawaiId === p.pegawaiId ? { ...x, peran: e.target.value } : x)))}
+                      className="text-[11px] border border-emerald-200 bg-white rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      aria-label={`Peran ${p.name}`}
+                    >
+                      <option value="notulis">Notulis</option>
+                      <option value="peserta">Peserta</option>
+                    </select>
+                    <button
+                      onClick={() => setPetugas((cur) => cur.filter((x) => x.pegawaiId !== p.pegawaiId))}
+                      className="ml-0.5 text-emerald-400 hover:text-emerald-700"
+                      aria-label={`Hapus ${p.name}`}
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <input
+                type="text"
+                readOnly
+                value={petugas.length === 0 ? "" : `${petugas.length} personil terpilih`}
+                placeholder="Pilih aparatur penugasan notulis di sini..."
+                className="w-full text-xs text-gray-500 focus:outline-none cursor-pointer"
+                onClick={() => setOpenPicker((v) => !v)}
+              />
+            </div>
+            {openPicker && (
+              <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                {available.length === 0 ? (
+                  <div className="px-3 py-3 text-xs text-gray-400 text-center">
+                    Semua personil sudah ditambahkan.
+                  </div>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto divide-y divide-gray-50">
+                    {available.map((k) => (
+                      <button
+                        key={k.id}
+                        onClick={() => tambah(k)}
+                        className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Plus size={12} className="text-emerald-500 flex-shrink-0" />
+                          <span className="text-sm font-medium text-gray-700 truncate">{k.name}</span>
+                        </div>
+                        <span className="text-xs text-gray-400 flex-shrink-0">{k.peran}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Catatan (opsional)</label>
+            <textarea
+              value={form.catatan}
+              onChange={(e) => setForm({ ...form, catatan: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-100"
+          >
+            Batal
+          </button>
+          <button
+            onClick={simpan}
+            disabled={busy}
+            className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {busy ? "Menyimpan…" : "Simpan Perubahan"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -52,9 +329,13 @@ export default function KelolaRapat() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [pesan, setPesan] = useState<{ tipe: "sukses" | "gagal"; teks: string } | null>(null);
 
-  const [rapatRows, setRapatRows] = useState<RapatRow[]>([]);
+  const [rapatRows, setRapatRows] = useState<RapatAgenda[]>([]);
   const [kini, setKini] = useState(0);
   const [statistikGagal, setStatistikGagal] = useState(false);
+  const [editRapat, setEditRapat] = useState<RapatAgenda | null>(null);
+  const [batalRapat, setBatalRapat] = useState<RapatAgenda | null>(null);
+  const [hapusRapat, setHapusRapat] = useState<RapatAgenda | null>(null);
+  const [aksiBusy, setAksiBusy] = useState(false);
 
   // Daftar personil selalu berasal dari server. Hanya pegawai berstatus aktif
   // yang ditawarkan, karena backend menolak petugas nonaktif saat rapat dibuat.
@@ -83,7 +364,7 @@ export default function KelolaRapat() {
 
   const muatStatistik = useCallback(() => {
     api
-      .get<{ rows: RapatRow[] }>("/rapat")
+      .get<{ rows: RapatAgenda[] }>("/rapat")
       .then(({ rows }) => {
         setRapatRows(rows);
         setKini(Date.now());
@@ -119,6 +400,38 @@ export default function KelolaRapat() {
     (r) => r.status === "terjadwal" && !r.notulensi && new Date(r.tanggal).getTime() < kini
   ).length;
   const selesaiTervalidasi = rapatRows.filter((r) => r.notulensi).length;
+
+  function gantiRapat(baru: RapatAgenda) {
+    setRapatRows((cur) => cur.map((r) => (r.id === baru.id ? baru : r)));
+  }
+
+  async function konfirmasiBatal() {
+    if (!batalRapat) return;
+    setAksiBusy(true);
+    try {
+      const res = await api.patch<{ rapat: RapatAgenda }>(`/rapat/${batalRapat.id}`, { status: "dibatalkan" });
+      gantiRapat(res.rapat);
+      setBatalRapat(null);
+    } catch (e) {
+      setPesan({ tipe: "gagal", teks: e instanceof ApiError ? e.message : "Gagal membatalkan rapat." });
+    } finally {
+      setAksiBusy(false);
+    }
+  }
+
+  async function konfirmasiHapus() {
+    if (!hapusRapat) return;
+    setAksiBusy(true);
+    try {
+      await api.delete(`/rapat/${hapusRapat.id}`);
+      setRapatRows((cur) => cur.filter((r) => r.id !== hapusRapat.id));
+      setHapusRapat(null);
+    } catch (e) {
+      setPesan({ tipe: "gagal", teks: e instanceof ApiError ? e.message : "Gagal menghapus rapat." });
+    } finally {
+      setAksiBusy(false);
+    }
+  }
 
   async function handleSubmit() {
     setPesan(null);
@@ -439,6 +752,225 @@ export default function KelolaRapat() {
           </p>
         </div>
       </div>
+
+      {/* Agenda Rapat */}
+      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Calendar size={15} className="text-emerald-600" />
+            <span className="text-sm font-bold text-gray-900">Agenda Rapat TPID</span>
+          </div>
+          <span className="text-xs text-gray-400">
+            {rapatRows.length} rapat • {rapatRows.filter((r) => r.status === "terjadwal").length} aktif
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px]">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                {["Agenda", "Jadwal", "Personil", "Status", "Aksi"].map((col) => (
+                  <th
+                    key={col}
+                    className="text-left text-xs font-normal text-gray-400 uppercase tracking-wide px-5 py-3"
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {statistikGagal ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-10 text-sm text-gray-400">
+                    Gagal memuat agenda rapat.
+                  </td>
+                </tr>
+              ) : kini === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-10 text-sm text-gray-400">
+                    Memuat agenda…
+                  </td>
+                </tr>
+              ) : rapatRows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-10 text-sm text-gray-400">
+                    Belum ada rapat dijadwalkan. Gunakan formulir di atas.
+                  </td>
+                </tr>
+              ) : (
+                rapatRows.map((r) => {
+                  const badge = badgeStatus(r.status);
+                  const notulis = r.petugas.find((p) => p.peran === "notulis");
+                  return (
+                    <tr key={r.id} className="hover:bg-gray-50/50 transition-colors align-top">
+                      <td className="px-5 py-4">
+                        <div className="text-xs font-bold text-gray-900">{r.topik}</div>
+                        {(r.lokasi || r.catatan) && (
+                          <div className="text-xs text-gray-400 mt-0.5 space-y-0.5">
+                            {r.lokasi && (
+                              <div className="flex items-center gap-1">
+                                <MapPin size={10} className="flex-shrink-0" />
+                                {r.lokasi}
+                              </div>
+                            )}
+                            {r.catatan && <div>{r.catatan}</div>}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="text-xs text-gray-700 whitespace-nowrap">{formatJadwal(r.tanggal)}</div>
+                        {r.status !== "dibatalkan" && (
+                          <div
+                            className={`text-[11px] mt-0.5 flex items-center gap-1 ${
+                              new Date(r.tanggal).getTime() < kini ? "text-amber-600" : "text-gray-400"
+                            }`}
+                          >
+                            <Clock size={10} />
+                            {new Date(r.tanggal).getTime() < kini ? "Sudah lewat" : "Akan datang"}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-0.5">
+                          {notulis && (
+                            <span className="text-xs text-gray-700">
+                              <strong className="font-semibold">Notulis:</strong> {notulis.name}
+                            </span>
+                          )}
+                          <div className="flex flex-wrap gap-0.5 max-w-[180px]">
+                            {r.petugas
+                              .filter((p) => p.peran !== "notulis")
+                              .map((p) => (
+                                <span key={p.pegawaiId} className="text-[11px] text-gray-400">
+                                  {p.name}
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${badge.cls}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${badge.dot}`} />
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1.5">
+                          {r.status === "terjadwal" && (
+                            <>
+                              <button
+                                onClick={() => setEditRapat(r)}
+                                className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
+                                title="Ubah jadwal"
+                              >
+                                <Pencil size={12} />
+                              </button>
+                              <button
+                                onClick={() => setBatalRapat(r)}
+                                className="w-7 h-7 rounded-lg border border-red-100 flex items-center justify-center hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+                                title="Batalkan rapat"
+                              >
+                                <Ban size={12} />
+                              </button>
+                            </>
+                          )}
+                          {r.status === "dibatalkan" && (
+                            <button
+                              onClick={() => setHapusRapat(r)}
+                              className="w-7 h-7 rounded-lg border border-red-100 flex items-center justify-center hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+                              title="Hapus rapat"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal ubah rapat */}
+      {editRapat && (
+        <EditRapatModal
+          rapat={editRapat}
+          kader={kader}
+          onClose={() => setEditRapat(null)}
+          onSaved={(baru) => {
+            gantiRapat(baru);
+            setEditRapat(null);
+          }}
+        />
+      )}
+
+      {/* Konfirmasi batalkan */}
+      {batalRapat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+              <Ban size={20} className="text-red-500" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Batalkan Rapat?</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Rapat <strong className="text-gray-700">{batalRapat.topik}</strong> akan ditandai{" "}
+              dibatalkan dan pengingat WhatsApp-nya dihentikan.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setBatalRapat(null)}
+                disabled={aksiBusy}
+                className="flex-1 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50"
+              >
+                Tidak Jadi
+              </button>
+              <button
+                onClick={konfirmasiBatal}
+                disabled={aksiBusy}
+                className="flex-1 py-2 text-xs font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50"
+              >
+                {aksiBusy ? "Memproses…" : "Ya, Batalkan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Konfirmasi hapus */}
+      {hapusRapat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
+              <Trash2 size={20} className="text-red-500" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Hapus Rapat?</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Data rapat <strong className="text-gray-700">{hapusRapat.topik}</strong> akan dihapus
+              permanen. Rapat yang sudah selesai dengan notulensi tidak bisa dihapus.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setHapusRapat(null)}
+                disabled={aksiBusy}
+                className="flex-1 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={konfirmasiHapus}
+                disabled={aksiBusy}
+                className="flex-1 py-2 text-xs font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50"
+              >
+                {aksiBusy ? "Memproses…" : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
