@@ -7,7 +7,7 @@ import {
   pegawaiUpdateSchema,
 } from "../lib/schemas";
 import { generateTemporaryPassword, hashPassword } from "../lib/security";
-import { requireAuth, requireRoles } from "../middleware/auth";
+import { AuthedRequest, requireAuth, requireRoles } from "../middleware/auth";
 import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateInstansi, toPegawaiDTO } from "./master.helpers";
 import { invalidateSummary } from "../lib/rekapCache";
@@ -301,6 +301,61 @@ router.patch(
     }
 
     res.json({ message: "Pegawai berhasil diperbarui.", pegawai: toPegawaiDTO(updated) });
+  })
+);
+
+// ─── POST /api/pegawai/:id/reset-password (admin) ─────────────────────────
+// Gugur kata sandi akun login pegawai: sandi baru sementara + semua sesi lama
+// dicabut. Satu-satunya jalan reset admin reguler setelah menu Kelola Akun
+// dihapus; akun sendiri dikecualikan (ganti via Pengaturan Akun).
+router.post(
+  "/pegawai/:id/reset-password",
+  writeLimiter,
+  requireAuth,
+  requireRoles("admin"),
+  h(async (req, res) => {
+    const me = (req as AuthedRequest).user!;
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { id: req.params.id },
+      include: { user: { select: { id: true, email: true } } },
+    });
+    if (!pegawai) {
+      res.status(404).json({ message: "Pegawai tidak ditemukan." });
+      return;
+    }
+    if (!pegawai.user) {
+      res.status(400).json({
+        message: "Belum ada akun login untuk pegawai ini. Isi email pada form pegawai agar akun dibuat.",
+      });
+      return;
+    }
+    if (pegawai.user.id === me.id) {
+      res.status(400).json({ message: "Ganti kata sandi sendiri lewat menu Pengaturan Akun." });
+      return;
+    }
+
+    const temporaryPassword = generateTemporaryPassword();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: pegawai.user!.id },
+        data: { password: await hashPassword(temporaryPassword), status: "aktif" },
+      });
+      // Reset mencabut semua sesi lama: pemegang cookie refresh lama tidak
+      // boleh menyamar setelah kata sandi diunggah ulang oleh admin.
+      await tx.session.updateMany({
+        where: { userId: pegawai.user!.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    });
+
+    await catatAudit(req, "user.reset-password", pegawai.user.email);
+
+    res.json({
+      message: "Kata sandi berhasil direset.",
+      temporaryPassword,
+      email: pegawai.user.email,
+    });
   })
 );
 

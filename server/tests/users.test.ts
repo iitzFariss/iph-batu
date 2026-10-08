@@ -33,168 +33,7 @@ async function buatUserStatus(email: string, status: "pending" | "aktif" | "nona
   });
 }
 
-describe("GET /api/users (admin)", () => {
-  beforeAll(async () => {
-    await bersihkanSemua();
-    await login("admin@users.test", "admin");
-    await buatUserStatus("pending@users.test", "pending");
-    await buatUserStatus("zulkifli@users.test", "aktif");
-  });
-
-  afterAll(async () => {
-    await bersihkanSemua();
-    await prisma.$disconnect();
-  });
-
-  it("admin bisa melihat daftar akun lengkap dengan ringkasan", async () => {
-    const res = await request(app)
-      .get("/api/users")
-      .set("Authorization", `Bearer ${await token("admin@users.test")}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body.rows).toBeInstanceOf(Array);
-    expect(res.body.ringkasan.total).toBe(3);
-    expect(res.body.ringkasan.pending).toBe(1);
-
-    const pending = res.body.rows.find((r: { email: string }) => r.email === "pending@users.test");
-    expect(pending.status).toBe("pending");
-    expect(pending.isSelf).toBe(false);
-  });
-
-  it("akun pending selalu tampil di urutan paling depan", async () => {
-    const res = await request(app)
-      .get("/api/users")
-      .set("Authorization", `Bearer ${await token("admin@users.test")}`);
-
-    expect(res.body.rows[0].email).toBe("pending@users.test");
-  });
-
-  it("petugas ditolak mengakses daftar akun", async () => {
-    await buatUserStatus("petugas@users.test", "aktif");
-    const res = await request(app)
-      .get("/api/users")
-      .set("Authorization", `Bearer ${await token("petugas@users.test")}`);
-
-    expect(res.status).toBe(403);
-  });
-});
-
-describe("PATCH /api/users/:id (admin)", () => {
-  beforeAll(async () => {
-    await bersihkanSemua();
-  });
-
-  afterAll(async () => {
-    await bersihkanSemua();
-    await prisma.$disconnect();
-  });
-
-  it("menyetujui akun pending sehingga bisa login", async () => {
-    await login("admin@approve.test", "admin");
-    const petugas = await buatUserStatus("petugas@approve.test", "pending");
-
-    const res = await request(app)
-      .patch(`/api/users/${petugas.id}`)
-      .set("Authorization", `Bearer ${await token("admin@approve.test")}`)
-      .send({ status: "aktif" });
-
-    expect(res.status).toBe(200);
-    expect(res.body.user.status).toBe("aktif");
-
-    const masuk = await request(app)
-      .post("/api/auth/login")
-      .send({ email: "petugas@approve.test", password: PASSWORD });
-    expect(masuk.status).toBe(200);
-  });
-
-  it("menonaktifkan akun dan langsung mencabut semua sesinya", async () => {
-    await login("admin@ban.test", "admin");
-    const target = await buatUserStatus("korban@ban.test", "aktif");
-
-    const sesiAwal = await request(app)
-      .post("/api/auth/login")
-      .send({ email: "korban@ban.test", password: PASSWORD });
-    const refresh = cookieRefresh(sesiAwal);
-
-    const res = await request(app)
-      .patch(`/api/users/${target.id}`)
-      .set("Authorization", `Bearer ${await token("admin@ban.test")}`)
-      .send({ status: "nonaktif" });
-
-    expect(res.status).toBe(200);
-
-    // Cookie refresh lama sudah dicabut: tidak bisa menukar access token.
-    const ulang = await request(app)
-      .post("/api/auth/refresh")
-      .set("Cookie", `${REFRESH_COOKIE}=${refresh}`);
-    expect(ulang.status).toBe(401);
-
-    // Akun nonaktif tidak bisa login lagi.
-    const masuk = await request(app)
-      .post("/api/auth/login")
-      .send({ email: "korban@ban.test", password: PASSWORD });
-    expect(masuk.status).toBe(403);
-  });
-
-  it("admin tidak bisa mengubah akun diri sendiri", async () => {
-    await login("admin@saya.test", "admin");
-    const saya = await prisma.user.findUnique({ where: { emailNorm: "admin@saya.test" } });
-
-    const res = await request(app)
-      .patch(`/api/users/${saya!.id}`)
-      .set("Authorization", `Bearer ${await token("admin@saya.test")}`)
-      .send({ status: "nonaktif" });
-
-    expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/sendiri/i);
-  });
-
-  it("role dan status akun administrator tidak bisa diubah", async () => {
-    await login("admin@pengubah.test", "admin");
-    const adminLain = await buatUser({ email: "admin@sasaran.test", role: "admin" });
-
-    const res = await request(app)
-      .patch(`/api/users/${adminLain.id}`)
-      .set("Authorization", `Bearer ${await token("admin@pengubah.test")}`)
-      .send({ status: "nonaktif" });
-
-    expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/administrator/i);
-  });
-
-  it("role akun tamu tidak bisa diubah, status boleh diatur", async () => {
-    await login("admin@tamu.test", "admin");
-    const tamu = await buatUser({ email: "tamu@guard.test", role: "tamu" });
-
-    const ubahRole = await request(app)
-      .patch(`/api/users/${tamu.id}`)
-      .set("Authorization", `Bearer ${await token("admin@tamu.test")}`)
-      .send({ role: "petugas" });
-    expect(ubahRole.status).toBe(400);
-    expect(ubahRole.body.message).toMatch(/tamu/i);
-
-    const ubahStatus = await request(app)
-      .patch(`/api/users/${tamu.id}`)
-      .set("Authorization", `Bearer ${await token("admin@tamu.test")}`)
-      .send({ status: "nonaktif" });
-    expect(ubahStatus.status).toBe(200);
-  });
-
-  it("menolak body tanpa role atau status", async () => {
-    await login("admin@body.test", "admin");
-    await buatUserStatus("sasaran@body.test", "aktif");
-    const sasaran = await prisma.user.findUnique({ where: { emailNorm: "sasaran@body.test" } });
-
-    const res = await request(app)
-      .patch(`/api/users/${sasaran!.id}`)
-      .set("Authorization", `Bearer ${await token("admin@body.test")}`)
-      .send({});
-
-    expect(res.status).toBe(400);
-  });
-});
-
-describe("POST /api/users/:id/reset-password (admin)", () => {
+describe("POST /api/pegawai/:id/reset-password (admin)", () => {
   beforeAll(async () => {
     await bersihkanSemua();
     await login("admin@reset.test", "admin");
@@ -205,8 +44,15 @@ describe("POST /api/users/:id/reset-password (admin)", () => {
     await prisma.$disconnect();
   });
 
-  it("mengembalikan kata sandi baru, mencabut sesi lama, dan bisa masuk dengan sandi baru", async () => {
+  async function buatPegawaiDenganAkun(email: string, nip: string, userId: string) {
+    return prisma.pegawai.create({
+      data: { name: "Pegawai Reset", nip, peran: "Staf Data", status: "aktif", email, userId },
+    });
+  }
+
+  it("mengembalikan sandi baru, mencabut sesi lama, dan bisa masuk dengan sandi baru", async () => {
     const target = await buatUserStatus("korban@reset.test", "aktif");
+    const pegawai = await buatPegawaiDenganAkun("korban@reset.test", "199001012010011002", target.id);
 
     const masukLama = await request(app)
       .post("/api/auth/login")
@@ -214,11 +60,12 @@ describe("POST /api/users/:id/reset-password (admin)", () => {
     const refreshLama = cookieRefresh(masukLama);
 
     const res = await request(app)
-      .post(`/api/users/${target.id}/reset-password`)
+      .post(`/api/pegawai/${pegawai.id}/reset-password`)
       .set("Authorization", `Bearer ${await token("admin@reset.test")}`)
       .send({});
 
     expect(res.status).toBe(200);
+    expect(res.body.email).toBe("korban@reset.test");
     expect(res.body.temporaryPassword).toEqual(expect.any(String));
     expect(res.body.temporaryPassword).toHaveLength(8);
 
@@ -241,24 +88,50 @@ describe("POST /api/users/:id/reset-password (admin)", () => {
     expect(masukBaru.status).toBe(200);
   });
 
-  it("admin tidak bisa mereset kata sandi dirinya sendiri", async () => {
-    const saya = await prisma.user.findUnique({ where: { emailNorm: "admin@reset.test" } });
+  it("menolak reset untuk pegawai yang belum punya akun login", async () => {
+    const pegawai = await prisma.pegawai.create({
+      data: { name: "Tanpa Akun", nip: "197804102003121002", peran: "Staf Data", status: "aktif" },
+    });
 
     const res = await request(app)
-      .post(`/api/users/${saya!.id}/reset-password`)
+      .post(`/api/pegawai/${pegawai.id}/reset-password`)
       .set("Authorization", `Bearer ${await token("admin@reset.test")}`)
       .send({});
 
     expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/email/i);
   });
 
-  it("mengembalikan 404 untuk akun yang tidak ada", async () => {
+  it("admin tidak bisa mereset kata sandi akun loginnya sendiri", async () => {
+    const saya = await buatUser({ email: "admin@resetsendiri.test", role: "admin" });
+    const pegawai = await buatPegawaiDenganAkun("admin@resetsendiri.test", "197804102003121011", saya.id);
+
     const res = await request(app)
-      .post("/api/users/tidak-ada/reset-password")
+      .post(`/api/pegawai/${pegawai.id}/reset-password`)
+      .set("Authorization", `Bearer ${await token("admin@resetsendiri.test")}`)
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/Pengaturan Akun/);
+  });
+
+  it("mengembalikan 404 untuk pegawai yang tidak ada", async () => {
+    const res = await request(app)
+      .post("/api/pegawai/tidak-ada/reset-password")
       .set("Authorization", `Bearer ${await token("admin@reset.test")}`)
       .send({});
 
     expect(res.status).toBe(404);
+  });
+
+  it("petugas ditolak mereset kata sandi", async () => {
+    await buatUserStatus("blockir@reset.test", "aktif");
+    const res = await request(app)
+      .post("/api/pegawai/tidak-ada/reset-password")
+      .set("Authorization", `Bearer ${await token("blockir@reset.test")}`)
+      .send({});
+
+    expect(res.status).toBe(403);
   });
 });
 

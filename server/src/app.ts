@@ -7,7 +7,6 @@ import masterRoutes from "./routes/master.routes";
 import rekapRoutes from "./routes/rekap.routes";
 import rapatRoutes from "./routes/rapat.routes";
 import publicRoutes from "./routes/public.routes";
-import userRoutes from "./routes/user.routes";
 import {
   authLimiter,
   guestLimiter,
@@ -55,7 +54,6 @@ export function createApp() {
   app.use("/api", masterRoutes);
   app.use("/api/rekap", rekapRoutes);
   app.use("/api/rapat", rapatRoutes);
-  app.use("/api/users", userRoutes);
 
   app.use(notFound);
   app.use(errorHandler);
