@@ -3,7 +3,6 @@ import {
   Search,
   ChevronDown,
   SlidersHorizontal,
-  FileDown,
   Sheet,
   TrendingDown,
   TrendingUp,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { useDialogFocus } from "../lib/useDialogFocus";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -120,6 +120,7 @@ function EditRekapModal({ row, onSave, onClose }: {
   onSave: (updated: RekapRow) => void;
   onClose: () => void;
 }) {
+  const dialogRef = useDialogFocus(true, onClose);
   const [draft, setDraft] = useState<RekapRow>(row);
   const [error, setError] = useState("");
 
@@ -182,16 +183,16 @@ function EditRekapModal({ row, onSave, onClose }: {
   const numCls = "w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Ubah rekap periode" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">Edit Rekapan Periode</h3>
+            <h3 className="text-sm font-bold text-gray-900">Ubah rekap periode</h3>
             <p className="text-xs text-gray-400 mt-0.5">
               Perbaiki data rekap yang telah dimasukkan sebelumnya
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Tutup ubah rekap" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={15} />
           </button>
         </div>
@@ -210,24 +211,27 @@ function EditRekapModal({ row, onSave, onClose }: {
               <input
                 type="text"
                 value={draft.periode}
+                aria-label="Periode rekap"
                 onChange={(e) => setPeriode(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Cutoff Awal</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Tanggal awal</label>
               <input
                 type="text"
                 value={draft.cutoffStart}
+                aria-label="Tanggal awal"
                 onChange={(e) => setCutoffStart(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Cutoff Akhir</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Tanggal akhir</label>
               <input
                 type="text"
                 value={draft.cutoffEnd}
+                aria-label="Tanggal akhir"
                 onChange={(e) => setCutoffEnd(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
@@ -240,6 +244,7 @@ function EditRekapModal({ row, onSave, onClose }: {
                 type="text"
                 inputMode="decimal"
                 value={draft.nilaiIPH}
+                aria-label="Nilai IPH gabungan"
                 onChange={(e) => setNilaiIPH(e.target.value)}
                 className={numCls}
               />
@@ -283,6 +288,7 @@ function EditRekapModal({ row, onSave, onClose }: {
                       <button
                         type="button"
                         onClick={() => removeTag(group, idx)}
+                        aria-label={`Hapus ${tag.name || "komoditas"} dari ${group}`}
                         className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
                       >
                         <X size={13} />
@@ -499,21 +505,19 @@ export default function RekapanData() {
     <div className="p-4 sm:p-5 space-y-4 w-full">
       {/* Breadcrumb */}
       <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-400">
-        <span className="hover:text-gray-600 cursor-pointer">TPID Terpadu</span>
+        <span>Data harga</span>
         <ChevronRight size={10} />
-        <span className="hover:text-gray-600 cursor-pointer">Basis Data Inflasi</span>
-        <ChevronRight size={10} />
-        <span className="text-gray-700 font-medium">Rekapan Data IPH</span>
+        <span className="text-gray-700 font-medium">Rekap data IPH</span>
       </div>
 
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900 mb-1">
-            Rekapan Data Indeks Perkembangan Harga (IPH)
+            Rekap data IPH
           </h1>
           <p className="text-xs text-gray-500">
-            Arsip digital pencatatan mingguan fluktuasi harga komoditas pangan pokok Kota Batu
+            Telusuri rekap mingguan, saring periode, atau unduh data dalam format CSV.
           </p>
         </div>
 
@@ -569,10 +573,6 @@ export default function RekapanData() {
 
           {/* Export */}
           <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-            <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 flex-1 sm:flex-none justify-center">
-              <FileDown size={13} className="text-red-500" />
-              Export PDF Resmi
-            </button>
             <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex-1 sm:flex-none justify-center">
               <Sheet size={13} />
               Download CSV / Excel
@@ -720,7 +720,7 @@ export default function RekapanData() {
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="w-10 px-4 py-3">
-                <input type="checkbox" className="rounded" readOnly />
+                <input type="checkbox" className="rounded" aria-label="Pilih semua rekap di halaman ini" checked={rows.length > 0 && rows.every((row) => selectedRows.includes(row.id))} onChange={(event) => setSelectedRows(event.target.checked ? [...new Set([...selectedRows, ...rows.map((row) => row.id)])] : selectedRows.filter((id) => !rows.some((row) => row.id === id)))} />
               </th>
               {[
                 "Periode & Rentang Data",
@@ -745,13 +745,13 @@ export default function RekapanData() {
             {loading ? (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
-                  Memuat data rekapan…
+                  Memuat rekap data…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
-                  {loadError || "Belum ada data rekapan untuk filter ini."}
+                  {loadError || "Tidak ada rekap yang sesuai dengan filter ini."}
                 </td>
               </tr>
             ) : (
@@ -768,6 +768,7 @@ export default function RekapanData() {
                     type="checkbox"
                     className="rounded"
                     checked={selectedRows.includes(row.id)}
+                    aria-label={`Pilih rekap ${row.periode}`}
                     onChange={() => toggleRow(row.id)}
                   />
                 </td>
@@ -855,11 +856,12 @@ export default function RekapanData() {
         {/* Pagination */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/50">
           <span className="text-sm text-gray-500">
-            Menampilkan <strong>{pageStart}–{pageEnd}</strong> dari <strong>{total}</strong> data rekapan
+            Menampilkan <strong>{pageStart}–{pageEnd}</strong> dari <strong>{total}</strong> rekap
           </span>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-400">Baris per halaman:</span>
             <select
+              aria-label="Baris per halaman"
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
               className="text-sm border border-gray-200 rounded px-2 py-1 bg-white text-gray-700"
@@ -873,6 +875,7 @@ export default function RekapanData() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
+              aria-label="Halaman sebelumnya"
               className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:bg-gray-100 disabled:opacity-30"
             >
               <ChevronLeft size={13} />
@@ -893,6 +896,7 @@ export default function RekapanData() {
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
+              aria-label="Halaman berikutnya"
               className="w-7 h-7 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30"
             >
               <ChevronRight size={13} />

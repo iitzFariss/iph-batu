@@ -15,16 +15,16 @@ function getRowValue(row: WeeklyRow, columnId: string): number | null {
 
 function ValueCell({ value }: { value: number | null }) {
   if (value === null) {
-    return <span className="text-xs text-gray-600 font-medium">None</span>;
+    return <span className="text-xs text-gray-600 font-medium">Belum tersedia</span>;
   }
   if (value === 0) {
-    return <span className="text-xs font-semibold text-gray-500">0.00</span>;
+    return <span className="text-xs font-semibold text-gray-500">0,00</span>;
   }
   const pos = value > 0;
   return (
     <span className={`text-xs font-semibold tabular-nums ${pos ? "text-amber-600" : "text-green-600"}`}>
       {pos ? "+" : ""}
-      {value.toFixed(2)}
+      {value.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
     </span>
   );
 }
@@ -34,7 +34,7 @@ function ValueCell({ value }: { value: number | null }) {
 export default function WeeklyDataTable({
   columns = weeklyColumns,
   rows,
-  title = "Data Detail Mingguan:",
+  title = "Rincian IPH mingguan",
   description,
 }: WeeklyDataTableProps) {
   return (
@@ -51,6 +51,9 @@ export default function WeeklyDataTable({
 
       <div
         className="overflow-x-auto"
+        tabIndex={0}
+        role="region"
+        aria-label="Tabel data IPH mingguan, geser untuk melihat periode lainnya"
         style={{ maxWidth: "100%", scrollbarWidth: "thin" }}
       >
         <table className="w-full min-w-max border-separate border-spacing-0">
@@ -92,7 +95,7 @@ export default function WeeklyDataTable({
       </div>
 
       <div className="px-4 py-2.5 border-t border-gray-100">
-        <span className="text-xs text-gray-400">Sel kosong ditampilkan sebagai "None"</span>
+        <span className="text-xs text-gray-400">“Belum tersedia” berarti nilai belum tercatat, bukan nol.</span>
       </div>
     </div>
   );

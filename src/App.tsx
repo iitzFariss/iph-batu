@@ -5,7 +5,7 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
-import RekapanData from "./components/RekapanData";
+import RekapanData from "./components/Rekapandata";
 import InputRekapIPH from "./components/InputRekapIPH";
 import VisualisasiTren from "./components/Visualisasitren";
 import KelolaRapat from "./components/Kelolarapat";
@@ -18,8 +18,6 @@ import ProfilSaya from "./components/ProfilSaya";
 import PengaturanAkun from "./components/PengaturanAkun";
 import Error404 from "./components/Error404";
 import Error500 from "./components/Error500";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type PageId =
   | "dashboard"
@@ -34,8 +32,6 @@ type PageId =
   | "pengaturan-akun"
   | "error-404"
   | "error-500";
-
-// ─── Role-based access ────────────────────────────────────────────────────────
 
 // Halaman yang hanya bisa diakses oleh admin
 const ADMIN_ONLY: PageId[] = ["kelola-pegawai"];
@@ -67,10 +63,8 @@ const ALL_PAGES: PageId[] = [
   "error-500",
 ];
 
-// Halaman dark full-screen (tanpa header & sidebar wrapper)
+// Halaman kesalahan memakai layar penuh tanpa header dan sidebar.
 const DARK_PAGES: PageId[] = ["error-404", "error-500"];
-
-// ─── Page router ──────────────────────────────────────────────────────────────
 
 function PageContent({
   page,
@@ -141,14 +135,12 @@ function PageContent({
   }
 }
 
-// ─── Internal app (sudah login) ───────────────────────────────────────────────
-
 function InternalApp() {
   const { user } = useAuth();
   const [activePage, setActivePage] = useState<PageId>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Link publik (#/publik): hanya dashboard — persis seperti tampilan masyarakat/tamu.
+  // Link publik membuka dashboard dengan akses tamu.
   const isPublicView = typeof window !== "undefined"
     && window.location.hash === PUBLIC_DASHBOARD_HASH;
 
@@ -169,7 +161,8 @@ function InternalApp() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans overflow-hidden">
+    <div className="workspace flex h-dvh bg-gray-50 font-sans overflow-hidden">
+      <a href="#main-content" className="skip-link">Lewati navigasi</a>
       {role !== "tamu" && (
         <Sidebar
           activePage={activePage}
@@ -188,17 +181,16 @@ function InternalApp() {
           <Header
             onNavigate={(id) => navigate(id as PageId)}
             onOpenSidebar={role === "tamu" ? undefined : () => setSidebarOpen(true)}
+            sidebarOpen={sidebarOpen}
           />
         )}
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" tabIndex={-1} className="workspace-content flex-1 min-w-0 overflow-y-auto">
           <PageContent page={activePage} navigate={navigate} role={role} />
         </main>
       </div>
     </div>
   );
 }
-
-// ─── App shell (routing auth) ─────────────────────────────────────────────────
 
 function AppShell() {
   const { user, isAuthenticated, loginAsGuest } = useAuth();
@@ -223,8 +215,6 @@ function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Belum login → tampilkan halaman publik (tanpa dark mode)
-  // Kecuali link publik dashboard (#/publik) yang langsung auto login.
   if (!isAuthenticated || !user) {
     if (isPublicView) {
       if (publicLoad === "gagal") {
@@ -251,15 +241,12 @@ function AppShell() {
     return <LandingPage onLogin={() => setAuthView("login")} />;
   }
 
-  // Semua role (admin / petugas / tamu) → dashboard penuh
   return (
     <div className={isDark ? "dark h-full" : "h-full"}>
       <InternalApp />
     </div>
   );
 }
-
-// ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
   return (

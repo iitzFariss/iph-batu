@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useDialogFocus } from "../lib/useDialogFocus";
 import {
   Search,
   Calendar,
@@ -137,6 +138,7 @@ export default function MonitoringResume() {
   const [pesan, setPesan] = useState("");
   const [pesanSukses, setPesanSukses] = useState("");
   const [hapusId, setHapusId] = useState<string | null>(null);
+  const deleteDialogRef = useDialogFocus(!!hapusId, () => setHapusId(null));
 
   const muat = useCallback(() => {
     api
@@ -251,7 +253,7 @@ export default function MonitoringResume() {
     <div className="p-4 sm:p-5 space-y-5 w-full">
       {/* Konfirmasi hapus jadwal (admin) */}
       {hapusId && rapatHapus && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div ref={deleteDialogRef} role="dialog" aria-modal="true" aria-label="Konfirmasi hapus jadwal rapat" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
               <Trash2 size={20} className="text-red-500" />
@@ -281,19 +283,12 @@ export default function MonitoringResume() {
         </div>
       )}
       {/* Header */}
-      <div className="flex items-center gap-2 mb-1">
-        <CheckCircle2 size={14} className="text-emerald-600" />
-        <span className="text-sm text-gray-500 font-medium">
-          Pusat Tata Kelola Notulensi &amp; Dokumentasi Koordinasi
-        </span>
-      </div>
       <div>
         <h1 className="text-2xl font-black text-gray-900 mb-1">
-          Monitoring Rapat &amp; Risalah TPID
+          Pemantauan rapat
         </h1>
         <p className="text-xs text-gray-500">
-          Monitoring jadwal rapat koordinasi pengendalian inflasi, kepatuhan pengisian notulensi,
-          dan pengingat WhatsApp untuk petugas. Notulis bertugas mengisi notulensi yang menunggu input.
+          Periksa jadwal, status notulensi, dan pengingat rapat. Notulis dapat mengisi notulensi untuk rapat yang ditugaskan kepadanya.
         </p>
       </div>
 
@@ -314,9 +309,9 @@ export default function MonitoringResume() {
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { label: "Total Agenda Terjadwal", value: statusData === "memuat" ? "—" : rapatList.filter((r) => r.status !== "dibatalkan").length, icon: <Calendar size={16} className="text-gray-400" />, cls: "" },
-          { label: "Menunggu Notulensi", value: statusData === "memuat" ? "—" : pendingCount, icon: <AlertCircle size={16} className="text-red-500" />, cls: "border-l-2 border-l-red-400" },
-          { label: "Selesai", value: statusData === "memuat" ? "—" : doneCount, icon: <CheckCircle2 size={16} className="text-emerald-500" />, cls: "border-l-2 border-l-emerald-400" },
+          { label: "Total Agenda Terjadwal", value: statusData === "memuat" ? "..." : rapatList.filter((r) => r.status !== "dibatalkan").length, icon: <Calendar size={16} className="text-gray-400" />, cls: "" },
+          { label: "Menunggu Notulensi", value: statusData === "memuat" ? "..." : pendingCount, icon: <AlertCircle size={16} className="text-red-500" />, cls: "border-l-2 border-l-red-400" },
+          { label: "Selesai", value: statusData === "memuat" ? "..." : doneCount, icon: <CheckCircle2 size={16} className="text-emerald-500" />, cls: "border-l-2 border-l-emerald-400" },
         ].map(({ label, value, icon, cls }) => (
           <div key={label} className={`bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between ${cls}`}>
             <div>
@@ -339,7 +334,7 @@ export default function MonitoringResume() {
               </div>
               <p className="text-xs sm:text-sm text-gray-400">
                 Pengingat rapat H-1/H-0 dan notulensi terlambat. Kirim manual lewat tombol Buka
-                WhatsApp — nomor diambil dari Profil Saya masing-masing petugas.
+                WhatsApp. Nomor diambil dari Profil Saya masing-masing petugas.
               </p>
             </div>
             <button
@@ -416,7 +411,7 @@ export default function MonitoringResume() {
           <div>
             <h2 className="text-sm font-bold text-gray-900">Daftar Agenda Rapat Terjadwal</h2>
             <p className="text-xs sm:text-sm text-gray-400">
-              Monitoring jadwal berkala, kelengkapan notulensi, dan distribusi hasil rapat koordinasi.
+              Lihat jadwal dan kelengkapan notulensi setiap rapat.
             </p>
           </div>
           <div className="relative">

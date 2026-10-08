@@ -78,33 +78,23 @@ function HeroMetrics({ latest }: { latest: SummaryTrendPoint | null }) {
     ? `Minggu ${ROMAWI[latest.mingguIndeks - 1] ?? latest.mingguIndeks} ${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}`
     : "Belum ada data";
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-5 mb-4">
-      <div className="flex flex-wrap items-center gap-1.5 mb-3">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-        <span className="text-sm text-gray-500">Periode data </span>
-        <span className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
-          {periodeLabel}
-        </span>
+    <div className="dashboard-overview bg-white border border-gray-100 rounded-xl p-5 mb-4">
+      <div className="overview-period">
+        <span>Periode data</span>
+        <strong>{periodeLabel}</strong>
       </div>
-
-      <div className="flex-1">
+      <div className="overview-heading">
         <h1 className="text-2xl font-bold text-gray-900 mb-0.5">
-          Dashboard Pengendalian Inflasi (IPH) Kota Batu
+          Ringkasan harga Kota Batu
         </h1>
-        <p className="text-xs text-gray-500 mb-4">
+        <p className="text-sm text-gray-500 mt-2 max-w-xl">
           Rekap perubahan harga mingguan dan andil komoditas Pasar Besar Kota Batu.
         </p>
 
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="text-xs text-gray-500 mb-0.5">
-              Indeks Perkembangan Harga (IPH) Terkini
-            </div>
-            <span className="text-4xl font-black text-gray-900 tracking-tight">
-              {latest ? `${latest.iph > 0 ? "+" : ""}${latest.iph.toFixed(2)}%` : "—"}
-            </span>
-          </div>
-        </div>
+      </div>
+      <div className="overview-value">
+        <p>IPH pekan terbaru</p>
+        <strong>{latest ? `${latest.iph > 0 ? "+" : ""}${latest.iph.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : "Belum tersedia"}</strong>
       </div>
     </div>
   );
@@ -117,10 +107,10 @@ function TrendChart({ points, year }: { points: { label: string; iph: number }[]
       <div className="flex items-start justify-between mb-1 flex-wrap gap-2">
         <div>
           <h2 className="text-sm font-bold text-gray-900">
-            Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
+            Perkembangan IPH mingguan
           </h2>
           <p className="text-sm text-gray-400">
-            Perubahan harga mingguan komoditas di Pasar Besar Kota Batu (baseline 0.00%)
+            Indeks Perkembangan Harga Kota Batu. Garis nol menandai tidak adanya perubahan.
           </p>
         </div>
         {year !== null && (
@@ -131,12 +121,14 @@ function TrendChart({ points, year }: { points: { label: string; iph: number }[]
       </div>
 
       <div className="overflow-x-auto mt-3 pb-1">
-        <div className="min-w-[760px] h-96">
+        <div className="w-full h-80">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
               dataKey="label"
+              minTickGap={40}
+              interval="preserveStartEnd"
               tick={{ fill: "#9ca3af", fontSize: 15 }}
               axisLine={{ stroke: "#e5e7eb" }}
               tickLine={false}
@@ -192,9 +184,9 @@ function FrequencyChart({ data }: { data: { name: string; count: number }[] }) {
     <div className="bg-white border border-gray-100 rounded-xl p-4">
       <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
         <div>
-          <h2 className="text-sm font-bold text-gray-900">Frekuensi Kemunculan Komoditas</h2>
+          <h2 className="text-sm font-bold text-gray-900">Frekuensi kemunculan komoditas</h2>
           <p className="text-sm text-gray-400">
-            Berapa kali komoditas muncul sebagai andil/fluktuasi dalam pemantauan tahun berjalan
+            Jumlah kemunculan komoditas dalam catatan andil dan fluktuasi harga pada tahun berjalan.
           </p>
         </div>
         <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
@@ -295,11 +287,11 @@ function CommodityTable({
     <div className="bg-white border border-gray-100 rounded-xl p-4">
       <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
         <div>
-          <h2 className="text-sm font-bold text-gray-900">Komoditas Pangan Utama Kota Batu</h2>
+          <h2 className="text-sm font-bold text-gray-900">Andil komoditas pekan terbaru</h2>
           <p className="text-sm text-gray-400">
             {showAll
-              ? "Seluruh andil komoditas pada periode terbaru di Pasar Besar Kota Batu"
-              : "3 komoditas dengan andil tertinggi pekan ini di Pasar Besar Kota Batu"}
+              ? "Seluruh komoditas yang tercatat pada periode ini."
+              : "Tiga komoditas dengan andil terbesar pada periode ini."}
           </p>
         </div>
         <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
@@ -310,10 +302,10 @@ function CommodityTable({
       </div>
 
       <div className="overflow-x-auto -mx-4 px-4">
-        <table className="w-full mt-3 min-w-[560px]">
+      <table className="commodity-table w-full mt-3 min-w-[560px]">
         <thead>
           <tr className="border-b border-gray-100">
-            {(["Komoditas", "Andil (poin %)", "Status IPH"] as const).map(
+            {(["Komoditas", "Andil (persen poin)", "Status"] as const).map(
               (col, i) => (
                 <th
                   key={col}
@@ -339,9 +331,6 @@ function CommodityTable({
             <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
               <td className="py-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                  </div>
                   <div>
                     <div className="text-xs font-semibold text-gray-900">{c.name}</div>
                     <div className="text-xs text-gray-400">
@@ -365,7 +354,7 @@ function CommodityTable({
                     }`}
                   >
                     {c.andil > 0 ? "+" : ""}
-                    {c.andil.toFixed(2)}
+                    {c.andil.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </td>

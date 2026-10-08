@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   Search,
   Plus,
-  Share2,
   Pencil,
   Trash2,
   ChevronLeft,
@@ -16,6 +15,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
+import { useDialogFocus } from "../lib/useDialogFocus";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,6 +96,7 @@ interface ModalProps {
 }
 
 function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
+  const dialogRef = useDialogFocus(true, onClose);
   const [form, setForm] = useState({
     name:       initial?.name       ?? "",
     nip:        initial?.nip        ?? "",
@@ -133,8 +134,8 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={mode === "add" ? "Tambah pegawai" : "Edit pegawai"} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
@@ -142,10 +143,10 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               {mode === "add" ? "Tambah Pegawai Baru" : "Edit Data Pegawai"}
             </h3>
             <p className="text-xs text-gray-400 mt-0.5">
-              {mode === "add" ? "Daftarkan personil baru ke direktori TPID" : "Perbarui informasi pegawai terdaftar"}
+              {mode === "add" ? "Tambahkan akun petugas TPID." : "Perbarui informasi pegawai."}
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Tutup formulir pegawai" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={15} />
           </button>
         </div>
@@ -277,6 +278,7 @@ export default function KelolaPegawai() {
   const [currentPage, setCurrentPage] = useState(1);
   const [modal, setModal]             = useState<null | { mode: "add" | "edit"; data?: Pegawai }>(null);
   const [deleteId, setDeleteId]       = useState<string | null>(null);
+  const deleteDialogRef = useDialogFocus(!!deleteId, () => setDeleteId(null));
   const perPage = 4;
 
   useEffect(() => {
@@ -364,7 +366,7 @@ export default function KelolaPegawai() {
 
       {/* Delete confirm */}
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div ref={deleteDialogRef} role="dialog" aria-modal="true" aria-label="Konfirmasi hapus pegawai" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
               <Trash2 size={20} className="text-red-500" />
@@ -415,15 +417,14 @@ export default function KelolaPegawai() {
           <div className="flex items-center gap-2 mb-1">
             <ShieldCheck size={13} className="text-emerald-600" />
             <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
-              Satuan Tugas Pengendalian Inflasi Daerah (TPID) Kota Batu
+              Tim Pengendalian Inflasi Daerah Kota Batu
             </span>
           </div>
           <h1 className="text-2xl font-black text-gray-900 mb-1">
-            Kelola Pegawai &amp; Satgas TPID
+            Kelola pegawai
           </h1>
 <p className="text-xs text-gray-500 max-w-lg">
-            Daftar petugas dan penugasanpersonil lintas instansi dalam tim koordinasi
-            pengendalian inflasi daerah.
+            Kelola akun petugas dan informasi instansi untuk koordinasi TPID Kota Batu.
           </p>
         </div>
 
@@ -481,10 +482,6 @@ export default function KelolaPegawai() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
-              <Share2 size={12} />
-              Ekspor
-            </button>
             <button
               onClick={() => setModal({ mode: "add" })}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700"
@@ -565,12 +562,14 @@ export default function KelolaPegawai() {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => setModal({ mode: "edit", data: p })}
+                        aria-label={`Edit pegawai ${p.name}`}
                         className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
                       >
                         <Pencil size={12} />
                       </button>
                       <button
                         onClick={() => setDeleteId(p.id)}
+                        aria-label={`Hapus pegawai ${p.name}`}
                         className="w-7 h-7 rounded-lg border border-red-100 flex items-center justify-center hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
                       >
                         <Trash2 size={12} />
@@ -593,6 +592,7 @@ export default function KelolaPegawai() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
+              aria-label="Halaman sebelumnya"
               className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:bg-gray-100 disabled:opacity-30"
             >
               <ChevronLeft size={13} />
@@ -611,6 +611,7 @@ export default function KelolaPegawai() {
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
+              aria-label="Halaman berikutnya"
               className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30"
             >
               <ChevronRight size={13} />
@@ -626,10 +627,6 @@ export default function KelolaPegawai() {
             <strong className="text-gray-800">TPID Kota Batu</strong>
           </span>
         </div>
-        <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50">
-          <Share2 size={12} />
-          Unduh SK TPID (PDF)
-        </button>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Minus, X, TrendingDown, TrendingUp } from "lucide-react";
 import { api, ApiError } from "../lib/api";
+import { useDialogFocus } from "../lib/useDialogFocus";
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -48,18 +49,18 @@ const parseNum = (val: string) => {
 };
 
 const formatPct = (value: number | null) => {
-  if (value === null) return "â€”";
+  if (value === null) return "Belum diisi";
   const pos = value > 0;
   const sign = pos ? "+" : value < 0 ? "" : "";
-  return `${sign}${value.toFixed(2)}%`;
+  return `${sign}${value.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 };
 
 function PctCell({ value }: { value: number | null }) {
   if (value === null) {
-    return <span className="text-xs text-gray-400">â€”</span>;
+    return <span className="text-xs text-gray-400">Belum diisi</span>;
   }
   if (value === 0) {
-    return <span className="text-xs font-semibold text-gray-500">0.00%</span>;
+    return <span className="text-xs font-semibold text-gray-500">0,00%</span>;
   }
   const pos = value > 0;
   return (
@@ -85,6 +86,7 @@ export default function InputRekapIPH() {
   const [komoditasIds, setKomoditasIds] = useState<Record<string, string>>({});
   const [komoditasError, setKomoditasError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const dialogRef = useDialogFocus(showAddModal, () => setShowAddModal(false));
   const [newKomoditas, setNewKomoditas] = useState("");
   const [addError, setAddError] = useState("");
 
@@ -235,7 +237,7 @@ export default function InputRekapIPH() {
           </p>
 
           <div className="text-sm font-black text-gray-900 mb-5">
-            Indikator Perubahan Harga: <PctCell value={indikator} />
+            Indeks Perkembangan Harga: <PctCell value={indikator} />
           </div>
 
           <div className="space-y-2 text-left bg-gray-50 rounded-lg px-4 py-3 mb-6">
@@ -282,9 +284,9 @@ export default function InputRekapIPH() {
       {/* Page header */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-base font-bold text-gray-900">Input Rekap IPH</h1>
+          <h1 className="text-base font-bold text-gray-900">Input rekap IPH</h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            Indeks Perkembangan Harga Mingguan â€” TPID Kota Batu
+            Catat IPH dan andil komoditas untuk periode mingguan yang dipilih.
           </p>
         </div>
         <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-full px-3 py-1.5 text-xs text-gray-500 font-medium shadow-sm">
@@ -304,6 +306,7 @@ export default function InputRekapIPH() {
             <input
               type="text"
               inputMode="numeric"
+              aria-label="Tahun rekap"
               value={form.tahun}
               onChange={(e) => updateField("tahun", e.target.value)}
               className={nilaiInputCls(!!errors.tahun)}
@@ -314,6 +317,7 @@ export default function InputRekapIPH() {
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-500">Bulan</label>
             <select
+              aria-label="Bulan rekap"
               value={form.bulan}
               onChange={(e) => updateField("bulan", e.target.value)}
               className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
@@ -327,6 +331,7 @@ export default function InputRekapIPH() {
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-500">Minggu Ke</label>
             <select
+              aria-label="Minggu rekap"
               value={form.mingguKe}
               onChange={(e) => updateField("mingguKe", e.target.value)}
               className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
@@ -342,10 +347,10 @@ export default function InputRekapIPH() {
       {/* Indikator */}
       <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-          Indikator Perubahan Harga
+          Indeks Perkembangan Harga (IPH)
         </h2>
         <p className="text-xs text-gray-400 mb-3">
-          Tulis angka persen â€” nilai negatif (<Minus size={10} className="inline" />) berarti turun
+          Tulis angka persen. Nilai negatif (<Minus size={10} className="inline" />) berarti turun
           (deflasi), positif berarti naik (inflasi).
         </p>
         <div className="flex items-center gap-2 w-full sm:max-w-xs">
@@ -368,7 +373,7 @@ export default function InputRekapIPH() {
           Komoditas Andil Pergerakan Harga
         </h2>
         <p className="text-xs text-gray-400 mb-4">
-          Komoditas dengan kenaikan &amp; penurunan tertinggi minggu ini (maks. 3). Nilai dalam persen â€”
+          Komoditas dengan kenaikan &amp; penurunan tertinggi minggu ini (maks. 3). Nilai dalam persen,
           negatif turun, positif naik.
         </p>
 
@@ -481,7 +486,7 @@ export default function InputRekapIPH() {
               Daftar Komoditas ({komoditasList.length})
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Jenis komoditas yang dipantau â€” bisa ditambah atau dihapus sesuai kebutuhan survei.
+              Jenis komoditas yang dipantau bisa ditambah atau dihapus sesuai kebutuhan survei.
             </p>
           </div>
           <button
@@ -516,7 +521,7 @@ export default function InputRekapIPH() {
 
       {/* Modal: Tambah Komoditas */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Tambah komoditas" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden">
             <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
               <div>
@@ -527,6 +532,7 @@ export default function InputRekapIPH() {
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
+                aria-label="Tutup formulir komoditas"
                 className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
               >
                 <X size={15} />

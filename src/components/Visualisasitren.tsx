@@ -10,8 +10,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
-  Share2,
-  ChevronDown,
   BarChart2,
   AlertCircle,
   ChevronRight,
@@ -231,7 +229,7 @@ export default function VisualisasiTren() {
 
   const latestLabel = latest
     ? `M${latest.mingguIndeks} ${BULAN_SINGKAT[latest.bulan - 1]}`
-    : "—";
+    : "Belum tersedia";
 
   const matrixRows: WeeklyRow[] = (summary?.trend ?? [])
     .filter((t) => latest && t.tahun === latest.tahun && t.bulan === latest.bulan)
@@ -239,7 +237,7 @@ export default function VisualisasiTren() {
       minggu: `Minggu ${ROMAWI[t.mingguIndeks - 1]} ${BULAN[t.bulan - 1]}`,
       iph: t.iph,
       status: statusFromIph(t.iph),
-      pemicu: t.pemicu ?? "—",
+      pemicu: t.pemicu ?? "Belum tersedia",
       highlighted: t.mingguIndeks === latest?.mingguIndeks,
     }));
 
@@ -282,32 +280,32 @@ export default function VisualisasiTren() {
       {/* Page header */}
       <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">
         <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
-          <span className="text-emerald-600 font-semibold">Periode Evaluasi {latestYear ?? "—"}</span>
+          <span className="text-emerald-600 font-semibold">Periode Evaluasi {latestYear ?? "belum tersedia"}</span>
           <span className="text-gray-300">•</span>
           <span>
-            Terakhir diperbarui:{" "}
+            Periode terbaru:{" "}
             {latest
               ? `Minggu ${ROMAWI[latest.mingguIndeks - 1]} ${BULAN[latest.bulan - 1]} ${latest.tahun}`
-              : "—"}
+              : "Belum tersedia"}
           </span>
         </div>
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-black text-gray-900 mb-0.5">
-              Visualisasi Tren &amp; Analitik IPH Kota Batu
+              Tren IPH Kota Batu
             </h1>
             <p className="text-xs text-gray-500">
-              Grafik interaktif pemantauan stabilitas harga dan andil komoditas pangan Kota Batu
+              Bandingkan perkembangan IPH antarperiode dan lihat komoditas pemicunya.
             </p>
           </div>
           <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 flex-shrink-0 md:self-start">
             <div className="w-2 h-2 rounded-full bg-emerald-500" />
             <div>
               <div className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">
-                Status Regional
+                Status IPH terbaru
               </div>
               <div className="text-sm font-bold text-emerald-700">
-                {latest ? (latest.iph < 0 ? "Deflasi Terkendali" : latest.iph < 1 ? "Terkendali" : "Waspada") : "—"}
+                {latest ? (latest.iph < 0 ? "Deflasi Terkendali" : latest.iph < 1 ? "Terkendali" : "Waspada") : "Belum tersedia"}
               </div>
             </div>
           </div>
@@ -350,15 +348,6 @@ export default function VisualisasiTren() {
           <span className="text-xs text-gray-500">Tampilkan hanya minggu penutupan</span>
         </button>
 
-        <div className="ml-auto flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-100">
-            <Share2 size={15} />
-          </button>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-100">
-            Opsi Ekspor &amp; Data
-            <ChevronDown size={12} />
-          </button>
-        </div>
       </div>
 
       {/* Info banner */}
@@ -377,10 +366,10 @@ export default function VisualisasiTren() {
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
           <div>
             <h2 className="text-base font-black text-gray-900 mb-0.5">
-              Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
+              Perkembangan IPH mingguan
             </h2>
             <p className="text-sm text-gray-500">
-              Pergerakan kumulatif komoditas strategis Kota Batu per minggu (Baseline 0.00%)
+              Bandingkan nilai IPH mingguan pada tahun yang dipilih. Garis nol menandai tidak adanya perubahan.
             </p>
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0 flex-wrap">
@@ -392,7 +381,7 @@ export default function VisualisasiTren() {
             ))}
             <div className="flex items-center gap-1.5">
               <div className="w-6 border-t-2 border-dashed border-red-400" />
-              <span>Batas Waspada (+1.50%)</span>
+              <span>Batas waspada pada grafik (+1,50%)</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -496,15 +485,15 @@ export default function VisualisasiTren() {
               <h3 className="text-sm font-bold text-gray-900">Matriks Evaluasi Mingguan</h3>
               <p className="text-xs text-gray-500">
                 Pergerakan IPH{" "}
-                {latest ? `${BULAN[latest.bulan - 1]} ${latest.tahun}` : "—"} dan komoditas pemicu
+                {latest ? `${BULAN[latest.bulan - 1]} ${latest.tahun}` : "periode yang tersedia"} dan komoditas pemicu
               </p>
             </div>
             <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
-              {latest ? `${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}` : "—"}
+              {latest ? `${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}` : "Belum tersedia"}
             </span>
           </div>
 
-          <div className="overflow-x-auto -mx-4 px-4">
+          <div className="overflow-x-auto -mx-4 px-4" tabIndex={0} role="region" aria-label="Tabel evaluasi IPH mingguan, geser untuk melihat kolom lainnya">
             <table className="w-full min-w-[520px]">
               <thead>
               <tr className="border-b border-gray-200">
@@ -566,7 +555,7 @@ export default function VisualisasiTren() {
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-500">
-              {summary ? `${summary.trend.length} pekan tercatat` : "—"} • {summary?.weekly.length ?? 0} tahun
+              {summary ? `${summary.trend.length} pekan tercatat` : "Belum tersedia"} • {summary?.weekly.length ?? 0} tahun
             </span>
             <button
               onClick={() => setShowRincianMingguan((v) => !v)}
@@ -623,7 +612,7 @@ export default function VisualisasiTren() {
                           <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
                           <span>
                             {r.minggu}: IPH {r.iph > 0 ? "+" : ""}
-                            {r.iph.toFixed(2)}% (pemicu {r.pemicu || "—"}).
+                            {r.iph.toFixed(2)}% (pemicu {r.pemicu || "belum tersedia"}).
                           </span>
                         </li>
                       ))
@@ -641,7 +630,7 @@ export default function VisualisasiTren() {
             <div>
               <h3 className="text-sm font-bold text-gray-900">Andil Komoditas Terhadap Fluktuasi</h3>
               <p className="text-xs text-gray-500">
-                Jumlah kemunculan sebagai pemicu utama fluktuasi harga ({latestYear ?? "—"})
+                Jumlah kemunculan sebagai pemicu utama fluktuasi harga ({latestYear ?? "periode belum tersedia"})
               </p>
             </div>
             <BarChart3 size={16} className="text-gray-500" />
@@ -672,10 +661,6 @@ export default function VisualisasiTren() {
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-500">Sumber: Rekap IPH Kota Batu (CSV)</span>
-            <button className="flex items-center gap-1 text-xs text-gray-500 font-semibold hover:text-gray-800">
-              <BarChart2 size={10} />
-              Bobot Andil
-            </button>
           </div>
         </div>
       </div>

@@ -1,0 +1,54 @@
+{
+  "records": [
+    "Beranda reflows at 320, 400, 768, 1024, 1440 px",
+    "Login role selector, demo autofill, password visibility, admin authentication",
+    "Dashboard commodity list expands and collapses",
+    "Input rekap validation, reset, commodity modal, Escape",
+    "Rekap CSV download, select all, month/year/status filters, pagination, edit dialog",
+    "Trend year selection, closing-week switch, weekly detail expansion",
+    "Draft reload, clipboard contains public link, WhatsApp URL prepared without sending",
+    "Meeting required-field validation, print trigger, personnel add/role/remove",
+    "Meeting refresh, status filters, note view, delete confirmation cancel",
+    "Employee add validation, edit/delete dialogs, Escape, pagination, empty search",
+    "Account menu Escape, profile edit/cancel, settings password visibility and validation",
+    "Mobile menu opens, Escape closes, navigation closes drawer",
+    "Eight pages responsive across five widths, light theme",
+    "Eight pages responsive across five widths, dark theme",
+    "Logout and direct guest dashboard, guest navigation restricted"
+  ],
+  "errors": [],
+  "issues": [
+    {
+      "name": "commodity dialog",
+      "violations": []
+    },
+    {
+      "name": "edit rekap dialog",
+      "violations": []
+    },
+    {
+      "name": "meeting delete dialog",
+      "violations": []
+    },
+    {
+      "name": "add employee dialog",
+      "violations": []
+    },
+    {
+      "name": "edit employee dialog",
+      "violations": []
+    },
+    {
+      "name": "profile",
+      "violations": []
+    },
+    {
+      "name": "profile edit",
+      "violations": []
+    },
+    {
+      "name": "account settings",
+      "violations": []
+    }
+  ]
+}

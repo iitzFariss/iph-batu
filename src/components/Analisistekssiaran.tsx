@@ -4,7 +4,6 @@ import {
   ChevronDown,
   TrendingDown,
   Copy,
-  Pencil,
   Clock,
   MessageCircle,
   Bell,
@@ -105,10 +104,10 @@ function buildDraf(row: RekapRow): string {
   const minggu = `Minggu ${ROMAWI[row.mingguIndeks - 1] ?? row.mingguIndeks} ${BULAN[row.bulan - 1]} ${row.tahun}`;
   const nilai = `${row.nilaiIPH > 0 ? "+" : ""}${row.nilaiIPH.toFixed(2)}%`;
   const baris: string[] = [
-    "// DOKUMEN DISPOSISI KEPALA DAERAH / SIARAN PERS KEMENDAGRI",
+    "DRAF SIARAN PERS IPH KOTA BATU",
     "",
-    "Yth. Bapak Pj. Wali Kota Batu / Sekretaris Daerah Kota Batu,",
-    "Melaporkan rilis resmi Indeks Perkembangan Harga (IPH)",
+    "Yth. Wali Kota Batu / Sekretaris Daerah Kota Batu,",
+    "Melaporkan rekap Indeks Perkembangan Harga (IPH)",
     `Kota Batu pada ${minggu}:`,
     "",
     `1. Angka IPH Gabungan Kota Batu tercatat sebesar ${nilai}`,
@@ -346,28 +345,14 @@ export default function AnalisisTeksSiaran() {
 
   return (
     <div className="p-4 sm:p-5 space-y-4 w-full">
-      {/* Breadcrumb + badge */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-          Modul Otomasi Siaran V4
-        </span>
-        <span className="text-gray-300">•</span>
-        <span className="text-sm text-gray-400 font-mono">
-          {periode
-            ? `KEMENDAGRI-IPH-BATU-${periode.tahun}-M${String(periode.bulan).padStart(2, "0")}W${periode.minggu}`
-            : "KEMENDAGRI-IPH-BATU-"}
-        </span>
-      </div>
-
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900 mb-0.5">
-            Generator Siaran Pers &amp; Ringkasan Eksekutif TPID
+            Draf siaran pers
           </h1>
           <p className="text-xs text-gray-500 max-w-xl">
-            Sintesis otomatis matriks IPH dan fluktuasi komoditas pangan menjadi draf laporan
-            resmi pimpinan daerah dan siaran pers Kemendagri.
+            Susun draf dari rekap IPH pada periode yang dipilih. Periksa isinya sebelum menyalin atau membagikannya.
           </p>
         </div>
       </div>
@@ -381,7 +366,7 @@ export default function AnalisisTeksSiaran() {
         ) : (
           <>
             <div className="flex flex-col gap-0.5">
-              <label htmlFor="filterTahun" className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Tahun Anggaran</label>
+              <label htmlFor="filterTahun" className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Tahun data</label>
               <div className="relative">
                 <select
                   id="filterTahun"
@@ -484,8 +469,8 @@ export default function AnalisisTeksSiaran() {
                   <FileIconSVG />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-gray-900">Draf Siaran Resmi &amp; Notulensi Otomatis</div>
-                  <div className="text-xs text-gray-400">Draf plaintext di browser — dikirim manual, belum dienkripsi</div>
+                  <div className="text-xs font-bold text-gray-900">Draf siaran pers IPH</div>
+                  <div className="text-xs text-gray-400">Periksa teks sebelum membagikannya.</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -507,7 +492,7 @@ export default function AnalisisTeksSiaran() {
                         r.bulan === periode.bulan &&
                         r.mingguIndeks === periode.minggu,
                     );
-                    return baris ? `Periode ${baris.cutoffStart} – ${baris.cutoffEnd}` : "—";
+                    return baris ? `Periode ${baris.cutoffStart} – ${baris.cutoffEnd}` : "Belum tersedia";
                   })()}
                 </span>
               </div>
@@ -518,7 +503,7 @@ export default function AnalisisTeksSiaran() {
 
             {/* Draf content */}
             <div className="p-4">
-              <pre className="text-sm text-gray-700 leading-relaxed font-mono whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-100 max-h-72 overflow-y-auto">
+              <pre tabIndex={0} role="region" aria-label="Draf siaran pers" className="text-sm text-gray-700 leading-relaxed font-sans whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-100 max-h-72 overflow-y-auto">
                 {currentDraf}
               </pre>
             </div>
@@ -544,20 +529,13 @@ export default function AnalisisTeksSiaran() {
                 </button>
               </div>
 
-              {/* Row 2: edit manual */}
-              <div className="flex items-center gap-2">
-                <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50">
-                  <Pencil size={11} />
-                  Edit Manual
-                </button>
-              </div>
 
               {/* Hint */}
               <p className="text-xs text-gray-400">
                 "Salin Teks &amp; Link" menyalin draf{" "}
                 <strong>Bahasa Resmi</strong> beserta link{" "}
                 <span className="font-mono text-gray-500 break-all">{dashboardLink}</span> ke
-                clipboard. Link dibuka sebagai dashboard publik — tampilannya sama
+                clipboard. Link dibuka sebagai dashboard publik, tampilannya sama
                 seperti yang dilihat masyarakat. "Buka WhatsApp" membuka
                 WhatsApp dengan pesan terisi, lalu Anda yang memilih kontak dan
                 menekan kirim.

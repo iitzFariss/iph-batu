@@ -1,0 +1,66 @@
+{
+  "records": [
+    "Landing loading, empty, connection error, retry and keyboard skip link",
+    "Guest failure gives visible feedback",
+    "Login invalid credentials gives visible feedback",
+    "Mobile drawer traps and restores keyboard focus",
+    "Rekap dialog keyboard trap and profile/settings both themes",
+    "Account settings remains within page at simulated 200 percent zoom",
+    "Error 404/500 callback actions and both themes"
+  ],
+  "scans": [
+    {
+      "name": "landing empty",
+      "violations": []
+    },
+    {
+      "name": "rekap dialog light",
+      "violations": []
+    },
+    {
+      "name": "profile light",
+      "violations": []
+    },
+    {
+      "name": "profile edit light",
+      "violations": []
+    },
+    {
+      "name": "settings light",
+      "violations": []
+    },
+    {
+      "name": "rekap dialog dark",
+      "violations": []
+    },
+    {
+      "name": "profile dark",
+      "violations": []
+    },
+    {
+      "name": "profile edit dark",
+      "violations": []
+    },
+    {
+      "name": "settings dark",
+      "violations": []
+    },
+    {
+      "name": "error 404 light",
+      "violations": []
+    },
+    {
+      "name": "error 404 dark",
+      "violations": []
+    },
+    {
+      "name": "error 500 light",
+      "violations": []
+    },
+    {
+      "name": "error 500 dark",
+      "violations": []
+    }
+  ],
+  "errors": []
+}

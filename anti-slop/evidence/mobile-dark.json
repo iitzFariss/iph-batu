@@ -1,0 +1,45 @@
+{
+  "results": [
+    {
+      "name": "landing mobile dark",
+      "issues": []
+    },
+    {
+      "name": "login mobile dark",
+      "issues": []
+    },
+    {
+      "name": "Dashboard mobile dark",
+      "issues": []
+    },
+    {
+      "name": "Input rekap IPH mobile dark",
+      "issues": []
+    },
+    {
+      "name": "Rekap data IPH mobile dark",
+      "issues": []
+    },
+    {
+      "name": "Tren IPH mobile dark",
+      "issues": []
+    },
+    {
+      "name": "Draf siaran pers mobile dark",
+      "issues": []
+    },
+    {
+      "name": "Jadwal rapat mobile dark",
+      "issues": []
+    },
+    {
+      "name": "Pemantauan rapat mobile dark",
+      "issues": []
+    },
+    {
+      "name": "Kelola pegawai mobile dark",
+      "issues": []
+    }
+  ],
+  "errors": []
+}

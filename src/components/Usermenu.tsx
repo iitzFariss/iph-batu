@@ -30,6 +30,7 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -40,6 +41,15 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") { setOpen(false); triggerRef.current?.focus(); }
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open]);
 
   if (!user) return null;
 
@@ -57,6 +67,10 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
   return (
     <div className="relative" ref={ref}>
       <button
+        ref={triggerRef}
+        aria-label={`Menu akun ${user.name}`}
+        aria-expanded={open}
+        aria-controls="account-menu"
         onClick={() => setOpen((p) => !p)}
         className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
       >
@@ -75,7 +89,7 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-60 bg-white border border-gray-100 rounded-xl shadow-lg z-50 overflow-hidden">
+        <div id="account-menu" className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
           {/* Profile header */}
           <div className="px-4 py-3 border-b border-gray-100">
             <div className="flex items-center gap-2.5">
@@ -125,7 +139,7 @@ export default function UserMenu({ onNavigate }: UserMenuProps) {
                 </div>
                 <div className="text-left">
                   <div className="font-semibold">Pengaturan Akun</div>
-                  <div className="text-xs text-gray-400">Keamanan, notifikasi & privasi</div>
+                  <div className="text-xs text-gray-400">Kata sandi dan sesi perangkat</div>
                 </div>
               </button>
             )}

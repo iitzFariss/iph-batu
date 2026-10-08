@@ -9,7 +9,7 @@ export type DemoHint = { email: string; password: string };
 const DEMO_HINTS: Record<UserRole, DemoHint> = {
   admin: { email: "admin@tpid-batu.go.id", password: "admin123" },
   petugas: { email: "siti.rahmawati@bps-batu.go.id", password: "petugas123" },
-  tamu: { email: "Tanpa kredensial", password: "—" },
+  tamu: { email: "Tanpa kredensial", password: "" },
 };
 
 export default function LoginDemoHints({
@@ -25,20 +25,20 @@ export default function LoginDemoHints({
 
   return (
     <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
-          Akun Demo — {label}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <span className="text-xs text-gray-600 font-medium">
+          Akun demo: {label}
         </span>
         <button
           type="button"
           onClick={() => onFill(hint)}
-          className="text-xs text-emerald-600 font-bold hover:text-emerald-700"
+          className="text-xs text-emerald-700 font-semibold hover:text-emerald-800 min-h-11"
         >
-          Isi Otomatis →
+          Isi otomatis
         </button>
       </div>
-      <p className="text-xs text-gray-500 font-mono">{hint.email}</p>
-      <p className="text-xs text-gray-500 font-mono">{hint.password}</p>
+      <p className="text-sm text-gray-600 break-all">{hint.email}</p>
+      <p className="text-sm text-gray-600 mt-1">{hint.password}</p>
     </div>
   );
 }

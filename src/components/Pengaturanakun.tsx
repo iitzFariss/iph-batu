@@ -209,6 +209,7 @@ export default function PengaturanAkun() {
                 <button
                   type="button"
                   onClick={() => setShowPass({ ...showPass, current: !showPass.current })}
+                  aria-label={showPass.current ? "Sembunyikan kata sandi saat ini" : "Tampilkan kata sandi saat ini"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPass.current ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -234,6 +235,7 @@ export default function PengaturanAkun() {
                   <button
                     type="button"
                     onClick={() => setShowPass({ ...showPass, newPass: !showPass.newPass })}
+                    aria-label={showPass.newPass ? "Sembunyikan kata sandi baru" : "Tampilkan kata sandi baru"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPass.newPass ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -279,6 +281,7 @@ export default function PengaturanAkun() {
                   <button
                     type="button"
                     onClick={() => setShowPass({ ...showPass, confirm: !showPass.confirm })}
+                    aria-label={showPass.confirm ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPass.confirm ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -382,7 +385,7 @@ export default function PengaturanAkun() {
         </button>
       </SectionCard>
 
-      {/* ── Danger Zone — admin dikunci di backend, jadi tidak ditampilkan ── */}
+      {/* Penghapusan akun admin juga diblokir oleh backend. */}
       {user.role !== "admin" && (
         <div className="bg-white border border-red-200 rounded-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-red-100 bg-red-50/50">

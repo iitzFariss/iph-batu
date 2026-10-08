@@ -178,11 +178,10 @@ export default function KelolaRapat() {
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-gray-900 mb-1">
-            Kelola Jadwal &amp; Agenda Rapat TPID
+            Jadwal rapat TPID
           </h1>
           <p className="text-xs text-gray-500">
-            Penjadwalan rapat koordinasi pengendalian inflasi daerah dan penugasan aparatur
-            notulen. Pengingat WhatsApp dibuat otomatis di halaman Monitoring Rapat.
+            Buat jadwal rapat dan tentukan peserta serta notulis. Pengingat dapat dibuka melalui WhatsApp di halaman Pemantauan rapat.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 w-full lg:w-auto">
@@ -199,9 +198,9 @@ export default function KelolaRapat() {
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { label: "Total Rapat Terjadwal", value: kini === 0 ? "—" : totalTerjadwal, sub: "Seluruh jadwal aktif", icon: <Calendar size={18} className="text-gray-400" />, accent: "" },
-          { label: "Menunggu Notulensi", value: kini === 0 ? "—" : menungguResume, sub: "Notulensi belum diisi", icon: <AlertTriangle size={18} className="text-amber-500" />, accent: "border-l-2 border-l-amber-400" },
-          { label: "Notulensi Diisi", value: kini === 0 ? "—" : selesaiTervalidasi, sub: "Rapat dengan notulensi lengkap", icon: <CheckCircle2 size={18} className="text-emerald-500" />, accent: "border-l-2 border-l-emerald-400" },
+          { label: "Total Rapat Terjadwal", value: kini === 0 ? "..." : totalTerjadwal, sub: "Seluruh jadwal aktif", icon: <Calendar size={18} className="text-gray-400" />, accent: "" },
+          { label: "Menunggu Notulensi", value: kini === 0 ? "..." : menungguResume, sub: "Notulensi belum diisi", icon: <AlertTriangle size={18} className="text-amber-500" />, accent: "border-l-2 border-l-amber-400" },
+          { label: "Notulensi Diisi", value: kini === 0 ? "..." : selesaiTervalidasi, sub: "Rapat dengan notulensi lengkap", icon: <CheckCircle2 size={18} className="text-emerald-500" />, accent: "border-l-2 border-l-emerald-400" },
         ].map(({ label, value, sub, icon, accent }) => (
           <div key={label} className={`bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between ${accent}`}>
             <div>
@@ -215,7 +214,7 @@ export default function KelolaRapat() {
       </div>
       {statistikGagal && (
         <p className="text-xs text-amber-700 -mt-1">
-          Statistik rapat gagal dimuat. Angka akan terisi otomatis saat koneksi pulih — muat ulang
+          Statistik rapat gagal dimuat. Angka akan terisi otomatis saat koneksi pulih. Muat ulang
           halaman bila masih kosong.
         </p>
       )}
@@ -273,6 +272,7 @@ export default function KelolaRapat() {
               </label>
               <input
                 type="date"
+                aria-label="Tanggal rapat"
                 value={tanggal}
                 onChange={(e) => setTanggal(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -285,6 +285,7 @@ export default function KelolaRapat() {
               <div className="relative">
                 <input
                   type="time"
+                  aria-label="Waktu pelaksanaan"
                   value={waktu}
                   onChange={(e) => setWaktu(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 pr-12"
@@ -356,7 +357,7 @@ export default function KelolaRapat() {
               <input
                 type="text"
                 readOnly
-                value={petugas.length === 0 ? "" : `${petugas.length} personil terpilih`}
+                value={petugas.length === 0 ? "" : `${petugas.length} personel terpilih`}
                 placeholder="Pilih aparatur penugasan notulis di sini..."
                 className="w-full text-xs text-gray-500 focus:outline-none cursor-pointer"
                 onClick={() => setOpenPicker((v) => !v)}
@@ -373,7 +374,7 @@ export default function KelolaRapat() {
                 ) : status === "gagal" ? (
                   <div className="px-3 py-3 text-center space-y-2">
                     <p className="text-xs text-amber-700">
-                      Gagal memuat data pegawai. Daftar personil tidak dapat ditampilkan.
+                      Data pegawai belum dapat dimuat. Daftar personel belum tersedia.
                     </p>
                     <button
                       type="button"
@@ -390,7 +391,7 @@ export default function KelolaRapat() {
                   <div className="px-3 py-3 text-xs text-gray-400 text-center">
                     {kader.length === 0
                       ? "Belum ada data pegawai. Tambahkan pegawai di menu Kelola Pegawai terlebih dahulu."
-                      : "Semua personil sudah ditambahkan."}
+                      : "Semua personel sudah ditambahkan."}
                   </div>
                 ) : (
                   <div className="max-h-40 overflow-y-auto divide-y divide-gray-50">
@@ -435,7 +436,7 @@ export default function KelolaRapat() {
             {menyimpan ? "Menyimpan…" : "Buat Jadwal Rapat"}
           </button>
           <p className="text-center text-xs text-gray-400">
-            Pengingat WhatsApp H-1/H-0 dan notulensi terlambat dibuat otomatis di Monitoring Rapat.
+            Pengingat tersedia di halaman Pemantauan rapat. Buka WhatsApp untuk memeriksa pesan dan mengirimkannya sendiri.
           </p>
         </div>
       </div>

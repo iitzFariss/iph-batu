@@ -1,14 +1,5 @@
-import {
-  LayoutDashboard,
-  FileInput,
-  Database,
-  Users,
-  Monitor,
-  UserCog,
-  TrendingUp,
-  Radio,
-  Menu,
-} from "lucide-react";
+import { useEffect, useRef } from "react";
+import { LayoutDashboard, FileInput, Database, Users, Monitor, UserCog, TrendingUp, Radio, X } from "lucide-react";
 
 interface SidebarProps {
   activePage: string;
@@ -18,80 +9,65 @@ interface SidebarProps {
   hiddenPages?: string[];
 }
 
-const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "input-rekap", label: "Input Rekap IPH", icon: FileInput },
-  { id: "rekapan-data", label: "Rekapan Data", icon: Database },
-  { id: "kelola-rapat", label: "Kelola Rapat", icon: Users },
-  { id: "monitoring-rapat", label: "Monitoring Rapat", icon: Monitor },
-  { id: "kelola-pegawai", label: "Kelola Pegawai", icon: UserCog },
-  { id: "visualisasi-tren", label: "Visualisasi Tren IPH", icon: TrendingUp },
-  { id: "analisis-teks", label: "Analisis Teks Siaran", icon: Radio },
+const navGroups = [
+  { label: "Data harga", items: [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "input-rekap", label: "Input rekap IPH", icon: FileInput },
+    { id: "rekapan-data", label: "Rekap data IPH", icon: Database },
+    { id: "visualisasi-tren", label: "Tren IPH", icon: TrendingUp },
+    { id: "analisis-teks", label: "Draf siaran pers", icon: Radio },
+  ] },
+  { label: "Koordinasi", items: [
+    { id: "kelola-rapat", label: "Jadwal rapat", icon: Users },
+    { id: "monitoring-rapat", label: "Pemantauan rapat", icon: Monitor },
+    { id: "kelola-pegawai", label: "Kelola pegawai", icon: UserCog },
+  ] },
 ];
 
-export default function Sidebar({
-  activePage,
-  open,
-  onNavigate,
-  onClose,
-  hiddenPages = [],
-}: SidebarProps) {
+export default function Sidebar({ activePage, open, onNavigate, onClose, hiddenPages = [] }: SidebarProps) {
+  const sidebarRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    sidebarRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+      if (event.key !== "Tab") return;
+      const controls = Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>('button') ?? []).filter((item) => item.getClientRects().length);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => { document.removeEventListener("keydown", handleKey); previousFocus?.focus(); };
+  }, [open, onClose]);
   return (
     <>
-      {/* Backdrop — tampil hanya di mobile saat drawer terbuka */}
-      {open && (
-        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} />
-      )}
-
-      <aside
-        className={`sidebar-surface fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex flex-col flex-shrink-0 transition-transform duration-200 lg:static lg:translate-x-0 lg:z-auto ${
-          open ? "translate-x-0 shadow-2xl" : "-translate-x-full"
-        }`}
-      >
-        {/* Brand */}
-        <div className="px-4 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
-              <TrendingUp size={16} className="text-white" />
-            </div>
-            <div>
-              <div className="text-sm font-bold text-gray-900 leading-tight">TPID Kota Batu</div>
-              <div className="text-xs text-gray-400 leading-tight">Sistem Pengendalian IPH</div>
-            </div>
-            <button
-              onClick={onClose}
-              aria-label="Tutup menu"
-              className="lg:hidden ml-auto p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"
-            >
-              <Menu size={18} />
-            </button>
-          </div>
+      {open && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} aria-hidden="true" />}
+      <aside ref={sidebarRef} id="app-sidebar" aria-label="Navigasi utama" className={`app-sidebar sidebar-surface ${open ? "is-open" : ""}`}>
+        <div className="sidebar-brand">
+          <div className="brand-mark"><TrendingUp size={21} aria-hidden="true" /></div>
+          <div className="min-w-0"><div className="font-bold text-gray-900">TPID Kota Batu</div><div className="text-xs text-gray-500 mt-1">Pemantauan IPH</div></div>
+          <button onClick={onClose} aria-label="Tutup menu" className="icon-button lg:hidden ml-auto"><X size={20} /></button>
         </div>
-
-      {/* Quick Action */}
-
-      {/* Navigation */}
-      <nav className="flex-1 px-3 pt-3 space-y-0.5 overflow-y-auto">
-        {navItems
-          .filter(({ id }) => !hiddenPages.includes(id))
-          .map(({ id, label, icon: Icon }) => {
-          const isActive = activePage === id;
-          return (
-            <button
-              key={id}
-              onClick={() => onNavigate(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium transition-colors ${
-                isActive
-                  ? "bg-emerald-600 text-white"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-            >
-              <Icon size={14} className="flex-shrink-0" />
-              <span className="truncate">{label}</span>
-            </button>
-          );
-        })}
-      </nav>
+        <nav className="flex-1 overflow-y-auto px-3 py-5">
+          {navGroups.map((group) => {
+            const items = group.items.filter(({ id }) => !hiddenPages.includes(id));
+            if (!items.length) return null;
+            return (
+              <div key={group.label} className="mb-7">
+                <p className="px-3 mb-2 text-xs font-medium text-gray-500">{group.label}</p>
+                {items.map(({ id, label, icon: Icon }) => (
+                  <button key={id} onClick={() => onNavigate(id)} aria-current={activePage === id ? "page" : undefined} className={`sidebar-link ${activePage === id ? "is-active" : ""}`}>
+                    <Icon size={18} aria-hidden="true" /><span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </nav>
+        <div className="sidebar-footer"><span className="font-semibold text-gray-700">Indeks Perkembangan Harga</span><span>Rekap mingguan Kota Batu</span></div>
       </aside>
     </>
   );

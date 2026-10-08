@@ -1,409 +1,104 @@
-import {
-  TrendingDown,
-  TrendingUp,
-  ArrowRight,
-  MapPin,
-  RefreshCw,
-  Sun,
-  Moon,
-} from "lucide-react";
 import { useEffect, useState } from "react";
+import { TrendingUp, Sun, Moon, ArrowRight } from "lucide-react";
 import { api } from "../lib/api";
-
-interface LandingPageProps {
-  onLogin: () => void;
-}
-
-const LANDING_THEME_KEY = "tpid-landing-theme";
+import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 interface PublicSummary {
-  latest: {
-    tahun: number;
-    bulan: number;
-    mingguIndeks: number;
-    iph: number;
-    status: string;
-    pemicu: string | null;
-    penutupan: boolean;
-  } | null;
+  latest: { tahun: number; bulan: number; mingguIndeks: number; iph: number; status: string; pemicu: string | null } | null;
   trend: { tahun: number }[];
-  frequency: { tahun: number; items: { name: string; count: number }[] }[];
   latestDetails: { name: string; nilai: number; isFluktuasi: boolean }[];
 }
 
-function useLandingTheme() {
-  const [isDark, setIsDark] = useState(() => {
-    try {
-      return localStorage.getItem(LANDING_THEME_KEY) === "dark";
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LANDING_THEME_KEY, isDark ? "dark" : "light");
-    } catch {
-      /* ignore */
-    }
-  }, [isDark]);
-
-  return { isDark, toggle: () => setIsDark((d) => !d) };
-}
-
-export default function LandingPage({ onLogin }: LandingPageProps) {
-  const { isDark, toggle } = useLandingTheme();
+export default function LandingPage({ onLogin }: { onLogin: () => void }) {
+  const { isDark, toggleTheme } = useTheme();
+  const { loginAsGuest } = useAuth();
   const [summary, setSummary] = useState<PublicSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [gagal, setGagal] = useState(false);
+  const [error, setError] = useState("");
+  const [entering, setEntering] = useState(false);
+  const [guestError, setGuestError] = useState("");
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .get<PublicSummary>("/public/rekap/summary")
-      .then((data) => {
-        if (!cancelled) {
-          setSummary(data);
-          setGagal(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSummary(null);
-          setGagal(true);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    api.get<PublicSummary>("/public/rekap/summary")
+      .then((data) => { if (!cancelled) { setSummary(data); setError(""); } })
+      .catch(() => { if (!cancelled) setError("Ringkasan harga belum dapat dimuat. Coba kembali sebentar lagi."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [reload]);
+
+  async function enterGuest() {
+    if (entering) return;
+    setEntering(true);
+    setGuestError("");
+    const result = await loginAsGuest();
+    if (!result.success) setGuestError(result.message);
+    setEntering(false);
+  }
 
   const latest = summary?.latest;
-  const bulanSingkat = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-  const romawi = ["I", "II", "III", "IV", "V"];
-  const periodeLabel = latest
-    ? `Minggu ${romawi[latest.mingguIndeks - 1] ?? latest.mingguIndeks} ${bulanSingkat[latest.bulan - 1]} ${latest.tahun}`
-    : gagal
-    ? "Gagal memuat data"
-    : loading
-    ? "Memuat data…"
-    : "Belum ada data";
-  const iphNilai = latest?.iph ?? 0;
-  const isDeflasi = latest ? iphNilai < 0 : false;
-  const labelIph = latest
-    ? latest.status === "deflasi-signifikan" || latest.status === "deflasi-terkendali"
-      ? "Deflasi Terkendali"
-      : latest.status === "inflasi-ringan"
-      ? "Inflasi Terkendali"
-      : "Perlu Intervensi"
-    : null;
-
-  const andilTeratas = (summary?.latestDetails ?? [])
-    .filter((d) => !d.isFluktuasi)
-    .sort((a, b) => b.nilai - a.nilai)
-    .slice(0, 4);
-
-  const komoditasCount = new Set(
-    (summary?.frequency.find((f) => f.tahun === latest?.tahun)?.items ?? []).map((i) => i.name)
-  ).size;
-  const mingguData = summary?.trend.filter((t) => t.tahun === latest?.tahun).length ?? 0;
-  const tahunAwal = summary?.trend[0]?.tahun;
-
-  const statsList = [
-    { value: loading ? "…" : gagal ? "—" : String(komoditasCount), label: "Komoditas Dipantau", desc: latest ? `Terpantau tahun ${latest.tahun}` : gagal ? "Data tidak dapat dimuat" : "Belum ada data" },
-    { value: loading ? "…" : gagal ? "—" : String(mingguData), label: "Minggu Data", desc: latest ? `Tahun ${latest.tahun}` : gagal ? "Data tidak dapat dimuat" : "Belum ada data" },
-    { value: loading ? "…" : gagal ? "—" : String(summary?.trend.length ?? 0), label: "Periode Rekap", desc: gagal ? "Data tidak dapat dimuat" : tahunAwal ? `Sejak ${tahunAwal}` : "Belum ada data" },
-    { value: latest?.pemicu ?? (gagal ? "—" : loading ? "…" : "—"), label: "Pemicu Inflasi", desc: loading ? "Memuat data…" : gagal ? "Data tidak dapat dimuat" : "Andil tertinggi periode ini" },
-  ];
+  const period = latest ? `Minggu ${["I", "II", "III", "IV", "V"][latest.mingguIndeks - 1]} · ${new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(new Date(latest.tahun, latest.bulan - 1))}` : "Periode belum tersedia";
+  const details = (summary?.latestDetails ?? []).filter((item) => !item.isFluktuasi).sort((a, b) => Math.abs(b.nilai) - Math.abs(a.nilai)).slice(0, 4);
 
   return (
-    <div className={`min-h-screen bg-white overflow-x-hidden ${isDark ? "dark" : ""}`}>
-
-      {/* ── Navbar — full width ── */}
-      <nav className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="w-full px-4 sm:px-8 lg:px-16 h-14 flex items-center justify-between">
-          {/* Brand */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
-              <TrendingDown size={15} className="text-white" />
-            </div>
-            <div>
-              <div className="text-sm font-black text-gray-900 leading-tight">TPID Kota Batu</div>
-              <div className="text-[9px] text-gray-400 leading-tight">Sistem Pengendalian Inflasi Daerah</div>
-            </div>
-          </div>
-
-          {/* Right actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden md:flex items-center gap-1 text-[10px] text-gray-400">
-              <MapPin size={10} />
-              Kota Batu, Jawa Timur
-            </div>
-            <button
-              onClick={toggle}
-              aria-label={isDark ? "Ganti ke mode terang" : "Ganti ke mode gelap"}
-              title={isDark ? "Mode terang" : "Mode gelap"}
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              {isDark ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-            <button
-              onClick={onLogin}
-              className="px-3 sm:px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap"
-            >
-              Masuk
-            </button>
+    <div className={`public-site ${isDark ? "dark" : ""}`}>
+      <a href="#public-content" className="skip-link">Lewati navigasi</a>
+      <header className="public-header">
+        <div className="site-container flex items-center gap-3">
+          <div className="brand-mark"><TrendingUp size={21} aria-hidden="true" /></div>
+          <div className="brand-name"><strong>TPID Kota Batu</strong><span>Pengendalian inflasi daerah</span></div>
+          <div className="ml-auto flex items-center gap-2 sm:gap-4">
+            <button className="icon-button" onClick={toggleTheme} aria-label={isDark ? "Ganti ke mode terang" : "Ganti ke mode gelap"}>{isDark ? <Sun size={19} /> : <Moon size={19} />}</button>
+            <button className="button-secondary" onClick={onLogin}>Masuk</button>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* ── Hero — full bleed dengan split layout ── */}
-      <section className="w-full bg-white">
-        <div className="w-full px-4 sm:px-8 lg:px-16 py-12 lg:py-16 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-center">
-
-          {/* Left: copy — dipusatkan & diperbesar */}
-          <div className="flex flex-col justify-center lg:pl-8">
-            <p className="text-xs font-semibold text-gray-400 mb-6">
-              Periode data {periodeLabel}
-            </p>
-
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] mb-5">
-              Pantau Stabilitas<br />
-              Harga Pangan<br />
-              <span className="text-emerald-600">Kota Batu.</span>
-            </h1>
-
-            <p className="text-base text-gray-500 leading-relaxed mb-8 max-w-lg">
-              Rekap mingguan Indeks Perkembangan Harga (IPH) Kota Batu beserta andil
-              harga tiap komoditas, diperbarui setiap pekan.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-4 mb-10">
-              <button
-                onClick={onLogin}
-                className="flex items-center gap-2 px-7 py-3.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex-1 sm:flex-none justify-center"
-              >
-                Masuk sebagai Tamu
-                <ArrowRight size={15} />
-              </button>
-              <button
-                onClick={onLogin}
-                className="flex items-center gap-2 px-7 py-3.5 border border-gray-200 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors flex-1 sm:flex-none justify-center"
-              >
-                Masuk sebagai Petugas
-              </button>
+      <main id="public-content" tabIndex={-1}>
+        <section className="site-container landing-intro">
+          <div className="intro-copy">
+            <p className="section-label">Data harga mingguan · Kota Batu</p>
+            <h1>Pantau perkembangan harga <span>di Kota Batu.</span></h1>
+            <p className="intro-description">Lihat Indeks Perkembangan Harga (IPH) mingguan dan andil komoditas. Ringkasan berikut menampilkan periode terbaru yang tersedia di sistem.</p>
+            <div className="flex flex-wrap gap-3 mt-7">
+              <button className="button-primary" disabled={entering} onClick={enterGuest}>{entering ? "Membuka dashboard..." : "Lihat dashboard publik"}<ArrowRight size={17} aria-hidden="true" /></button>
+              <button className="button-text" onClick={onLogin}>Masuk sebagai petugas</button>
             </div>
+            <p className="text-sm text-gray-500 mt-4">Akses publik tersedia tanpa mengisi email dan kata sandi.</p>
+            {guestError && <p role="alert" className="feedback-error mt-4">{guestError}</p>}
           </div>
 
-          {/* Right: IPH live card — fills the column */}
-          <div className="flex items-center justify-center">
-            <div className="w-full bg-gray-950 rounded-3xl p-8 text-white shadow-2xl">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] text-gray-400 font-bold">
-                  IPH Terkini
-                </span>
-                <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                  <div className={`w-1.5 h-1.5 rounded-full ${!gagal ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
-                  {latest ? "Terakhir" : gagal ? "Gagal" : loading ? "Memuat" : "Belum ada data"}
-                </div>
-              </div>
-              <div className="text-[11px] text-gray-500 mb-4">{periodeLabel}</div>
+          <section className="latest-report" aria-label="Ringkasan IPH terbaru" aria-busy={loading}>
+            <div className="report-heading"><span>IPH pekan terbaru</span><span className="text-sm text-gray-500">Persen (%)</span></div>
+            {loading ? <p role="status" className="report-empty">Memuat ringkasan harga...</p> : error ? (
+              <div className="report-empty"><p role="alert">{error}</p><button className="button-secondary mt-4" onClick={() => { setLoading(true); setReload((value) => value + 1); }}>Muat ulang data</button></div>
+            ) : latest ? (
+              <>
+                <p className="report-period">{period}</p>
+                <div className="report-value">{latest.iph > 0 ? "+" : ""}{latest.iph.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span>%</span></div>
+                <p className="report-direction">{latest.iph < 0 ? "Harga menurun" : latest.iph > 0 ? "Harga meningkat" : "Harga stabil"} dibandingkan periode acuan.</p>
+                <div className="andil-heading"><h2>Andil komoditas</h2><span>Persen poin</span></div>
+                {details.length ? <ul className="andil-list">{details.map((item) => <li key={item.name}><span>{item.name}</span><strong className={item.nilai > 0 ? "text-red-700" : "text-emerald-700"}>{item.nilai > 0 ? "+" : ""}{item.nilai.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></li>)}</ul> : <p className="text-sm text-gray-500 py-4">Andil komoditas belum tersedia untuk periode ini.</p>}
+                <p className="report-note">Ditampilkan dari rekap IPH yang tersedia di sistem.</p>
+              </>
+            ) : <div className="report-empty"><p>Belum ada rekap IPH.</p><p className="text-sm text-gray-500 mt-2">Ringkasan muncul setelah petugas memasukkan data.</p></div>}
+          </section>
+        </section>
 
-              {/* IPH value */}
-              <div className={`text-5xl font-black mb-1 ${isDeflasi ? "text-emerald-400" : "text-amber-400"}`}>
-                {latest ? (
-                  <>
-                    {iphNilai > 0 ? "+" : ""}{iphNilai.toFixed(2)}%
-                  </>
-                ) : (
-                  <span className="text-4xl text-gray-600">—</span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 mb-6">
-                {isDeflasi && latest
-                  ? <TrendingDown size={14} className="text-emerald-400" />
-                  : latest
-                  ? <TrendingUp size={14} className="text-amber-400" />
-                  : null}
-                <span className={`text-sm font-bold ${isDeflasi ? "text-emerald-400" : latest ? "text-amber-400" : "text-gray-500"}`}>
-                  {labelIph ?? (gagal ? "Data tidak dapat dimuat saat ini" : loading ? "Memuat data…" : "Belum ada data IPH")}
-                </span>
-              </div>
-
-              {/* Divider */}
-              <div className="h-px bg-gray-800 mb-5" />
-
-              {/* Commodity rows */}
-              <div className="space-y-3">
-                {loading && (
-                  <div className="text-[12px] text-gray-500">Memuat data…</div>
-                )}
-                {!loading && andilTeratas.length === 0 && (
-                  <div className="text-[12px] text-gray-500">Belum ada data andil.</div>
-                )}
-                {andilTeratas.map((d) => (
-                  <div key={d.name} className="flex items-center justify-between gap-3">
-                    <span className="text-[12px] text-gray-400 truncate">{d.name}</span>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="text-[11px] text-gray-500">andil</span>
-                      <span
-                        className={`text-[12px] font-black w-16 text-right ${
-                          d.nilai > 0 ? "text-red-400" : d.nilai < 0 ? "text-emerald-400" : "text-gray-500"
-                        }`}
-                      >
-                        {d.nilai > 0 ? "+" : ""}
-                        {d.nilai.toFixed(2)} poin
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Footer — sumber hanya diklaim bila ada data sungguhan */}
-                {latest && (
-                <div className="mt-6 pt-4 border-t border-gray-800 flex items-center gap-2">
-                  <span className="text-[10px] text-gray-500">Sumber: BPS Kota Batu, survei harga mingguan</span>
-                  <span className="ml-auto text-[10px] text-gray-600 flex items-center gap-1">
-                    <RefreshCw size={9} />
-                    Periode {periodeLabel}
-                  </span>
-                </div>
-                )}
-            </div>
+        <section className="landing-explainer">
+          <div className="site-container explainer-layout">
+            <div><p className="section-label">Panduan membaca data</p><h2>Memahami IPH dan andil komoditas</h2></div>
+            <dl className="explanation-list">
+              <div><dt>IPH menunjukkan arah perubahan harga.</dt><dd>Nilai positif berarti harga meningkat; nilai negatif berarti harga menurun dibandingkan periode acuan.</dd></div>
+              <div><dt>Andil menunjukkan kontribusi komoditas.</dt><dd>Andil dinyatakan dalam persen poin. Daftar komoditas bisa bersifat parsial, sehingga jumlah andil tidak selalu sama dengan IPH.</dd></div>
+            </dl>
           </div>
-        </div>
-      </section>
-
-      {/* ── Stats bar — full width ── */}
-      <section className="w-full bg-gray-950 border-y border-gray-800">
-        <div className="w-full px-4 sm:px-8 lg:px-16 py-6 grid grid-cols-2 lg:grid-cols-4 gap-y-6">
-          {statsList.map(({ value, label, desc }, i) => (
-            <div
-              key={label}
-              className={`text-center px-4 sm:px-8 ${
-                i % 2 === 0 && i < 2 ? "border-r border-gray-800" : ""
-              } ${i < 3 ? "lg:border-r" : ""}`}
-            >
-              <div className="text-2xl sm:text-3xl font-black text-white mb-0.5">{value}</div>
-              <div className="text-xs sm:text-sm font-semibold text-gray-300">{label}</div>
-              <div className="text-[10px] text-gray-600 mt-0.5">{desc}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Features — full width 3-col ── */}
-      <section className="w-full bg-white py-12 lg:py-14">
-        <div className="w-full px-4 sm:px-8 lg:px-16">
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
-            <div>
-              <p className="text-xs text-gray-400 mb-2">Data publik</p>
-              <h2 className="text-xl sm:text-2xl font-black text-gray-900">
-                Rekap IPH terbuka untuk umum.
-              </h2>
-            </div>
-            <div className="lg:text-right">
-              <p className="text-sm text-gray-400 mb-3">Tanpa pendaftaran, cukup masuk sebagai tamu.</p>
-              <button
-                onClick={onLogin}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors"
-              >
-                Masuk sebagai Tamu <ArrowRight size={14} />
-              </button>
-            </div>
-          </div>
-
-          {/* Capability list — rows, not a card grid */}
-          <div className="border-t border-gray-200">
-            {[
-              {
-                title: "Rekap mingguan per komoditas",
-                desc: "Andil inflasi dan deflasi tiap bahan pokok untuk setiap pekan, termasuk komoditas yang fluktuasi.",
-                detail: loading ? "…" : `${mingguData} pekan sejak ${latest?.tahun ?? "-"}`,
-              },
-              {
-                title: "Tren dan visualisasi",
-                desc: "Perkembangan IPH mingguan dan bulanan dalam grafik, dibandingkan antarperiode.",
-                detail: loading ? "…" : `${tahunAwal ?? "-"} sampai ${latest?.tahun ?? "-"}`,
-              },
-            ].map(({ title, desc, detail }) => (
-              <div
-                key={title}
-                className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-8 py-5 border-b border-gray-100"
-              >
-                <div>
-                  <div className="text-base font-bold text-gray-900">{title}</div>
-                  <p className="text-sm text-gray-500 leading-relaxed mt-1">{desc}</p>
-                </div>
-                <div className="text-xs text-gray-400 sm:text-right sm:whitespace-nowrap sm:pt-1">
-                  {detail}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Petugas CTA — full bleed dark ── */}
-      <section className="w-full bg-gray-950 py-10 lg:py-14">
-        <div className="w-full px-4 sm:px-8 lg:px-16 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-          <div>
-            <p className="text-xs text-gray-500 mb-3">Untuk petugas TPID</p>
-            <h2 className="text-xl sm:text-2xl font-black text-white mb-4 leading-tight">
-              Akses untuk petugas<br />pengendalian inflasi daerah.
-            </h2>
-            <p className="text-sm text-gray-400 leading-relaxed max-w-lg">
-              Petugas memantau pergerakan rekap IPH mingguan, menelusuri andil
-              tiap komoditas, dan menyusun draf siaran pers tanpa mengubah data.
-            </p>
-          </div>
-          <div className="flex flex-col">
-            {[
-              "Visualisasi tren IPH antarperiode",
-              "Unduh rekap IPH dalam format CSV",
-              "Pantau andil komoditas penyumbang inflasi",
-              "Susun draf siaran pers untuk dibagikan",
-            ].map((label) => (
-              <div
-                key={label}
-                className="text-sm text-gray-300 py-3 border-b border-gray-800 first:border-t"
-              >
-                {label}
-              </div>
-            ))}
-            <button
-              onClick={onLogin}
-              className="mt-6 flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-colors w-fit"
-            >
-              Masuk sebagai Petugas
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Footer — full width ── */}
-      <footer className="w-full bg-white border-t border-gray-100 py-6">
-        <div className="w-full px-4 sm:px-8 lg:px-16 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center flex-shrink-0">
-              <TrendingDown size={11} className="text-white" />
-            </div>
-            <span className="text-xs text-gray-500 font-medium">
-              © 2026 TPID Kota Batu • Bagian Perekonomian Setda Kota Batu
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-            Data IPH Kota Batu
-          </div>
-        </div>
-      </footer>
-
+        </section>
+        <section className="site-container staff-access"><div><h2>Ruang kerja petugas TPID</h2><p>Telusuri rekap, pantau tren, dan susun draf siaran pers sesuai akses akun.</p></div><button onClick={onLogin} className="button-secondary">Masuk ke ruang kerja</button></section>
+      </main>
+      <footer className="public-footer"><div className="site-container flex flex-wrap gap-2 justify-between"><span>TPID Kota Batu</span><span>Indeks Perkembangan Harga · Rekap mingguan</span></div></footer>
     </div>
   );
 }

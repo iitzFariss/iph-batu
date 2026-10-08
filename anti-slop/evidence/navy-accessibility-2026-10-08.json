@@ -1,0 +1,82 @@
+[
+  {
+    "name": "landing light",
+    "issues": []
+  },
+  {
+    "name": "landing dark",
+    "issues": []
+  },
+  {
+    "name": "login dark",
+    "issues": []
+  },
+  {
+    "name": "login light",
+    "issues": []
+  },
+  {
+    "name": "Dashboard light",
+    "issues": []
+  },
+  {
+    "name": "Input rekap IPH light",
+    "issues": []
+  },
+  {
+    "name": "Rekap data IPH light",
+    "issues": []
+  },
+  {
+    "name": "Tren IPH light",
+    "issues": []
+  },
+  {
+    "name": "Draf siaran pers light",
+    "issues": []
+  },
+  {
+    "name": "Jadwal rapat light",
+    "issues": []
+  },
+  {
+    "name": "Pemantauan rapat light",
+    "issues": []
+  },
+  {
+    "name": "Kelola pegawai light",
+    "issues": []
+  },
+  {
+    "name": "Dashboard dark",
+    "issues": []
+  },
+  {
+    "name": "Input rekap IPH dark",
+    "issues": []
+  },
+  {
+    "name": "Rekap data IPH dark",
+    "issues": []
+  },
+  {
+    "name": "Tren IPH dark",
+    "issues": []
+  },
+  {
+    "name": "Draf siaran pers dark",
+    "issues": []
+  },
+  {
+    "name": "Jadwal rapat dark",
+    "issues": []
+  },
+  {
+    "name": "Pemantauan rapat dark",
+    "issues": []
+  },
+  {
+    "name": "Kelola pegawai dark",
+    "issues": []
+  }
+]
