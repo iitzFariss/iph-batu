@@ -12,6 +12,7 @@ import KelolaRapat from "./components/Kelolarapat";
 import MonitoringResume from "./components/Monitoringresume";
 import AnalisisTeksSiaran from "./components/Analisistekssiaran";
 import KelolaPegawai from "./components/Kelolapegawai";
+import KelolaAkun from "./components/KelolaAkun";
 import LoginPage from "./components/LoginPage";
 import LandingPage from "./components/LandingPage";
 import ProfilSaya from "./components/ProfilSaya";
@@ -27,8 +28,9 @@ type PageId =
   | "rekapan-data"
   | "kelola-rapat"
   | "monitoring-rapat"
-  | "kelola-pegawai"
-  | "visualisasi-tren"
+| "kelola-pegawai"
+      | "kelola-akun"
+      | "visualisasi-tren"
   | "analisis-teks"
   | "profil-saya"
   | "pengaturan-akun"
@@ -38,7 +40,7 @@ type PageId =
 // ─── Role-based access ────────────────────────────────────────────────────────
 
 // Halaman yang hanya bisa diakses oleh admin
-const ADMIN_ONLY: PageId[] = ["kelola-pegawai"];
+const ADMIN_ONLY: PageId[] = ["kelola-pegawai", "kelola-akun"];
 
 // Halaman yang bisa diakses petugas / pegawai
 const PETUGAS_ALLOWED: PageId[] = [
@@ -59,6 +61,7 @@ const ALL_PAGES: PageId[] = [
   "kelola-rapat",
   "monitoring-rapat",
   "kelola-pegawai",
+  "kelola-akun",
   "visualisasi-tren",
   "analisis-teks",
   "profil-saya",
@@ -109,6 +112,8 @@ function PageContent({
       return <MonitoringResume />;
     case "kelola-pegawai":
       return <KelolaPegawai />;
+    case "kelola-akun":
+      return <KelolaAkun />;
     case "visualisasi-tren":
       return <VisualisasiTren />;
     case "analisis-teks":

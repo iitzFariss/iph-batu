@@ -5,6 +5,7 @@ import {
   Users,
   Monitor,
   UserCog,
+  ShieldCheck,
   TrendingUp,
   Radio,
   Menu,
@@ -25,6 +26,7 @@ const navItems = [
   { id: "kelola-rapat", label: "Kelola Rapat", icon: Users },
   { id: "monitoring-rapat", label: "Monitoring Rapat", icon: Monitor },
   { id: "kelola-pegawai", label: "Kelola Pegawai", icon: UserCog },
+  { id: "kelola-akun", label: "Kelola Akun", icon: ShieldCheck },
   { id: "visualisasi-tren", label: "Visualisasi Tren IPH", icon: TrendingUp },
   { id: "analisis-teks", label: "Analisis Teks Siaran", icon: Radio },
 ];
