@@ -51,9 +51,11 @@ export default function Sidebar({
         {/* Brand */}
         <div className="px-4 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
-              <TrendingUp size={16} className="text-white" />
-            </div>
+            <img
+              src="/bps-logo.png"
+              alt="Logo BPS Kota Batu"
+              className="h-8 w-auto flex-shrink-0"
+            />
             <div>
               <div className="text-sm font-bold text-gray-900 leading-tight">TPID Kota Batu</div>
               <div className="text-xs text-gray-400 leading-tight">Sistem Pengendalian IPH</div>

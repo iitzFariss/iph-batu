@@ -1,4 +1,4 @@
-import { TrendingDown, Home, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Home, ArrowLeft, AlertTriangle } from "lucide-react";
 
 interface Error404Props {
   onGoHome?: () => void;
@@ -33,9 +33,11 @@ export default function Error404({ onGoHome, onGoBack }: Error404Props) {
       {/* Top bar */}
       <nav className="border-b border-gray-200 px-4 sm:px-8 h-14 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
-            <TrendingDown size={14} className="text-white" />
-          </div>
+          <img
+            src="/bps-logo.png"
+            alt="Logo BPS Kota Batu"
+            className="h-7 w-auto"
+          />
           <div>
             <div className="text-sm font-black text-gray-900 leading-tight">TPID Kota Batu</div>
             <div className="text-[9px] text-gray-500 leading-tight">Sistem Pengendalian Inflasi Daerah</div>

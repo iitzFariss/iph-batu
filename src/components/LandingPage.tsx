@@ -127,9 +127,11 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
         <div className="w-full px-4 sm:px-8 lg:px-16 h-14 flex items-center justify-between">
           {/* Brand */}
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
-              <TrendingDown size={15} className="text-white" />
-            </div>
+            <img
+              src="/bps-logo.png"
+              alt="Logo BPS Kota Batu"
+              className="h-8 w-auto flex-shrink-0"
+            />
             <div>
               <div className="text-sm font-black text-gray-900 leading-tight">TPID Kota Batu</div>
               <div className="text-[9px] text-gray-400 leading-tight">Sistem Pengendalian Inflasi Daerah</div>
@@ -391,9 +393,11 @@ export default function LandingPage({ onLogin }: LandingPageProps) {
       <footer className="w-full bg-white border-t border-gray-100 py-6">
         <div className="w-full px-4 sm:px-8 lg:px-16 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center flex-shrink-0">
-              <TrendingDown size={11} className="text-white" />
-            </div>
+            <img
+              src="/bps-logo.png"
+              alt="Logo BPS Kota Batu"
+              className="h-5 w-auto flex-shrink-0"
+            />
             <span className="text-xs text-gray-500 font-medium">
               © 2026 TPID Kota Batu • Bagian Perekonomian Setda Kota Batu
             </span>

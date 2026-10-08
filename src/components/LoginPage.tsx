@@ -192,9 +192,11 @@ export default function LoginPage({ onGoBack }: LoginPageProps) {
             </button>
           )}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-900/40">
-              <TrendingUp size={22} className="text-white" />
-            </div>
+            <img
+              src="/bps-logo.png"
+              alt="Logo BPS Kota Batu"
+              className="h-10 w-auto flex-shrink-0"
+            />
             <div className="min-w-0">
               <div className="text-lg font-black text-white leading-tight">TPID Kota Batu</div>
               <div className="text-xs text-gray-500 truncate">Sistem Pengendalian Inflasi Daerah</div>
