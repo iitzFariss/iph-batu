@@ -13,6 +13,7 @@ import {
   Mail,
   Users,
   LayoutGrid,
+  KeyRound,
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 
@@ -279,10 +280,12 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
 function KataSandiModal({
   email,
   password,
+  mode,
   onClose,
 }: {
   email: string;
   password: string;
+  mode: "buat" | "reset";
   onClose: () => void;
 }) {
   const [disalin, setDisalin] = useState(false);
@@ -296,18 +299,31 @@ function KataSandiModal({
     }
   }
 
+  const judul = mode === "buat" ? "Akun Login Dibuat" : "Kata Sandi Direset";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-gray-900">Akun Login Dibuat</h3>
+          <h3 className="text-sm font-bold text-gray-900">{judul}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={15} />
           </button>
         </div>
-        <p className="text-xs text-gray-500 mb-3">
-          Pegawai sekarang bisa masuk aplikasi dengan <strong className="text-gray-700">{email}</strong>{" "}
-          dan kata sandi sementara di bawah ini.
+        <p className="text-xs text-gray-500 mb-3 leading-snug">
+          {mode === "buat" ? (
+            <>
+              Pegawai sekarang bisa masuk aplikasi dengan{" "}
+              <strong className="text-gray-700">{email}</strong> dan kata sandi sementara di bawah
+              ini.
+            </>
+          ) : (
+            <>
+              Kata sandi akun <strong className="text-gray-700">{email}</strong> sudah direset.
+              Semua perangkat yang sedang masuk akan keluar otomatis. Bagikan sandi sementara di
+              bawah ini.
+            </>
+          )}
         </p>
         <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4">
           <code className="text-sm font-mono font-bold text-gray-900 tracking-wider flex-1 break-all">
@@ -345,7 +361,9 @@ export default function KelolaPegawai() {
   const [currentPage, setCurrentPage] = useState(1);
   const [modal, setModal]             = useState<null | { mode: "add" | "edit"; data?: Pegawai }>(null);
   const [deleteId, setDeleteId]       = useState<string | null>(null);
-  const [tempPass, setTempPass]       = useState<null | { email: string; password: string }>(null);
+  const [resetTarget, setResetTarget] = useState<Pegawai | null>(null);
+  const [resetBusy, setResetBusy]     = useState(false);
+  const [tempPass, setTempPass]       = useState<null | { email: string; password: string; mode: "buat" | "reset" }>(null);
   const perPage = 4;
 
   useEffect(() => {
@@ -390,8 +408,8 @@ export default function KelolaPegawai() {
     if (modal?.mode === "add") {
       if (emailBaru) payload.email = emailBaru;
     } else {
-      // Email hanya dikirim saat berubah. Menghapus email mengunci akun login
-      // yang sudah ada (hak akses diurus di menu Kelola Akun), tidak menghapusnya.
+      // Email hanya dikirim saat berubah. Email kosong tidak menghapus akun
+      // yang sudah ada (akun tetap aktif), hanya data direktori saja.
       const emailSemula = (modal?.data?.email ?? "").trim();
       if (emailBaru !== emailSemula) payload.email = emailBaru || "";
     }
@@ -400,7 +418,7 @@ export default function KelolaPegawai() {
         const res = await api.post<{ pegawai: Pegawai; temporaryPassword?: string | null }>("/pegawai", payload);
         setPegawai((prev) => [res.pegawai, ...prev]);
         if (res.temporaryPassword) {
-          setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword });
+          setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword, mode: "buat" });
         }
       } else {
         const res = await api.patch<{ pegawai: Pegawai; temporaryPassword?: string | null }>(
@@ -409,13 +427,32 @@ export default function KelolaPegawai() {
         );
         setPegawai((prev) => prev.map((x) => (x.id === p.id ? res.pegawai : x)));
         if (res.temporaryPassword) {
-          setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword });
+          setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword, mode: "buat" });
         }
       }
       setModal(null);
     } catch (e) {
       setMessage(e instanceof ApiError ? `Gagal menyimpan: ${e.message}` : "Gagal menyimpan pegawai.");
       setMessageType("error");
+    }
+  }
+
+  async function handleResetPassword(p: Pegawai) {
+    setMessage("");
+    setMessageType("info");
+    setResetBusy(true);
+    try {
+      const res = await api.post<{ email: string; temporaryPassword: string }>(
+        `/pegawai/${p.id}/reset-password`
+      );
+      setResetTarget(null);
+      setTempPass({ email: res.email, password: res.temporaryPassword, mode: "reset" });
+    } catch (e) {
+      setMessage(e instanceof ApiError ? `Gagal reset: ${e.message}` : "Gagal mereset kata sandi.");
+      setMessageType("error");
+      setResetTarget(null);
+    } finally {
+      setResetBusy(false);
     }
   }
 
@@ -474,11 +511,44 @@ export default function KelolaPegawai() {
         </div>
       )}
 
-      {/* Kata sandi sementara setelah akun dibuat */}
+      {/* Reset kata sandi confirm */}
+      {resetTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
+              <KeyRound size={20} className="text-amber-600" />
+            </div>
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Reset Kata Sandi?</h3>
+            <p className="text-xs text-gray-500 mb-4 leading-snug">
+              Sandi akun login <strong className="text-gray-700">{resetTarget.email ?? "-"}</strong>{" "}
+              diganti baru sementara; semua perangkat yang sedang masuk akan keluar otomatis.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setResetTarget(null)}
+                disabled={resetBusy}
+                className="flex-1 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => handleResetPassword(resetTarget)}
+                disabled={resetBusy}
+                className="flex-1 py-2 text-xs font-bold text-white bg-amber-600 rounded-xl hover:bg-amber-700 disabled:opacity-60"
+              >
+                {resetBusy ? "Memproses…" : "Ya, Reset"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kata sandi sementara setelah akun dibuat / direset */}
       {tempPass && (
         <KataSandiModal
           email={tempPass.email}
           password={tempPass.password}
+          mode={tempPass.mode}
           onClose={() => setTempPass(null)}
         />
       )}
@@ -661,6 +731,14 @@ export default function KelolaPegawai() {
                         className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
                       >
                         <Pencil size={12} />
+                      </button>
+                      <button
+                        onClick={() => setResetTarget(p)}
+                        disabled={!p.email}
+                        title={p.email ? "Reset kata sandi akun login" : "Belum ada akun login"}
+                        className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <KeyRound size={12} />
                       </button>
                       <button
                         onClick={() => setDeleteId(p.id)}
