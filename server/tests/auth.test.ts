@@ -103,14 +103,16 @@ describe("POST /api/auth/login", () => {
       .post("/api/auth/login")
       .send({ email: "pending@uji.test", password: PASSWORD });
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/menunggu aktivasi/i);
     expect(res.body).not.toHaveProperty("accessToken");
   });
 
-  // Password benar tapi akun belum aktif harus memberi respons yang sama
-  // dengan password salah. Kalau berbeda, siapa pun bisa memetakan email
-  // mana yang terdaftar hanya dari teks respons, tanpa perlu menebak sandi.
-  it("menyamakan respons untuk akun belum aktif dan password salah", async () => {
+  // Kata sandi benar + status akun kini dibedakan pesannya, tapi tetap TANPA
+  // mengungkap keberadaan akun kepada siapa pun yang tidak tahu sandi. Enumerasi
+  // email tetap tertutup karena admin/pelaku belum sampai ke pesan status tanpa
+  // sandi yang benar.
+  it("memberi pesan status tersendiri saat sandi benar tapi akun nonaktif", async () => {
     await prisma.user.create({
       data: {
         name: "nonaktif",
@@ -130,8 +132,14 @@ describe("POST /api/auth/login", () => {
       .post("/api/auth/login")
       .send({ email: "petugas@uji.test", password: "salah-sekali" });
 
-    expect(akunNonaktif.status).toBe(sandiSalah.status);
-    expect(akunNonaktif.body).toEqual(sandiSalah.body);
+    expect(akunNonaktif.status).toBe(403);
+    expect(akunNonaktif.body.message).toMatch(/dinonaktifkan/i);
+    expect(akunNonaktif.body).not.toHaveProperty("accessToken");
+
+    // Sandi yang salah tetap memakai pesan seragam 401, sehingga keberadaan
+    // akun tidak bisa dipetakan dari teks respons.
+    expect(sandiSalah.status).toBe(401);
+    expect(sandiSalah.body.message).toBe("Email atau kata sandi tidak valid.");
   });
 });
 

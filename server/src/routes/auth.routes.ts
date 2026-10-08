@@ -89,25 +89,33 @@ router.post(
       include: { instansi: true },
     });
 
-    // Password salah dan akun tidak aktif memakai pesan yang sama. Kalau
-    // dibedakan, siapa pun bisa menebak email mana yang terdaftar hanya dari
-    // teks respons. Password tetap diverifikasi untuk akun nonaktif supaya
-    // waktu prosesnya tidak membocorkan keberadaan akun.
+    // Password salah dan akun tidak aktif memakai pesan yang sama hanya bila
+    // sandinya salah; enumerasi email tetap tertutup karena admin/pelaku tidak
+    // bisa sampai ke pesan status tanpa mengetahui kata sandi yang benar.
     const passwordBenar = user ? await verifyPassword(body.password, user.password) : false;
-    const bolehMasuk = passwordBenar && user!.status === "aktif";
 
-    if (!bolehMasuk) {
+    if (!user || !passwordBenar) {
       res.status(401).json({ message: "Email atau kata sandi tidak valid." });
       return;
     }
 
-    const { accessToken } = await issueSession(user!.id, user!.role, req, res);
-    await prisma.user.update({ where: { id: user!.id }, data: { lastLoginAt: new Date() } });
+    if (user.status !== "aktif") {
+      res.status(403).json({
+        message:
+          user.status === "pending"
+            ? "Akun masih menunggu aktivasi oleh administrator."
+            : "Akun ini dinonaktifkan.",
+      });
+      return;
+    }
+
+    const { accessToken } = await issueSession(user.id, user.role, req, res);
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await bersihkanSesiLama();
 
     res.json({
       message: "Login berhasil.",
-      user: toUserDTO(user!),
+      user: toUserDTO(user),
       accessToken,
     });
   })
@@ -118,7 +126,7 @@ router.post(
   "/guest",
   h(async (req, res) => {
     const guest = await prisma.user.findFirst({
-      where: { role: "tamu" },
+      where: { role: "tamu", status: "aktif" },
       include: { instansi: true },
     });
     if (!guest) {
