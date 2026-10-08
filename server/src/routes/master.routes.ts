@@ -131,7 +131,7 @@ router.post(
           emailNorm,
           password: await hashPassword(createUserPassword),
           role: "petugas",
-          status: "aktif",
+          status: body.status === "aktif" ? "aktif" : "nonaktif",
           instansiId: instansi?.id ?? null,
           nip: body.nip,
         },
@@ -174,7 +174,13 @@ router.patch(
     const { id } = req.params;
     const body = pegawaiUpdateSchema.parse(req.body);
 
-    const pegawai = await prisma.pegawai.findUnique({ where: { id } });
+    const pegawai = await prisma.pegawai.findUnique({
+      where: { id },
+      include: {
+        instansi: true,
+        user: { select: { id: true, email: true, emailNorm: true, name: true, status: true, instansiId: true, nip: true } },
+      },
+    });
     if (!pegawai) {
       res.status(404).json({ message: "Pegawai tidak ditemukan." });
       return;
@@ -189,21 +195,110 @@ router.patch(
     }
 
     const instansi = body.instansi ? await findOrCreateInstansi(body.instansi) : null;
+    const emailDiberikan = body.email !== undefined;
+    const emailBaru = emailDiberikan ? (body.email ? body.email.trim() : null) : pegawai.email;
 
-    const updated = await prisma.pegawai.update({
-      where: { id },
-      data: {
-        ...(body.name ? { name: body.name } : {}),
-        ...(body.nip ? { nip: body.nip } : {}),
-        ...(instansi !== undefined ? { instansiId: instansi?.id ?? null } : {}),
-        ...(body.instansiSub !== undefined ? { instansiSub: body.instansiSub } : {}),
-        ...(body.peran ? { peran: body.peran } : {}),
-        ...(body.peranIcon !== undefined ? { peranIcon: body.peranIcon } : {}),
-        ...(body.email !== undefined ? { email: body.email } : {}),
-        ...(body.status ? { status: body.status } : {}),
-      },
-      include: { instansi: true, user: { select: { id: true } } },
+    // Akun login hanya dibuat ketika admin secara eksplisit mengisi email pada
+    // pegawai yang tadinya tak punya akun. Menyentuh kolom lain tanpa email
+    // tidak boleh diam-diam membuat akun baru.
+    let userIdBaru: string | null = null;
+    let temporaryPassword: string | null = null;
+    if (pegawai.user) {
+      if (emailBaru && pegawai.user.emailNorm !== emailBaru.toLowerCase()) {
+        const conflict = await prisma.user.findFirst({
+          where: { emailNorm: emailBaru.toLowerCase(), id: { not: pegawai.user.id } },
+        });
+        if (conflict) {
+          res.status(409).json({ message: "Email sudah terdaftar sebagai akun pengguna lain." });
+          return;
+        }
+      }
+    } else if (emailBaru) {
+      const conflict = await prisma.user.findFirst({ where: { emailNorm: emailBaru.toLowerCase() } });
+      if (conflict) {
+        res.status(409).json({ message: "Email sudah terdaftar sebagai akun pengguna." });
+        return;
+      }
+      temporaryPassword = generateTemporaryPassword();
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      // Sinkron data pegawai ke akun login yang terhubung (email, nama, NIP,
+      // instansi) dan status aktivasi mengikuti status penugasan.
+      if (pegawai.user) {
+        const dataUser: {
+          email?: string;
+          emailNorm?: string;
+          name?: string;
+          nip?: string;
+          instansiId?: string | null;
+          status?: string;
+        } = {};
+
+        if (emailDiberikan && emailBaru && pegawai.user.email !== emailBaru) {
+          dataUser.email = emailBaru;
+          dataUser.emailNorm = emailBaru.toLowerCase();
+        }
+        if (body.name && body.name !== pegawai.user.name) dataUser.name = body.name;
+        if (body.nip && pegawai.user.nip !== body.nip) dataUser.nip = body.nip;
+        if (instansi !== undefined && pegawai.user.instansiId !== instansi?.id) {
+          dataUser.instansiId = instansi?.id ?? null;
+        }
+        const statusAkun = (body.status ?? pegawai.status) === "aktif" ? "aktif" : "nonaktif";
+        if (body.status && statusAkun !== pegawai.user.status) dataUser.status = statusAkun;
+
+        if (Object.keys(dataUser).length > 0) {
+          await tx.user.update({ where: { id: pegawai.user.id }, data: dataUser });
+        }
+        // Pegawai yang berubah nonaktif/cuti langsung kehilangan sesi login.
+        if (dataUser.status === "nonaktif") {
+          await tx.session.updateMany({
+            where: { userId: pegawai.user.id, revokedAt: null },
+            data: { revokedAt: new Date() },
+          });
+        }
+      } else if (emailBaru) {
+        const akun = await tx.user.create({
+          data: {
+            name: body.name ?? pegawai.name,
+            email: emailBaru,
+            emailNorm: emailBaru.toLowerCase(),
+            password: await hashPassword(temporaryPassword!),
+            role: "petugas",
+            status: (body.status ?? pegawai.status) === "aktif" ? "aktif" : "nonaktif",
+            instansiId: instansi?.id ?? null,
+            nip: body.nip ?? pegawai.nip,
+          },
+        });
+        userIdBaru = akun.id;
+      }
+
+      return tx.pegawai.update({
+        where: { id },
+        data: {
+          ...(body.name ? { name: body.name } : {}),
+          ...(body.nip ? { nip: body.nip } : {}),
+          ...(instansi !== undefined ? { instansiId: instansi?.id ?? null } : {}),
+          ...(body.instansiSub !== undefined ? { instansiSub: body.instansiSub } : {}),
+          ...(body.peran ? { peran: body.peran } : {}),
+          ...(body.peranIcon !== undefined ? { peranIcon: body.peranIcon } : {}),
+          ...(body.email !== undefined ? { email: body.email } : {}),
+          ...(body.status ? { status: body.status } : {}),
+          ...(userIdBaru ? { userId: userIdBaru } : {}),
+        },
+        include: { instansi: true, user: { select: { id: true } } },
+      });
     });
+
+    if (temporaryPassword) {
+      await catatAudit(req, "pegawai.akun-dibuat", `${body.name ?? pegawai.name} (${body.nip ?? pegawai.nip})`);
+      res.json({
+        message: "Pegawai berhasil diperbarui, akun login baru dibuat.",
+        pegawai: toPegawaiDTO(updated),
+        temporaryPassword,
+      });
+      return;
+    }
 
     res.json({ message: "Pegawai berhasil diperbarui.", pegawai: toPegawaiDTO(updated) });
   })
