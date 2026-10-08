@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   Search,
   Plus,
-  Share2,
   Pencil,
   Trash2,
   ChevronLeft,
@@ -104,7 +103,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
     peran:      initial?.peran      ?? "",
     peranIcon:  initial?.peranIcon  ?? "👤",
     status:     initial?.status     ?? "aktif",
-    email:      "",
+    email:      initial?.email      ?? "",
   });
   const [error, setError] = useState("");
 
@@ -203,9 +202,19 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
                 value={form.email}
                 onChange={(e) => setForm({...form, email: e.target.value})}
                 placeholder="nama@instansi.go.id"
+                type="email"
+                inputMode="email"
+                autoComplete="off"
                 className="w-full pl-8 pr-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
               />
             </div>
+            <p className="text-[11px] text-gray-400 mt-1.5 leading-snug">
+              {mode === "add"
+                ? "Isi untuk sekaligus membuat akun login berperan petugas."
+                : initial?.email
+                ? "Dipakai sebagai akun login pegawai. Mengubahnya juga mengubah email masuk aplikasi."
+                : "Belum ada akun login. Mengisi email akan membuat akun berperan petugas untuk pegawai ini."}
+            </p>
           </div>
 
           {/* Peran */}
@@ -265,6 +274,65 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
   );
 }
 
+// ─── Kata Sandi Sementara Modal ───────────────────────────────────────────────
+
+function KataSandiModal({
+  email,
+  password,
+  onClose,
+}: {
+  email: string;
+  password: string;
+  onClose: () => void;
+}) {
+  const [disalin, setDisalin] = useState(false);
+
+  async function salin() {
+    try {
+      await navigator.clipboard.writeText(password);
+      setDisalin(true);
+    } catch {
+      setDisalin(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-gray-900">Akun Login Dibuat</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+            <X size={15} />
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">
+          Pegawai sekarang bisa masuk aplikasi dengan <strong className="text-gray-700">{email}</strong>{" "}
+          dan kata sandi sementara di bawah ini.
+        </p>
+        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4">
+          <code className="text-sm font-mono font-bold text-gray-900 tracking-wider flex-1 break-all">
+            {password}
+          </code>
+          <button
+            onClick={salin}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              disalin ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            {disalin ? "Tersalin" : "Salin"}
+          </button>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-full py-2.5 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700"
+        >
+          Selesai
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function KelolaPegawai() {
@@ -277,6 +345,7 @@ export default function KelolaPegawai() {
   const [currentPage, setCurrentPage] = useState(1);
   const [modal, setModal]             = useState<null | { mode: "add" | "edit"; data?: Pegawai }>(null);
   const [deleteId, setDeleteId]       = useState<string | null>(null);
+  const [tempPass, setTempPass]       = useState<null | { email: string; password: string }>(null);
   const perPage = 4;
 
   useEffect(() => {
@@ -308,7 +377,7 @@ export default function KelolaPegawai() {
   async function handleSave(p: Pegawai) {
     setMessage("");
     setMessageType("info");
-    const payload = {
+    const payload: Record<string, string> = {
       name: p.name,
       nip: p.nip,
       instansi: p.instansi === "-" ? "" : p.instansi,
@@ -316,18 +385,32 @@ export default function KelolaPegawai() {
       peran: p.peran,
       peranIcon: p.peranIcon,
       status: p.status,
-      ...(modal?.mode === "add" && p.email ? { email: p.email } : {}),
     };
+    const emailBaru = (p.email ?? "").trim();
+    if (modal?.mode === "add") {
+      if (emailBaru) payload.email = emailBaru;
+    } else {
+      // Email hanya dikirim saat berubah. Menghapus email mengunci akun login
+      // yang sudah ada (hak akses diurus di menu Kelola Akun), tidak menghapusnya.
+      const emailSemula = (modal?.data?.email ?? "").trim();
+      if (emailBaru !== emailSemula) payload.email = emailBaru || "";
+    }
     try {
       if (modal?.mode === "add") {
         const res = await api.post<{ pegawai: Pegawai; temporaryPassword?: string | null }>("/pegawai", payload);
         setPegawai((prev) => [res.pegawai, ...prev]);
         if (res.temporaryPassword) {
-          setMessage(`Akun petugas dibuat. Kata sandi sementara: ${res.temporaryPassword}`);
+          setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword });
         }
       } else {
-        const res = await api.patch<{ pegawai: Pegawai }>(`/pegawai/${p.id}`, payload);
+        const res = await api.patch<{ pegawai: Pegawai; temporaryPassword?: string | null }>(
+          `/pegawai/${p.id}`,
+          payload
+        );
         setPegawai((prev) => prev.map((x) => (x.id === p.id ? res.pegawai : x)));
+        if (res.temporaryPassword) {
+          setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword });
+        }
       }
       setModal(null);
     } catch (e) {
@@ -389,6 +472,15 @@ export default function KelolaPegawai() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Kata sandi sementara setelah akun dibuat */}
+      {tempPass && (
+        <KataSandiModal
+          email={tempPass.email}
+          password={tempPass.password}
+          onClose={() => setTempPass(null)}
+        />
       )}
 
       {/* Feedback message */}
@@ -481,10 +573,6 @@ export default function KelolaPegawai() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
-              <Share2 size={12} />
-              Ekspor
-            </button>
             <button
               onClick={() => setModal({ mode: "add" })}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700"
@@ -535,6 +623,11 @@ export default function KelolaPegawai() {
                       <div>
                         <div className="text-xs font-bold text-gray-900">{p.name}</div>
                         <div className="text-xs text-gray-400 font-mono mt-0.5">NIP {p.nip}</div>
+                        {p.email && (
+                          <div className="text-xs text-gray-400 truncate max-w-[220px] mt-0.5">
+                            {p.email}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -616,20 +709,7 @@ export default function KelolaPegawai() {
               <ChevronRight size={13} />
             </button>
           </div>
-        </div>
-      </div>
-
-<div className="flex flex-col lg:flex-row items-start justify-between gap-3 bg-white border border-gray-100 rounded-xl px-5 py-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-sm text-gray-500">
-            Unit kerja:{" "}
-            <strong className="text-gray-800">TPID Kota Batu</strong>
-          </span>
-        </div>
-        <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50">
-          <Share2 size={12} />
-          Unduh SK TPID (PDF)
-        </button>
+</div>
       </div>
     </div>
   );
