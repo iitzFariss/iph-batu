@@ -4,7 +4,6 @@ import {
   ChevronDown,
   TrendingDown,
   Copy,
-  Pencil,
   Clock,
   MessageCircle,
   Bell,
@@ -541,14 +540,6 @@ export default function AnalisisTeksSiaran() {
                 >
                   <MessageCircle size={12} />
                   Buka WhatsApp
-                </button>
-              </div>
-
-              {/* Row 2: edit manual */}
-              <div className="flex items-center gap-2">
-                <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50">
-                  <Pencil size={11} />
-                  Edit Manual
                 </button>
               </div>
 

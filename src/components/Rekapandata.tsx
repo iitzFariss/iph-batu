@@ -3,7 +3,6 @@ import {
   Search,
   ChevronDown,
   SlidersHorizontal,
-  FileDown,
   Sheet,
   TrendingDown,
   TrendingUp,
@@ -499,9 +498,9 @@ export default function RekapanData() {
     <div className="p-4 sm:p-5 space-y-4 w-full">
       {/* Breadcrumb */}
       <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-400">
-        <span className="hover:text-gray-600 cursor-pointer">TPID Terpadu</span>
+        <span>TPID Terpadu</span>
         <ChevronRight size={10} />
-        <span className="hover:text-gray-600 cursor-pointer">Basis Data Inflasi</span>
+        <span>Basis Data Inflasi</span>
         <ChevronRight size={10} />
         <span className="text-gray-700 font-medium">Rekapan Data IPH</span>
       </div>
@@ -569,10 +568,6 @@ export default function RekapanData() {
 
           {/* Export */}
           <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-            <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 flex-1 sm:flex-none justify-center">
-              <FileDown size={13} className="text-red-500" />
-              Export PDF Resmi
-            </button>
             <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex-1 sm:flex-none justify-center">
               <Sheet size={13} />
               Download CSV / Excel

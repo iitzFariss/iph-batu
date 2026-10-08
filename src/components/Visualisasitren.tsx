@@ -10,11 +10,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
-  Share2,
-  ChevronDown,
-  BarChart2,
   AlertCircle,
   ChevronRight,
+  BarChart2,
   BarChart3,
 } from "lucide-react";
 import { api } from "../lib/api";
@@ -349,16 +347,6 @@ export default function VisualisasiTren() {
           </span>
           <span className="text-xs text-gray-500">Tampilkan hanya minggu penutupan</span>
         </button>
-
-        <div className="ml-auto flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-100">
-            <Share2 size={15} />
-          </button>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-100">
-            Opsi Ekspor &amp; Data
-            <ChevronDown size={12} />
-          </button>
-        </div>
       </div>
 
       {/* Info banner */}
@@ -672,10 +660,6 @@ export default function VisualisasiTren() {
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-500">Sumber: Rekap IPH Kota Batu (CSV)</span>
-            <button className="flex items-center gap-1 text-xs text-gray-500 font-semibold hover:text-gray-800">
-              <BarChart2 size={10} />
-              Bobot Andil
-            </button>
           </div>
         </div>
       </div>

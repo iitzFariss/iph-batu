@@ -5,7 +5,6 @@ import {
   Building2,
   BadgeCheck,
   Shield,
-  Camera,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -135,9 +134,6 @@ export default function ProfilSaya() {
               <div className="w-20 h-20 rounded-full bg-emerald-600 text-white flex items-center justify-center text-2xl font-black mx-auto">
                 {initials}
               </div>
-              <button className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50">
-                <Camera size={11} className="text-gray-500" />
-              </button>
             </div>
 
             <div className="text-sm font-black text-gray-900 mb-0.5">{user.name}</div>
