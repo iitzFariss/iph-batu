@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, rmSync, statSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import {
   DEV_DB_PATH,
   PRISMA_CLI,
@@ -38,12 +39,24 @@ export async function setup() {
 
   devDbAwal = sidikJari(DEV_DB_PATH);
   bersihkanTestDb();
+  writeFileSync(TEST_DB_PATH, "");
+
+  // Keep fast API regression tests offline, using a separate generated client.
+  const testSchema = readFileSync(path.resolve("prisma/schema.prisma"), "utf8")
+    .replace('provider = "postgresql"', 'provider = "sqlite"')
+    .replace(/^\s*schemas\s*=.*\r?\n/gm, "")
+    .replace(/^\s*@@schema\([^\n]*\)\r?\n/gm, "")
+    .replace('provider = "prisma-client-js"', 'provider = "prisma-client-js"\n  output = "../node_modules/.prisma/iph-test-client"');
+  writeFileSync(path.resolve("prisma/schema.test.prisma"), testSchema);
+  execFileSync(process.execPath, [PRISMA_CLI, "generate", "--config", "prisma.test.config.ts"], {
+    env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL }, stdio: "pipe",
+  });
 
   // Terapkan schema ke database test. Sengaja TIDAK memanggil prisma/seed.ts:
   // seed menjalankan deleteMany di semua tabel lalu mengisi 178 rekap.
   execFileSync(
     process.execPath,
-    [PRISMA_CLI, "db", "push", "--skip-generate", "--accept-data-loss"],
+    [PRISMA_CLI, "db", "push", "--config", "prisma.test.config.ts", "--skip-generate"],
     { env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL }, stdio: "pipe" }
   );
 }

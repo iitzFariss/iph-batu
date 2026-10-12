@@ -76,6 +76,7 @@ export const pegawaiSchema = z.object({
   peran: z.string().trim().min(3, "Peran minimal 3 karakter."),
   peranIcon: z.string().trim().max(8).nullish(),
   email: z.string().trim().email("Format email tidak valid.").nullish(),
+  phone: z.string().trim().refine(cekNoWa, "Nomor WhatsApp tidak valid. Gunakan awalan 08 atau +628.").nullish(),
   status: z.enum(PEGAWAI_STATUSES).optional().default("aktif"),
 });
 

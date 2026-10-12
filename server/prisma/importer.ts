@@ -1,8 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "../src/lib/prisma";
 
 const CSV_BAWAAN = "../data/Rekap IPH Kota Batu.xlsx - Data IPH Kota Batu.csv";
 

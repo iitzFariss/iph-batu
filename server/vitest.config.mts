@@ -1,7 +1,11 @@
 import { defineConfig } from "vitest/config";
 import { TEST_DATABASE_URL } from "./tests/testDb.ts";
+import path from "node:path";
 
 export default defineConfig({
+  resolve: {
+    alias: [{ find: /^@prisma\/client$/, replacement: path.resolve("node_modules/.prisma/iph-test-client/index.js") }],
+  },
   test: {
     environment: "node",
     globals: false,

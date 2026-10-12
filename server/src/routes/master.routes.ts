@@ -12,6 +12,7 @@ import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateInstansi, toPegawaiDTO } from "./master.helpers";
 import { invalidateSummary } from "../lib/rekapCache";
 import { catatAudit } from "../lib/audit";
+import { normalisasiNomorWa } from "../lib/phone";
 
 export const router = Router();
 
@@ -148,6 +149,7 @@ router.post(
         peran: body.peran,
         peranIcon: body.peranIcon ?? null,
         email: body.email ?? null,
+        phone: body.phone ?? null,
         status: body.status,
         userId,
       },
@@ -178,7 +180,7 @@ router.patch(
       where: { id },
       include: {
         instansi: true,
-        user: { select: { id: true, email: true, emailNorm: true, name: true, status: true, instansiId: true, nip: true } },
+        user: { select: { id: true, email: true, emailNorm: true, name: true, status: true, instansiId: true, nip: true, phone: true } },
       },
     });
     if (!pegawai) {
@@ -273,7 +275,7 @@ router.patch(
         userIdBaru = akun.id;
       }
 
-      return tx.pegawai.update({
+      const record = await tx.pegawai.update({
         where: { id },
         data: {
           ...(body.name ? { name: body.name } : {}),
@@ -283,11 +285,20 @@ router.patch(
           ...(body.peran ? { peran: body.peran } : {}),
           ...(body.peranIcon !== undefined ? { peranIcon: body.peranIcon } : {}),
           ...(body.email !== undefined ? { email: body.email } : {}),
+          ...(body.phone !== undefined ? { phone: body.phone } : {}),
           ...(body.status ? { status: body.status } : {}),
           ...(userIdBaru ? { userId: userIdBaru } : {}),
         },
         include: { instansi: true, user: { select: { id: true } } },
       });
+      if (body.phone !== undefined) {
+        const phone = normalisasiNomorWa(body.phone ?? pegawai.user?.phone);
+        await tx.whatsAppNotification.updateMany({
+          where: { pegawaiId: id, status: { in: ["pending", "missing_phone"] } },
+          data: { phone, status: phone ? "pending" : "missing_phone", lastError: phone ? null : "Nomor WhatsApp belum diisi." },
+        });
+      }
+      return record;
     });
 
     if (temporaryPassword) {

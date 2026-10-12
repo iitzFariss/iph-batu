@@ -3,9 +3,11 @@ import { createApp } from "./app";
 import { log } from "./lib/logger";
 import prisma from "./lib/prisma";
 import { bersihkanSesiLama } from "./lib/session";
+import { startNotificationWorker } from "./lib/whatsapp";
 
-const port = Number(process.env.PORT ?? 4000);
+const port = Number(process.env.PORT ?? 5011);
 const app = createApp();
+const stopNotificationWorker = startNotificationWorker();
 
 const server = app.listen(port, () => {
   log.info("server.start", { port, clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173" });
@@ -37,6 +39,7 @@ let shuttingDown = false;
 async function shutdown(sinyal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
+  stopNotificationWorker();
   log.info("server.shutdown.mulai", { sinyal });
 
   const batas = setTimeout(() => {

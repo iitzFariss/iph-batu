@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import RapatWhatsappStatus from "./RapatWhatsappStatus";
+import RapatMessageSender from "./RapatMessageSender";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -329,17 +331,19 @@ export default function MonitoringResume() {
       </div>
 
       {/* Pengingat WhatsApp (admin) */}
+      {isAdmin && <RapatMessageSender />}
+      {isAdmin && <RapatWhatsappStatus />}
       {isAdmin && (
         <div className="bg-white border border-gray-100 rounded-xl p-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
             <div>
               <div className="flex items-center gap-2">
                 <MessageCircle size={15} className="text-emerald-600" />
-                <h2 className="text-sm font-bold text-gray-900">Pengingat WhatsApp Jatuh Tempo</h2>
+                <h2 className="text-sm font-bold text-gray-900">Pengingat WhatsApp Manual</h2>
               </div>
               <p className="text-xs sm:text-sm text-gray-400">
                 Pengingat rapat H-1/H-0 dan notulensi terlambat. Kirim manual lewat tombol Buka
-                WhatsApp — nomor diambil dari Profil Saya masing-masing petugas.
+                WhatsApp. Nomor memakai data pegawai, atau profil akun jika nomor pegawai belum diisi.
               </p>
             </div>
             <button

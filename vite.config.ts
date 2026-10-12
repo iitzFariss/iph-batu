@@ -12,9 +12,10 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] })
   ],
   server: {
+    host: '0.0.0.0',
     proxy: {
       '/api': {
-        target: 'http://localhost:4000',
+        target: 'http://localhost:5011',
         changeOrigin: true,
         configure(proxy) {
           proxy.on('error', (err, _req, res) => {
@@ -25,12 +26,12 @@ export default defineConfig({
             if (code !== 'ECONNREFUSED') return
 
             const hint =
-              '\n\n  API belum jalan. Vite hanya proxy ke http://localhost:4000.\n' +
+              '\n\n  API belum jalan. Vite hanya proxy ke http://localhost:5011.\n' +
               '  Jalankan:\n' +
               '    npm run dev        # frontend + backend sekaligus (disarankan)\n' +
               '    npm run dev:api    # atau backend saja, di terminal terpisah\n'
 
-            console.error(`\n  [proxy] Tidak bisa konek ke API (localhost:4000).${hint}`)
+            console.error(`\n  [proxy] Tidak bisa konek ke API (localhost:5011).${hint}`)
 
             // http-proxy mengirim Socket untuk streaming dan ServerResponse untuk HTTP biasa.
             // Hanya ServerResponse yang bisa kita balas sendiri, jadi yang ini dicek dulu.

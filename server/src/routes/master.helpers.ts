@@ -41,6 +41,7 @@ export function toPegawaiDTO(pegawai: {
   peran: string;
   peranIcon: string | null;
   email: string | null;
+  phone: string | null;
   status: string;
   instansi: { nama: string } | null;
   user: { id: string } | null;
@@ -56,6 +57,7 @@ export function toPegawaiDTO(pegawai: {
     peran: pegawai.peran,
     peranIcon: pegawai.peranIcon ?? "",
     email: pegawai.email,
+    phone: pegawai.phone,
     status: pegawai.status,
     isAccountCreated: !!pegawai.user,
   };

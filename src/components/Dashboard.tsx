@@ -98,7 +98,7 @@ function HeroMetrics({ latest }: { latest: SummaryTrendPoint | null }) {
         <div className="flex items-center gap-3">
           <div>
             <div className="text-xs text-gray-500 mb-0.5">
-              Indeks Perkembangan Harga (IPH) Terkini
+              Indeks Perkembangan Harga (IPH)
             </div>
             <span className="text-4xl font-black text-gray-900 tracking-tight">
               {latest ? `${latest.iph > 0 ? "+" : ""}${latest.iph.toFixed(2)}%` : "—"}
@@ -404,13 +404,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
+    const period = window.location.hash.startsWith("#/publik?") ? window.location.hash.split("?")[1] : "";
     api
-      .get<SummaryResp>("/rekap/summary")
+      .get<SummaryResp>(`/public/rekap/summary${period ? `?${period}` : ""}`)
       .then((data) => {
         if (!cancelled) setSummary(data);
       })
-      .catch(() => {
-        if (!cancelled) setLoadError("Gagal memuat ringkasan data.");
+      .catch((error: Error) => {
+        if (!cancelled) setLoadError(error.message || "Gagal memuat ringkasan data.");
       });
     return () => {
       cancelled = true;

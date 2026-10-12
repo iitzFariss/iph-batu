@@ -748,7 +748,7 @@ export default function KelolaRapat() {
             {menyimpan ? "Menyimpan…" : "Buat Jadwal Rapat"}
           </button>
           <p className="text-center text-xs text-gray-400">
-            Pengingat WhatsApp H-1/H-0 dan notulensi terlambat dibuat otomatis di Monitoring Rapat.
+            Undangan WhatsApp masuk antrean setelah jadwal disimpan. Pengingat hari rapat dijadwalkan otomatis jika layanan pengiriman aktif. Statusnya tersedia di Monitoring Rapat.
           </p>
         </div>
       </div>

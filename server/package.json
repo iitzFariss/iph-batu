@@ -10,15 +10,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset",
+    "db:migrate": "tsx scripts/database-command.ts deploy",
+    "db:status": "tsx scripts/database-command.ts status",
+    "db:check": "tsx scripts/check-database.ts",
+    "db:bootstrap": "tsx prisma/bootstrap.ts",
+    "db:transfer": "tsx scripts/migrate-legacy.ts",
     "db:studio": "prisma studio",
     "import": "tsx prisma/importer.ts"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",

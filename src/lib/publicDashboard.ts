@@ -2,8 +2,12 @@
 export const PUBLIC_DASHBOARD_HASH = "#/publik";
 
 // Bangun URL lengkap dashboard publik dari alamat aplikasi saat ini
-export function buildPublicDashboardLink(): string {
+export function buildPublicDashboardLink(period?: { tahun: number; bulan: number; minggu: number }): string {
   const url = new URL(window.location.href);
-  url.hash = PUBLIC_DASHBOARD_HASH;
+  url.hash = PUBLIC_DASHBOARD_HASH + (period ? `?tahun=${period.tahun}&bulan=${period.bulan}&minggu=${period.minggu}` : "");
   return url.toString();
+}
+
+export function isPublicDashboard(): boolean {
+  return window.location.hash.split("?")[0] === PUBLIC_DASHBOARD_HASH;
 }

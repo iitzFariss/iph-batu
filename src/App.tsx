@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { PUBLIC_DASHBOARD_HASH } from "./lib/publicDashboard";
+import { isPublicDashboard } from "./lib/publicDashboard";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
@@ -150,7 +150,7 @@ function InternalApp() {
 
   // Link publik (#/publik): hanya dashboard — persis seperti tampilan masyarakat/tamu.
   const isPublicView = typeof window !== "undefined"
-    && window.location.hash === PUBLIC_DASHBOARD_HASH;
+    && isPublicDashboard();
 
   const isDark = DARK_PAGES.includes(activePage);
   const role = isPublicView ? "tamu" : (user?.role ?? "petugas");
@@ -201,50 +201,31 @@ function InternalApp() {
 // ─── App shell (routing auth) ─────────────────────────────────────────────────
 
 function AppShell() {
-  const { user, isAuthenticated, loginAsGuest } = useAuth();
-  const { isDark } = useTheme();
+  const { user, isAuthenticated } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [authView, setAuthView] = useState<"landing" | "login">("landing");
 
   // Link publik (#/publik): otomatis masuk sebagai tamu → dashboard yang
   // sama persis dengan yang dilihat masyarakat.
   const isPublicView =
     typeof window !== "undefined" &&
-    window.location.hash === PUBLIC_DASHBOARD_HASH;
+    isPublicDashboard();
 
-  const [publicLoad, setPublicLoad] = useState<"memuat" | "siap" | "gagal">(isPublicView ? "memuat" : "siap");
-
-  useEffect(() => {
-    if (isPublicView && !isAuthenticated) {
-      loginAsGuest().then((r) => {
-        setPublicLoad(r.success ? "siap" : "gagal");
-      });
-    }
-    // hanya jalankan sekali saat terbuka
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  if (isPublicView) {
+    return <div className={isDark ? "dark h-full" : "h-full"}>
+      <div className="h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900 font-sans">
+        <header className="flex items-center justify-between gap-3 px-5 py-4 bg-white border-b border-gray-100">
+          <span className="font-semibold text-sm text-gray-900">TPID Kota Batu <span className="font-normal text-gray-500">· Dashboard publik</span></span>
+          <button type="button" onClick={toggleTheme} className="text-xs text-gray-600 border border-gray-200 rounded-lg px-3 py-2">{isDark ? "Mode terang" : "Mode gelap"}</button>
+        </header>
+        <Dashboard />
+      </div>
+    </div>;
+  }
 
   // Belum login → tampilkan halaman publik (tanpa dark mode)
   // Kecuali link publik dashboard (#/publik) yang langsung auto login.
   if (!isAuthenticated || !user) {
-    if (isPublicView) {
-      if (publicLoad === "gagal") {
-        // Akun tamu tidak tersedia / API mati: jangan menampilkan dashboard
-        // yang membingungkan, kembalikan ke beranda agar bisa masuk manual.
-        return <LandingPage onLogin={() => setAuthView("login")} />;
-      }
-      if (publicLoad === "memuat") {
-        return (
-          <div className="min-h-screen flex items-center justify-center bg-white">
-            <span className="text-sm text-gray-500 animate-pulse">Menyiapkan tampilan publik…</span>
-          </div>
-        );
-      }
-      return (
-        <div className={isDark ? "dark h-full" : "h-full"}>
-          <InternalApp />
-        </div>
-      );
-    }
     if (authView === "login") {
       return <LoginPage onGoBack={() => setAuthView("landing")} />;
     }

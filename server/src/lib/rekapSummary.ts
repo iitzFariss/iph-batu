@@ -2,8 +2,13 @@ import prisma from "./prisma";
 import { computeStatusIPH } from "./rekap";
 import { BULAN_SINGKAT } from "./dates";
 
-export async function buildRekapSummary() {
+export async function buildRekapSummary(period?: { tahun: number; bulan: number; minggu: number }) {
   const records = await prisma.rekap.findMany({
+    where: period ? { OR: [
+      { tahun: { lt: period.tahun } },
+      { tahun: period.tahun, bulan: { lt: period.bulan } },
+      { tahun: period.tahun, bulan: period.bulan, mingguIndeks: { lte: period.minggu } },
+    ] } : undefined,
     orderBy: [{ tahun: "asc" }, { bulan: "asc" }, { mingguIndeks: "asc" }],
     include: { details: { include: { komoditas: true } } },
   });

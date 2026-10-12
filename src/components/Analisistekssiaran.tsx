@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { buildPublicDashboardLink } from "../lib/publicDashboard";
+import RapatMessageSender from "./RapatMessageSender";
+import { useAuth } from "../context/AuthContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -140,7 +142,7 @@ return baris.join("\n");
 
 export default function AnalisisTeksSiaran() {
   const [copied, setCopied]             = useState(false);
-  const [dashboardLink] = useState(() => buildPublicDashboardLink());
+  const { user } = useAuth();
 
   // Penyuntingan manual draf. drafKustom === null → pakai draf otomatis.
   const [drafKustom, setDrafKustom] = useState<string | null>(null);
@@ -324,6 +326,7 @@ export default function AnalisisTeksSiaran() {
     return mingguTersediaPada(rows, periode.tahun, periode.bulan);
   }, [rows, periode]);
   const selectedRow = detail?.row ?? null;
+  const dashboardLink = buildPublicDashboardLink(periode ?? undefined);
 
   const currentDraf = selectedRow ? buildDraf(selectedRow) : detailError ? "Gagal memuat detail rekap." : drafKosong;
   const drafEfektif = drafKustom ?? currentDraf;
@@ -335,7 +338,7 @@ export default function AnalisisTeksSiaran() {
 
   // Tanpa baris rekap terpilih, isinya cuma placeholder atau pesan error.
   // Mengirimnya ke kontak WhatsApp akan menyakitkan.
-  const drafSiap = selectedRow !== null;
+  const drafSiap = selectedRow !== null && !detailLoading && !detailError && !mengedit;
 
   function mulaiEdit() {
     setDrafEdit(drafKustom ?? currentDraf);
@@ -661,6 +664,7 @@ export default function AnalisisTeksSiaran() {
           </div>
       </div>
       </div>
+      {user?.role === "admin" && <RapatMessageSender broadcast={{ rekapId: selectedRow?.id ?? "", text: drafEfektif, periodLabel: selectedRow?.periode ?? "periode terpilih", ready: drafSiap }} />}
     </div>
   );
 }

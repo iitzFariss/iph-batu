@@ -1,8 +1,7 @@
 import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
+import prisma from "../src/lib/prisma";
+import { getPostgresUrl } from "../src/lib/database";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
 
 const INSTANSI = [
   "BPS Kota Batu",
@@ -197,6 +196,10 @@ async function upsertUser(data: {
 }
 
 async function main() {
+  const target = new URL(getPostgresUrl());
+  if (decodeURIComponent(target.pathname.slice(1)) === "db_magang" || process.env.ALLOW_DEMO_SEED !== "true") {
+    throw new Error("Seed demo menghapus data dan dilarang pada db_magang. Gunakan db:bootstrap untuk akun awal. Demo hanya untuk database terpisah dengan ALLOW_DEMO_SEED=true.");
+  }
   console.log("Menghapus data lama...");
   await prisma.rekapDetail.deleteMany();
   await prisma.rekap.deleteMany();

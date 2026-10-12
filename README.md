@@ -1,19 +1,23 @@
-# TPID Kota Batu — Indikator Harga Pasar (IPH)
+# TPID Kota Batu — Indeks Perkembangan Harga (IPH)
 
-Aplikasi web untuk mengelola dan memantau **Indikator Harga Pasar (IPH) Kota Batu**: upload tabel Scanning Harga, verifikasi andil komoditas, dan publikasi ringkasan ke dashboard publik.
+Aplikasi web untuk mengelola dan memantau **Indeks Perkembangan Harga (IPH) Kota Batu**: impor tabel Scanning Harga, verifikasi andil komoditas, dan publikasi ringkasan ke dashboard publik.
+
+Database kantor: **`db_magang`**, schema **`iph_batu`**, API **5011**. Schema `presensi` dan API presensi 5010 tidak diubah. Lihat [panduan PostgreSQL kantor dan tunnel SSH](docs/postgresql-kantor.md) untuk instalasi, migration, inisialisasi akun, dan batas pengujian.
+
+Undangan dan pengingat WhatsApp rapat melalui n8n/WAHA: [panduan pemasangan, status pengiriman, dan pengujian](docs/whatsapp-rapat.md).
 
 Repo ini berisi dua aplikasi terpisah:
 
 | Path     | Isi                | Stack                        |
 | -------- | ------------------ | ---------------------------- |
 | `/`      | Frontend dashboard | React 19 + Vite + Tailwind 4 |
-| `server` | REST API           | Express 4 + Prisma + SQLite |
+| `server` | REST API           | Express 4 + Prisma + PostgreSQL |
 
 ## Prasyarat
 
 - **Node.js 20+** dan **npm 10+**
 - Git
-- (Opsional) PostgreSQL 14+ — hanya untuk target produksi, lihat [Catatan produksi](#catatan-produksi-postgresql)
+- Akses PostgreSQL kantor secara LAN atau melalui tunnel SSH yang sudah dikonfigurasi.
 
 Cek versi:
 
@@ -40,14 +44,20 @@ Server membaca konfigurasi dari `server/.env`. Salin dari contoh:
 
 ```bash
 cd server
-cp .env.example .env      # Windows PowerShell: Copy-Item .env.example .env
+# Hanya jika .env belum ada (PowerShell):
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Isi `server/.env` — development lokal cukup memakai nilai default:
+Isi `server/.env` lokal. Untuk laptop di luar kantor:
 
 ```ini
-DATABASE_URL="file:./dev.db"
-PORT=4000
+PGHOST=127.0.0.1
+PGPORT=15433
+PGDATABASE=db_magang
+PGUSER=magang
+PGPASSWORD=""
+PGSSLMODE=prefer
+PORT=5011
 CLIENT_ORIGIN="http://localhost:5173"
 JWT_ACCESS_SECRET="ganti-dengan-rangkaian-acak-panjang"
 JWT_REFRESH_SECRET="ganti-dengan-rangkaian-acak-panjang-berbeda"
@@ -57,23 +67,32 @@ REFRESH_TOKEN_TTL_DAYS=30
 
 >`JWT_ACCESS_SECRET` dan `JWT_REFRESH_SECRET` wajib berbeda dan cukup panjang (minimal 32 karakter). Jangan memakai nilai `change-me` di produksi. Buat string acak, misalnya dengan `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`.
 
-Frontend tidak punya variabel environment sendiri. Dev server memproxy `/api` ke `http://localhost:4000` (lihat `vite.config.ts`).
+Isi password sendiri di `PGPASSWORD`, jangan commit `.env`. `DATABASE_URL` SQLite lama tidak digunakan. Di kantor, ubah PGHOST ke `192.168.100.10` dan PGPORT ke `5432`. Schema `iph_batu` ditetapkan dalam konfigurasi backend dan model Prisma.
+
+Frontend tidak membaca kredensial database. Dev server memproxy `/api` ke `http://localhost:5011` (lihat `vite.config.ts`).
 
 ## Setup database
 
-Developer memakai SQLite lewat `prisma db push` — repo ini **tidak** menyimpan folder `prisma/migrations`.
+Jalankan tunnel di terminal terpisah jika berada di luar kantor:
+
+```powershell
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:15433:192.168.100.10:5432 root@ssh.kaitourae.my.id
+```
+
+Migration hanya membuat tabel dalam `iph_batu`, tanpa seed atau reset database bersama:
 
 ```bash
 cd server
-npm run db:generate    # generate Prisma Client
-npm run db:push        # terapkan schema ke DATABASE_URL
-npm run db:seed        # isi instansi, komoditas, pegawai, akun, dan rekap contoh
+npm run db:generate    # generate Prisma Client PostgreSQL
+npm run db:migrate     # prisma migrate deploy, tanpa shadow/reset
+npm run db:check       # periksa koneksi/schema/tabel
+npm run db:status      # periksa riwayat migration
 ```
 
-Cek hasil:
+Isi INITIAL_ADMIN_EMAIL, INITIAL_ADMIN_NAME, dan INITIAL_ADMIN_PASSWORD di `.env` lokal, kemudian:
 
 ```bash
-npm run db:studio      # buka Prisma Studio untuk melihat data
+npm run db:bootstrap   # buat akun awal tanpa menghapus data
 ```
 
 ## Menjalankan aplikasi
@@ -84,23 +103,23 @@ Satu perintah menyalakan API dan web sekaligus dari root:
 npm run dev
 ```
 
-- API: `http://localhost:4000`
+- API: `http://localhost:5011`
 - Web: `http://localhost:5173`
 
 Kalau ingin memisahkan terminal (misal log API lebih mudah dibaca):
 
 ```bash
-# Terminal 1 — API di http://localhost:4000
+# Terminal 1 — API di http://localhost:5011
 cd server
 npm run dev
 ```
 
 ```bash
 # Terminal 2 — web di http://localhost:5173
-npm run dev
+npm run dev:web
 ```
 
-Buka `http://localhost:5173`. Health check API: `GET http://localhost:4000/api/health`.
+Buka `http://localhost:5173`. Health check API: `GET http://localhost:5011/api/health`.
 
 Kalau web masih bisa dibuka tapi setiap request `/api` gagal dengan
 `ECONNREFUSED`, berarti API belum jalan. Jalankan `npm run dev` dari root, atau
@@ -115,7 +134,7 @@ nyalakan `npm run dev:api` di terminal terpisah.
 | Petugas    | `bambang@diskoperindag-batu.go.id` | `petugas123` |
 | Tamu       | `tamu@tpid-batu.go.id`             | `tamu123`   |
 
-> Password di atas hanya untuk lokal. Hapus atau ubah sebelum dipakai di lingkungan bersama.
+> Akun di atas hanya milik seed demo pada database terpisah. Seed diblokir pada `db_magang`. Untuk kantor gunakan `db:bootstrap` dengan kredensial sendiri; akun demo pada petunjuk development frontend tidak otomatis tersedia.
 
 ## Perintah harian
 
@@ -140,7 +159,7 @@ npm test          # automated test (database terpisah)
 
 ## Automated test
 
-Test backend memakai database SQLite sendiri di `server/prisma/test.db`, **tidak pernah menyentuh `dev.db`**. `globalSetup` meng-*override* `DATABASE_URL` (bukan membaca `.env`), menjalankan `prisma db push` ke database test, dan memverifikasi sidik jari `dev.db` sebelum-sesudah run. `prisma/seed.ts` sengaja tidak dipakai karena isinya menghapus seluruh tabel.
+Test API tetap offline pada SQLite di `server/prisma/test.db`. `globalSetup` membuat salinan model PostgreSQL untuk test, menghasilkan client test terpisah, meng-*override* URL test, dan memverifikasi sidik jari `dev.db` sebelum-sesudah run. Test tidak menghubungi PostgreSQL kantor atau memakai seed. Ini regression API, bukan uji integration PostgreSQL; lihat [batas verifikasi](docs/postgresql-kantor.md#pengujian-dan-batas-verifikasi).
 
 ```bash
 cd server
@@ -233,21 +252,15 @@ Fitur berikut masih kosong, jadi tidak ada di antarmuka maupun di backend. Dicat
 
 ## Catatan produksi (PostgreSQL)
 
-Repo masih memakai SQLite untuk development. Untuk BPS:
-
-1. Ubah `provider = "sqlite"` menjadi `provider = "postgresql"` di `server/prisma/schema.prisma`.
-2. Arahkan `DATABASE_URL` ke instance PostgreSQL di `server/.env`.
-3. Terapkan schema:
+Provider Prisma sudah PostgreSQL. Model memakai `@@schema("iph_batu")`; schema lain tidak dikelola. Konfigurasi memakai PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD. Terapkan migration yang sudah ditinjau:
 
 ```bash
 cd server
-npm run db:migrate   # membuat migration pertama untuk PostgreSQL
+npm run db:migrate   # deploy migration yang tersimpan dalam repo
 npm run db:generate
 ```
 
-4. Jalankan backend dengan `NODE_ENV=production npm start` di belakang reverse proxy TLS. Pastikan `CLIENT_ORIGIN` sesuai domain publik dan `JWT_*_SECRET` sudah diganti.
-
-Karena SQLite tidak cocok untuk multi-instance, endpoint ringkasan yang di-cache (60 detik) dan session di database akan konsisten setelah pindah ke PostgreSQL.
+Jalankan backend dengan NODE_ENV=production di belakang reverse proxy TLS yang meneruskan `/api` ke port 5011. Pastikan CLIENT_ORIGIN sesuai domain publik dan JWT secret sudah diganti. Cache ringkasan tetap berada di memori setiap proses; penggunaan PostgreSQL tidak menyinkronkan cache antaraproses secara otomatis.
 
 ## Struktur folder
 
@@ -273,14 +286,14 @@ Karena SQLite tidak cocok untuk multi-instance, endpoint ringkasan yang di-cache
 
 ## Troubleshooting
 
-**`EADDRINUSE: address already in use :::4000`**
-Port API sudah dipakai. Hentikan proses lain, atau ubah `PORT` di `server/.env` (frontend dev server tetap memproxy ke 4000, jadi sesuaikan `vite.config.ts` bila mengganti port).
+**`EADDRINUSE: address already in use :::5011`**
+Port API project IPH sudah dipakai. Periksa proses project ini atau ubah PORT dan target proxy Vite secara bersamaan. Jangan hentikan backend presensi pada 5010.
 
 **`Can't reach database server`**
-`server/.env` belum ada atau `DATABASE_URL` salah. Jalankan `npm run db:push` dari folder `server`.
+Periksa PGHOST/PGPORT/PGPASSWORD dan tunnel jika di luar kantor. Jalankan `db:check` setelah `db:migrate`; baca [panduan izin schema](docs/postgresql-kantor.md#3-buat-schema-dan-tabel-project).
 
 **Tabel Scanning Harga kosong setelah seed**
-`npm run db:seed` mengisi rekap contoh. Untuk data asli, jalankan `npm run import` setelah menempatkan CSV di `server/data/`.
+`db:bootstrap` hanya membuat akun awal, tanpa rekap contoh. Impor data asli secara manual setelah meninjau CSV di `server/data/`; importer dapat memperbarui periode yang sudah ada. Data SQLite lama tidak otomatis dipindahkan.
 
 **Login ditolak padahal password benar**
 Rate limiter membatasi 10 percobaan login per 15 menit per IP. Tunggu atau restart backend.

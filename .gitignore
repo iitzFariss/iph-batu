@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+!**/.env.example
 
 # Editor directories and files
 .vscode/*
@@ -30,8 +34,14 @@ server/tsconfig.tsbuildinfo
 server/.env
 server/prisma/dev.db
 server/prisma/dev.db-journal
+server/prisma/dev.db-wal
+server/prisma/dev.db-shm
+server/backups/
 server/prisma/test.db
 server/prisma/test.db-journal
+server/prisma/schema.test.prisma
+server/prisma/test.db-wal
+server/prisma/test.db-shm
 
 # Data sumber (NIP/csv mentah) — jangan masuk repo
 server/data/

@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   User,
   Mail,
+  Phone,
   Users,
   LayoutGrid,
   KeyRound,
@@ -35,6 +36,7 @@ interface Pegawai {
   /** String, bukan PegawaiStatus: dikirim apa adanya oleh API. */
   status: string;
   email?: string;
+  phone?: string | null;
   isAccountCreated?: boolean;
 }
 
@@ -105,6 +107,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
     peranIcon:  initial?.peranIcon  ?? "👤",
     status:     initial?.status     ?? "aktif",
     email:      initial?.email      ?? "",
+    phone:      initial?.phone      ?? "",
   });
   const [error, setError] = useState("");
 
@@ -112,6 +115,9 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
     if (!form.name.trim())    { setError("Nama pegawai wajib diisi."); return; }
     if (!form.nip.trim())     { setError("NIP wajib diisi."); return; }
     if (!form.peran.trim())   { setError("Peran penugasan wajib diisi."); return; }
+    if (form.phone.trim() && !/^(\+?62|0)8[0-9]{8,12}$/.test(form.phone.trim().replace(/[\s\-()]/g, ""))) {
+      setError("Nomor WhatsApp tidak valid. Gunakan awalan 08 atau +628."); return;
+    }
 
     const initials = form.name.split(" ").slice(0,2).map((n: string) => n[0]).join("").toUpperCase();
     const colors = ["bg-gray-700","bg-emerald-600","bg-blue-600","bg-teal-600","bg-purple-600","bg-amber-600","bg-rose-600"];
@@ -129,6 +135,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
       peranIcon:  form.peranIcon,
       status:     form.status,
       email:      form.email.trim() || undefined,
+      phone:      form.phone.trim() || null,
     });
   }
 
@@ -216,6 +223,18 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
                 ? "Dipakai sebagai akun login pegawai. Mengubahnya juga mengubah email masuk aplikasi."
                 : "Belum ada akun login. Mengisi email akan membuat akun berperan petugas untuk pegawai ini."}
             </p>
+          </div>
+
+          <div>
+            <label htmlFor="pegawai-phone" className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nomor WhatsApp</label>
+            <div className="relative">
+              <Phone size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input id="pegawai-phone" type="tel" inputMode="tel" autoComplete="tel" value={form.phone}
+                onChange={(e) => { setForm({ ...form, phone: e.target.value }); setError(""); }}
+                placeholder="Contoh: 0812 3456 7890"
+                className="w-full pl-8 pr-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300" />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1.5 leading-snug">Untuk undangan dan pengingat rapat. Dapat diisi tanpa membuat akun login.</p>
           </div>
 
           {/* Peran */}
@@ -395,7 +414,7 @@ export default function KelolaPegawai() {
   async function handleSave(p: Pegawai) {
     setMessage("");
     setMessageType("info");
-    const payload: Record<string, string> = {
+    const payload: Record<string, string | null> = {
       name: p.name,
       nip: p.nip,
       instansi: p.instansi === "-" ? "" : p.instansi,
@@ -403,6 +422,7 @@ export default function KelolaPegawai() {
       peran: p.peran,
       peranIcon: p.peranIcon,
       status: p.status,
+      phone: p.phone ?? null,
     };
     const emailBaru = (p.email ?? "").trim();
     if (modal?.mode === "add") {
@@ -693,6 +713,7 @@ export default function KelolaPegawai() {
                       <div>
                         <div className="text-xs font-bold text-gray-900">{p.name}</div>
                         <div className="text-xs text-gray-400 font-mono mt-0.5">NIP {p.nip}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">WhatsApp: {p.phone || "Belum diisi"}</div>
                         {p.email && (
                           <div className="text-xs text-gray-400 truncate max-w-[220px] mt-0.5">
                             {p.email}

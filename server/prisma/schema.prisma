@@ -2,12 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Target produksi: PostgreSQL (BPS). Ganti provider + DATABASE_URL di .env
-// menjadi "postgresql" untuk produksi. Model di bawah kompatibel keduanya
-// (string-based enum agar portable; bila Postgres, bisa di-migrasi ke enum native).
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["iph_batu"]
 }
 
 // ─── Auth ───────────────────────────────────────────────────────────────
@@ -31,6 +29,7 @@ model User {
   sessions Session[]
   pegawai  Pegawai?
   rekaps   Rekap[]   @relation("RekapCreatedBy")
+  @@schema("iph_batu")
 }
 
 model Session {
@@ -47,6 +46,7 @@ model Session {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@schema("iph_batu")
 }
 
 // ─── Audit log ────────────────────────────────────────────────────────────
@@ -62,6 +62,7 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@schema("iph_batu")
 }
 
 // ─── Master data ────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ model Instansi {
 
   users User[]
   pegawais Pegawai[]
+  @@schema("iph_batu")
 }
 
 model Komoditas {
@@ -83,6 +85,7 @@ model Komoditas {
   createdAt DateTime @default(now())
 
   details RekapDetail[]
+  @@schema("iph_batu")
 }
 
 model Pegawai {
@@ -95,6 +98,7 @@ model Pegawai {
   peran       String
   peranIcon   String?
   email       String?
+  phone       String?
   status      String   @default("aktif") // aktif | nonaktif | cuti
   userId      String?  @unique
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -105,6 +109,7 @@ model Pegawai {
   notulensi    Notulensi[]
 
   @@index([status])
+  @@schema("iph_batu")
 }
 
 // ─── Rekap IPH ──────────────────────────────────────────────────────────
@@ -124,6 +129,7 @@ model Rekap {
 
   @@unique([tahun, bulan, mingguIndeks])
   @@index([createdById])
+  @@schema("iph_batu")
 }
 
 model RekapDetail {
@@ -137,6 +143,7 @@ model RekapDetail {
   createdAt   DateTime  @default(now())
 
   @@index([rekapId])
+  @@schema("iph_batu")
 }
 
 // ─── Modul rapat & notulensi ─────────────────────────────────────────────
@@ -150,12 +157,41 @@ model Rapat {
   createdById String   // tanpa FK relasi; bareng AuditLog, tahan dihapus
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  notificationRevision Int @default(1)
 
   petugas   PetugasRapat[]
   notulensi Notulensi?
+  notifications WhatsAppNotification[]
 
   @@index([createdById])
   @@index([tanggal])
+  @@schema("iph_batu")
+}
+
+model WhatsAppNotification {
+  id                String @id @default(cuid())
+  rapatId           String
+  rapat             Rapat @relation(fields: [rapatId], references: [id], onDelete: Cascade)
+  pegawaiId         String
+  kind              String
+  revision          Int
+  recipientName     String
+  phone             String?
+  message           String
+  scheduledAt       DateTime
+  expiresAt         DateTime
+  status            String @default("pending")
+  attempts          Int @default(0)
+  startedAt         DateTime?
+  sentAt            DateTime?
+  providerMessageId String?
+  lastError         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([rapatId, pegawaiId, kind, revision])
+  @@index([status, scheduledAt])
+  @@schema("iph_batu")
 }
 
 model PetugasRapat {
@@ -168,6 +204,7 @@ model PetugasRapat {
   createdAt DateTime @default(now())
 
   @@unique([rapatId, pegawaiId])
+  @@schema("iph_batu")
 }
 
 model Notulensi {
@@ -179,4 +216,5 @@ model Notulensi {
   notulis          Pegawai  @relation(fields: [notulisPegawaiId], references: [id])
   submittedAt      DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  @@schema("iph_batu")
 }
