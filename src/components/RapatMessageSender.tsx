@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, RefreshCw } from "lucide-react";
+import { RefreshCw, ExternalLink } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 
 interface Meeting { id: string; topik: string; tanggal: string; status: string }
@@ -52,13 +52,13 @@ export default function RapatMessageSender({ broadcast }: { broadcast?: { rekapI
     } catch (e) { setError(e instanceof ApiError ? e.message : "Pesan belum dapat diantrekan."); }
     finally { setBusy(false); }
   }
-  return <section className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 space-y-4">
+  return <section className={`${broadcast ? "siaran-dispatch " : ""}dispatch-panel form-surface space-y-5`}>
     <div className="flex items-start justify-between gap-3">
-      <div><h2 className="text-sm font-bold text-gray-900">{broadcast ? "Kirim teks siaran ke peserta rapat" : "Kirim pengingat rapat"}</h2>
-        <p className="text-sm text-gray-500 mt-1">{broadcast ? `Draf ${broadcast.periodLabel} beserta link dashboard periode yang sama. Pengiriman tersedia pada hari rapat (WIB).` : "Pengingat langsung melalui WhatsApp ke peserta dan notulis yang memiliki nomor. Peserta tanpa nomor dilewati."}</p></div>
+      <div><h2 className="form-section-title">{broadcast ? "Kirim ke peserta rapat" : "Kirim pengingat rapat"}</h2>
+        <p className="text-xs text-gray-500 mt-1">{broadcast ? "Pilih rapat tujuan. Pesan berisi draf dan link dashboard pada periode yang sama." : "Kirim melalui WhatsApp ke peserta dan notulis yang memiliki nomor."}</p></div>
       <button type="button" aria-label="Muat ulang rapat dan penerima" disabled={busy} onClick={() => setReload(value => value + 1)} className="p-2 border border-gray-200 rounded-lg text-gray-600"><RefreshCw size={15} /></button>
     </div>
-    <div className="flex flex-col sm:flex-row gap-3">
+    <div className="dispatch-fields grid grid-cols-1 gap-4">
       <label className="text-xs text-gray-600 space-y-1">Tanggal rapat (WIB)
         <input type="date" value={date} onChange={e => { setDate(e.target.value); setMeetingId(""); setResult(""); }} className="block w-full border border-gray-200 rounded-lg p-2 text-sm bg-white" /></label>
       <label className="flex-1 text-xs text-gray-600 space-y-1">Rapat tujuan
@@ -69,16 +69,16 @@ export default function RapatMessageSender({ broadcast }: { broadcast?: { rekapI
     </div>
     {selected && !data && !error && <p className="text-sm text-gray-500">Memuat penerima…</p>}
     {data && <>
-      <div className="text-sm text-gray-700">{recipients.length} penerima · {data.rows.length - recipients.length} dilewati</div>
-      <ul className="divide-y divide-gray-100 text-sm">{data.rows.map(row => <li key={row.pegawaiId} className="py-2 flex flex-wrap justify-between gap-1"><span>{row.name} <span className="text-gray-500">({row.peran})</span></span><span className={row.reason ? "text-gray-400" : "text-gray-600"}>{row.reason ?? row.phone}</span></li>)}</ul>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500"><strong className="text-gray-900 font-medium">{recipients.length} penerima</strong><span>{data.rows.length - recipients.length} tanpa nomor / dilewati</span></div>
+      <ul className="dispatch-recipients" tabIndex={data.rows.length > 3 ? 0 : undefined} aria-label="Daftar penerima">{data.rows.map(row => <li key={row.pegawaiId}><div className="flex flex-wrap justify-between gap-1 text-sm"><span className="text-gray-900">{row.name}</span><span className="text-xs text-gray-500">{row.peran}</span></div><span className="text-xs text-gray-500 tabular-nums">{row.reason ?? `+${row.phone}`}</span></li>)}</ul>
       {!data.enabled && <p className="text-sm text-amber-700">Pengiriman WhatsApp belum aktif.</p>}
       {broadcast && !sameDay && <p className="text-sm text-amber-700">Pengiriman tersedia pada tanggal pelaksanaan rapat.</p>}
       {data.configurationError && <p className="text-sm text-amber-700">{data.configurationError}</p>}
-      {broadcast && data.dashboardLink && <a href={data.dashboardLink} target="_blank" rel="noopener noreferrer" className="block text-sm text-emerald-700 underline break-all">Lihat dashboard yang akan dikirim: {data.dashboardLink}</a>}
+      {broadcast && data.dashboardLink && <div className="dispatch-link"><ExternalLink size={15} className="text-gray-500 mt-0.5" /><div><a href={data.dashboardLink} target="_blank" rel="noopener noreferrer">Lihat dashboard yang akan dikirim</a><p className="text-xs text-gray-500 mt-1">{broadcast.periodLabel}</p></div></div>}
     </>}
     {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
     {result && <p role="status" className="text-sm text-emerald-700">{result}</p>}
-    <div className="flex flex-wrap items-center gap-3"><button type="button" disabled={!canSend} onClick={() => void send()} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"><MessageCircle size={15} />{busy ? "Memproses…" : `Kirim ${broadcast ? "teks & link" : "pengingat"} ke ${recipients.length} penerima`}</button>
-      <span className="text-xs text-gray-500">{broadcast ? "Draf yang sama hanya diantrekan sekali untuk rapat ini." : "Pengingat manual dibatasi satu kali per peserta per hari untuk setiap revisi rapat."}</span></div>
+    <div className="space-y-3"><button type="button" disabled={!canSend} onClick={() => void send()} className={`primary-action ${broadcast ? "w-full" : ""}`}>{busy ? "Memproses…" : `Kirim ${broadcast ? "teks & link" : "pengingat"} ke ${recipients.length} penerima`}</button>
+      <p className="dispatch-note">{broadcast ? "Pengiriman tersedia pada hari rapat (WIB). Draf yang sama hanya diantrekan sekali untuk rapat ini. Peserta tanpa nomor WhatsApp dilewati." : "Pengingat otomatis dijadwalkan pukul 07.00 WIB, atau satu jam sebelum rapat yang lebih pagi. Tombol ini menambahkan pengingat manual, satu kali per peserta per hari untuk setiap revisi rapat."}</p></div>
   </section>;
 }

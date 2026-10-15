@@ -64,6 +64,10 @@ Antrean memiliki unique key rapat/pegawai/jenis/revisi dan klaim atomik untuk me
 
 ## Pengecekan tanpa pesan sungguhan
 
+Dari folder utama project, jalankan `npm --prefix server run wa:check`. Perintah ini memeriksa endpoint dan token dengan `dryRun: true`, tanpa pengiriman WhatsApp. Jika laptop dan server sama-sama memproses antrean, jalankan pemeriksaan pada keduanya dan restart backend setelah `.env` diubah.
+
+Monitoring menampilkan riwayat langsung beserta filter status. Pesan gagal yang masih memenuhi syarat dapat diulang. Pesan unknown atau yang sudah kedaluwarsa tidak menawarkan pengulangan otomatis. Jika rapat baru/revisi disimpan setelah atau tepat pada jam pengingat, undangan/perubahan jadwal langsung menjadi pemberitahuan saat itu; pengingat otomatis tambahan tidak dibuat bersamaan. Pengingat manual tetap tersedia. Perubahan ini tidak membuat ulang atau menghapus pesan rapat lama.
+
 POST webhook dengan Bearer token yang benar dan body berikut memilih jalur **Respond Without Sending**, melewati node WAHA:
 
 ```json

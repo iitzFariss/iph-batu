@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import { useDialogFocus } from "../lib/useDialogFocus";
 import {
-  Calendar,
-  ChevronRight,
   CheckCircle2,
   AlertCircle,
-  AlertTriangle,
   FileText,
   X,
   Printer,
@@ -17,6 +15,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
+import PageHeading from "./PageHeading";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,22 +46,20 @@ type StatusKader = "memuat" | "siap" | "gagal";
 
 // ─── Format helper ────────────────────────────────────────────────────────────
 
-/** ISO → "YYYY-MM-DD" lokal untuk input type="date". */
 function tanggalInput(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return new Date(d.getTime() + 7 * 3600000).toISOString().slice(0, 10);
 }
 
-/** ISO → "HH:mm" lokal untuk input type="time". */
 function waktuInput(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return new Date(d.getTime() + 7 * 3600000).toISOString().slice(11, 16);
 }
 
 const FORMAT_TANGGAL = new Intl.DateTimeFormat("id-ID", {
+  timeZone: "Asia/Jakarta",
   weekday: "short",
   day: "numeric",
   month: "short",
@@ -100,6 +97,7 @@ interface EditRapatModalProps {
 }
 
 function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps) {
+  const dialogRef = useDialogFocus(onClose);
   const [form, setForm] = useState({
     topik: rapat.topik,
     tanggal: tanggalInput(rapat.tanggal),
@@ -132,7 +130,7 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
     try {
       const res = await api.patch<{ rapat: RapatAgenda }>(`/rapat/${rapat.id}`, {
         topik: form.topik.trim(),
-        tanggal: new Date(`${form.tanggal}T${form.waktu}`).toISOString(),
+        tanggal: new Date(`${form.tanggal}T${form.waktu}:00+07:00`).toISOString(),
         lokasi: form.lokasi.trim() || null,
         catatan: form.catatan.trim() || null,
         petugas: petugas.map((p) => ({ pegawaiId: p.pegawaiId, peran: p.peran })),
@@ -146,14 +144,14 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Edit rapat" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
             <h3 className="text-sm font-bold text-gray-900">Ubah Jadwal Rapat</h3>
             <p className="text-xs text-gray-400 mt-0.5">Perbarui agenda, waktu, lokasi, atau personil rapat</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Tutup dialog rapat" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={15} />
           </button>
         </div>
@@ -167,10 +165,11 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-              Topik / Agenda Koordinasi <span className="text-red-500 font-normal">*Wajib</span>
+            <label htmlFor="edit-meeting-topic" className="block text-xs font-semibold text-gray-700 mb-1.5">
+              Topik rapat <span className="required-label">Wajib</span>
             </label>
             <input
+              id="edit-meeting-topic"
               type="text"
               value={form.topik}
               onChange={(e) => setForm({ ...form, topik: e.target.value })}
@@ -180,19 +179,21 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Tanggal Rapat <span className="text-red-500 font-normal">*Wajib</span></label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Tanggal rapat <span className="required-label">Wajib</span></label>
               <input
                 type="date"
                 value={form.tanggal}
+                aria-label="Tanggal rapat"
                 onChange={(e) => setForm({ ...form, tanggal: e.target.value })}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Waktu Pelaksanaan <span className="text-red-500 font-normal">*Wajib</span></label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Waktu rapat <span className="required-label">Wajib</span></label>
               <input
                 type="time"
                 value={form.waktu}
+                aria-label="Waktu rapat"
                 onChange={(e) => setForm({ ...form, waktu: e.target.value })}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
@@ -200,8 +201,9 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Ruang Rapat / Tautan Virtual</label>
+            <label htmlFor="edit-meeting-location" className="block text-xs font-semibold text-gray-700 mb-1.5">Lokasi atau tautan rapat</label>
             <input
+              id="edit-meeting-location"
               type="text"
               value={form.lokasi}
               onChange={(e) => setForm({ ...form, lokasi: e.target.value })}
@@ -282,8 +284,9 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Catatan (opsional)</label>
+            <label htmlFor="edit-meeting-notes" className="block text-xs font-semibold text-gray-700 mb-1.5">Catatan (opsional)</label>
             <textarea
+              id="edit-meeting-notes"
               value={form.catatan}
               onChange={(e) => setForm({ ...form, catatan: e.target.value })}
               rows={3}
@@ -292,7 +295,7 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+        <div className="dialog-actions px-5 py-4 border-t border-gray-100 bg-gray-50/50">
           <button
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-100"
@@ -336,6 +339,7 @@ export default function KelolaRapat() {
   const [batalRapat, setBatalRapat] = useState<RapatAgenda | null>(null);
   const [hapusRapat, setHapusRapat] = useState<RapatAgenda | null>(null);
   const [aksiBusy, setAksiBusy] = useState(false);
+  const confirmationRef = useDialogFocus(() => { if (!aksiBusy) { setBatalRapat(null); setHapusRapat(null); } }, !!batalRapat || !!hapusRapat);
 
   // Daftar personil selalu berasal dari server. Hanya pegawai berstatus aktif
   // yang ditawarkan, karena backend menolak petugas nonaktif saat rapat dibuat.
@@ -456,7 +460,7 @@ export default function KelolaRapat() {
     try {
       const res = await api.post<{ message: string }>("/rapat", {
         topik: topik.trim(),
-        tanggal: new Date(`${tanggal}T${waktu}`).toISOString(),
+        tanggal: new Date(`${tanggal}T${waktu}:00+07:00`).toISOString(),
         lokasi: lokasi.trim() || null,
         catatan: catatan.trim() || null,
         petugas: petugas.map((p) => ({ pegawaiId: p.pegawaiId, peran: p.peran })),
@@ -477,28 +481,8 @@ export default function KelolaRapat() {
   }
 
   return (
-    <div className="p-4 sm:p-5 space-y-5 w-full">
-      {/* Breadcrumb */}
-      <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-gray-400">
-        <span>Dashboard</span>
-        <ChevronRight size={10} className="flex-shrink-0" />
-        <span>Koordinasi &amp; Kegiatan</span>
-        <ChevronRight size={10} className="flex-shrink-0" />
-        <span className="text-gray-700 font-medium">Kelola Rapat TPID</span>
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 mb-1">
-            Kelola Jadwal &amp; Agenda Rapat TPID
-          </h1>
-          <p className="text-xs text-gray-500">
-            Penjadwalan rapat koordinasi pengendalian inflasi daerah dan penugasan aparatur
-            notulen. Pengingat WhatsApp dibuat otomatis di halaman Monitoring Rapat.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0 w-full lg:w-auto">
+    <div className="meeting-page space-y-6 w-full">
+      <PageHeading title="Kelola rapat" description="Atur agenda, jadwal, peserta, dan notulis untuk rapat koordinasi TPID.">
           <button
             onClick={() => window.print()}
             className="flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 flex-1 lg:flex-none"
@@ -506,44 +490,28 @@ export default function KelolaRapat() {
             <Printer size={12} />
             <span>Cetak Jadwal</span>
           </button>
-        </div>
-      </div>
+      </PageHeading>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <dl className="summary-strip">
         {[
-          { label: "Total Rapat Terjadwal", value: kini === 0 ? "—" : totalTerjadwal, sub: "Seluruh jadwal aktif", icon: <Calendar size={18} className="text-gray-400" />, accent: "" },
-          { label: "Menunggu Notulensi", value: kini === 0 ? "—" : menungguResume, sub: "Notulensi belum diisi", icon: <AlertTriangle size={18} className="text-amber-500" />, accent: "border-l-2 border-l-amber-400" },
-          { label: "Notulensi Diisi", value: kini === 0 ? "—" : selesaiTervalidasi, sub: "Rapat dengan notulensi lengkap", icon: <CheckCircle2 size={18} className="text-emerald-500" />, accent: "border-l-2 border-l-emerald-400" },
-        ].map(({ label, value, sub, icon, accent }) => (
-          <div key={label} className={`bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between ${accent}`}>
-            <div>
-              <div className="text-sm text-gray-400 mb-0.5">{label}</div>
-              <div className="text-3xl font-black text-gray-900 leading-tight">{value}</div>
-              <div className="text-xs text-gray-400 mt-0.5">{sub}</div>
-            </div>
-            <div>{icon}</div>
-          </div>
+          { label: "Rapat terjadwal", value: kini === 0 ? "…" : totalTerjadwal },
+          { label: "Menunggu notulensi", value: kini === 0 ? "…" : menungguResume },
+          { label: "Notulensi diisi", value: kini === 0 ? "…" : selesaiTervalidasi },
+        ].map(({ label, value }) => (
+          <div key={label}><dd>{value}</dd><dt>{label}</dt></div>
         ))}
-      </div>
+      </dl>
       {statistikGagal && (
         <p className="text-xs text-amber-700 -mt-1">
-          Statistik rapat gagal dimuat. Angka akan terisi otomatis saat koneksi pulih — muat ulang
+          Statistik rapat gagal dimuat. Angka akan terisi saat koneksi pulih. Muat ulang
           halaman bila masih kosong.
         </p>
       )}
 
       {/* Form: Jadwalkan Rapat Baru */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Calendar size={15} className="text-emerald-600" />
-            <span className="text-sm font-bold text-gray-900">Jadwalkan Rapat Koordinasi Baru</span>
-          </div>
-          <span className="text-xs font-mono text-gray-400 bg-gray-50 border border-gray-100 px-2 py-1 rounded">
-            FORM-TPID-04
-          </span>
-        </div>
+      <div className="form-surface">
+        <div className="section-heading"><div><h2>Jadwalkan rapat baru</h2><p>Undangan diantrekan untuk peserta yang memiliki nomor WhatsApp.</p></div></div>
 
         <div className="space-y-4">
           {pesan && (
@@ -563,29 +531,31 @@ export default function KelolaRapat() {
             </div>
           )}
 
+          <div className="meeting-form-grid"><div className="space-y-4">
           {/* Topik */}
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-              Topik / Agenda Koordinasi{" "}
-              <span className="text-red-500 font-normal">*Wajib</span>
+              Topik rapat <span className="required-label">Wajib</span>
             </label>
             <input
               type="text"
               value={topik}
               onChange={(e) => setTopik(e.target.value)}
-              placeholder="Contoh: Rakor Mingguan Pengendalian Pasokan Sembako"
+              placeholder="Contoh: Koordinasi harga pangan"
+              aria-label="Topik rapat"
               className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-gray-300"
             />
           </div>
 
           {/* Tanggal & Waktu */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Tanggal Rapat <span className="text-red-500 font-normal">*Wajib</span>
+                Tanggal rapat <span className="required-label">Wajib</span>
               </label>
               <input
                 type="date"
+                aria-label="Tanggal rapat"
                 value={tanggal}
                 onChange={(e) => setTanggal(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -593,11 +563,12 @@ export default function KelolaRapat() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Waktu Pelaksanaan <span className="text-red-500 font-normal">*Wajib</span>
+                Waktu rapat <span className="required-label">Wajib</span>
               </label>
               <div className="relative">
                 <input
                   type="time"
+                  aria-label="Waktu pelaksanaan rapat"
                   value={waktu}
                   onChange={(e) => setWaktu(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 pr-12"
@@ -612,7 +583,7 @@ export default function KelolaRapat() {
           {/* Ruang Rapat */}
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-              Ruang Rapat / Tautan Virtual
+              Lokasi atau tautan rapat
             </label>
             <div className="relative">
               <FileText size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -620,22 +591,24 @@ export default function KelolaRapat() {
                 type="text"
                 value={lokasi}
                 onChange={(e) => setLokasi(e.target.value)}
-                placeholder="Contoh: Ruang Rapat Utama Lt. 2 Balaikota Among Tani / Zoom ID 892 109"
+                placeholder="Nama ruangan atau tautan pertemuan"
+                aria-label="Lokasi rapat"
                 className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-gray-300"
               />
             </div>
           </div>
 
+          </div><div className="space-y-4">
           {/* Petugas Rapat */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-gray-700">Petugas Notulis</label>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+              <label className="text-xs font-semibold text-gray-700">Peserta dan notulis</label>
               <button
                 onClick={() => setOpenPicker((v) => !v)}
                 className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700"
               >
                 <UserPlus size={12} />
-                + Tambah Personil
+                Pilih pegawai
               </button>
             </div>
             <div className="border border-gray-200 rounded-lg p-2 min-h-[44px]">
@@ -643,9 +616,8 @@ export default function KelolaRapat() {
                 {petugas.map((p) => (
                   <div
                     key={p.pegawaiId}
-                    className="flex items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-md"
+                    className="participant-chip flex flex-wrap items-center gap-1 px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-md"
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     <span className="text-sm text-emerald-800 font-medium">{p.name}</span>
                     <select
                       value={p.peran}
@@ -670,7 +642,8 @@ export default function KelolaRapat() {
                 type="text"
                 readOnly
                 value={petugas.length === 0 ? "" : `${petugas.length} personil terpilih`}
-                placeholder="Pilih aparatur penugasan notulis di sini..."
+                placeholder="Belum ada pegawai dipilih"
+                aria-label="Pegawai terpilih"
                 className="w-full text-xs text-gray-500 focus:outline-none cursor-pointer"
                 onClick={() => setOpenPicker((v) => !v)}
               />
@@ -734,20 +707,21 @@ export default function KelolaRapat() {
               onChange={(e) => setCatatan(e.target.value)}
               rows={3}
               placeholder="Catatan internal untuk panitia rapat..."
+              aria-label="Catatan rapat"
               className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-gray-300"
             />
           </div>
 
+          </div></div>
           {/* Submit */}
           <button
             onClick={handleSubmit}
             disabled={menyimpan}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="primary-action disabled:opacity-50"
           >
-            <Calendar size={15} />
             {menyimpan ? "Menyimpan…" : "Buat Jadwal Rapat"}
           </button>
-          <p className="text-center text-xs text-gray-400">
+          <p className="text-xs text-gray-500 leading-relaxed">
             Undangan WhatsApp masuk antrean setelah jadwal disimpan. Pengingat hari rapat dijadwalkan otomatis jika layanan pengiriman aktif. Statusnya tersedia di Monitoring Rapat.
           </p>
         </div>
@@ -757,15 +731,15 @@ export default function KelolaRapat() {
       <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <Calendar size={15} className="text-emerald-600" />
-            <span className="text-sm font-bold text-gray-900">Agenda Rapat TPID</span>
+            <h2 className="text-base font-semibold text-gray-900">Agenda rapat</h2>
           </div>
           <span className="text-xs text-gray-400">
             {rapatRows.length} rapat • {rapatRows.filter((r) => r.status === "terjadwal").length} aktif
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <p className="table-scroll-hint">Geser tabel untuk melihat seluruh agenda dan tombol aksi.</p>
+        <div className="overflow-x-auto" role="region" aria-label="Tabel agenda rapat" tabIndex={0}>
           <table className="w-full min-w-[720px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
@@ -795,7 +769,7 @@ export default function KelolaRapat() {
               ) : rapatRows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="text-center py-10 text-sm text-gray-400">
-                    Belum ada rapat dijadwalkan. Gunakan formulir di atas.
+                    Belum ada rapat dijadwalkan. Isi formulir untuk membuat agenda pertama.
                   </td>
                 </tr>
               ) : (
@@ -910,7 +884,7 @@ export default function KelolaRapat() {
 
       {/* Konfirmasi batalkan */}
       {batalRapat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div ref={confirmationRef} role="dialog" aria-modal="true" aria-label="Batalkan rapat" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
               <Ban size={20} className="text-red-500" />
@@ -942,7 +916,7 @@ export default function KelolaRapat() {
 
       {/* Konfirmasi hapus */}
       {hapusRapat && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div ref={confirmationRef} role="dialog" aria-modal="true" aria-label="Hapus rapat" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
               <Trash2 size={20} className="text-red-500" />

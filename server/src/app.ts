@@ -17,6 +17,7 @@ import {
 } from "./middleware/rateLimit";
 import { checkDatabase } from "./lib/health";
 import { CLIENT_ORIGIN } from "./lib/env";
+import { mountFrontend } from "./lib/frontend";
 
 export function createApp() {
   const app = express();
@@ -55,6 +56,8 @@ export function createApp() {
   app.use("/api/rekap", rekapRoutes);
   app.use("/api/rapat", rapatRoutes);
 
+  app.use("/api", notFound);
+  mountFrontend(app);
   app.use(notFound);
   app.use(errorHandler);
 

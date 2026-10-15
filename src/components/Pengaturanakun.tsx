@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  Shield,
   Eye,
   EyeOff,
   Lock,
   CheckCircle2,
   AlertCircle,
-  ChevronRight,
   Monitor,
   Smartphone,
   Trash2,
@@ -14,6 +12,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api, ApiError } from "../lib/api";
+import PageHeading from "./PageHeading";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,13 +41,11 @@ function SectionCard({
 }) {
   return (
     <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-        <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-          {icon}
-        </div>
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
+        <span className="text-gray-500">{icon}</span>
         <div>
-          <div className="text-sm font-bold text-gray-900">{title}</div>
-          <div className="text-sm text-gray-400">{desc}</div>
+          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+          <p className="text-xs text-gray-500 mt-1">{desc}</p>
         </div>
       </div>
       <div className="p-5">{children}</div>
@@ -164,18 +161,7 @@ export default function PengaturanAkun() {
 
   return (
     <div className="p-4 sm:p-5 space-y-5 w-full">
-      {/* Page header */}
-      <div>
-        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-1">
-          <span>Pengaturan</span>
-          <ChevronRight size={10} />
-          <span className="text-gray-700 font-medium">Pengaturan Akun</span>
-        </div>
-        <h1 className="text-2xl font-black text-gray-900">Pengaturan Akun</h1>
-        <p className="text-xs text-gray-400 mt-0.5">
-          Kelola kata sandi dan sesi login akun Anda.
-        </p>
-      </div>
+      <PageHeading title="Pengaturan akun" description="Ubah kata sandi dan kelola perangkat yang masuk ke akun Anda." />
 
       {/* ── Keamanan: Ganti Password ── */}
       <SectionCard
@@ -202,6 +188,7 @@ export default function PengaturanAkun() {
                 <input
                   type={showPass.current ? "text" : "password"}
                   value={passForm.current}
+                  aria-label="Kata sandi saat ini"
                   onChange={(e) => setPassForm({ ...passForm, current: e.target.value })}
                   placeholder="Masukkan kata sandi saat ini"
                   className="w-full pl-8 pr-10 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
@@ -209,6 +196,7 @@ export default function PengaturanAkun() {
                 <button
                   type="button"
                   onClick={() => setShowPass({ ...showPass, current: !showPass.current })}
+                  aria-label={showPass.current ? "Sembunyikan kata sandi saat ini" : "Tampilkan kata sandi saat ini"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPass.current ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -227,6 +215,7 @@ export default function PengaturanAkun() {
                   <input
                     type={showPass.newPass ? "text" : "password"}
                     value={passForm.newPass}
+                    aria-label="Kata sandi baru"
                     onChange={(e) => setPassForm({ ...passForm, newPass: e.target.value })}
                     placeholder="Min. 8 karakter"
                     className="w-full pl-8 pr-10 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
@@ -234,6 +223,7 @@ export default function PengaturanAkun() {
                   <button
                     type="button"
                     onClick={() => setShowPass({ ...showPass, newPass: !showPass.newPass })}
+                    aria-label={showPass.newPass ? "Sembunyikan kata sandi baru" : "Tampilkan kata sandi baru"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPass.newPass ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -266,6 +256,7 @@ export default function PengaturanAkun() {
                   <input
                     type={showPass.confirm ? "text" : "password"}
                     value={passForm.confirm}
+                    aria-label="Konfirmasi kata sandi baru"
                     onChange={(e) => setPassForm({ ...passForm, confirm: e.target.value })}
                     placeholder="Ulangi kata sandi baru"
                     className={`w-full pl-8 pr-10 py-2.5 text-xs border rounded-xl focus:outline-none focus:ring-2 placeholder:text-gray-300 ${
@@ -279,6 +270,7 @@ export default function PengaturanAkun() {
                   <button
                     type="button"
                     onClick={() => setShowPass({ ...showPass, confirm: !showPass.confirm })}
+                    aria-label={showPass.confirm ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     {showPass.confirm ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -311,7 +303,6 @@ export default function PengaturanAkun() {
               </>
             ) : (
               <>
-                <Shield size={12} />
                 Perbarui Kata Sandi
               </>
             )}
@@ -382,7 +373,7 @@ export default function PengaturanAkun() {
         </button>
       </SectionCard>
 
-      {/* ── Danger Zone — admin dikunci di backend, jadi tidak ditampilkan ── */}
+      {/* Backend melarang penghapusan akun administrator. */}
       {user.role !== "admin" && (
         <div className="bg-white border border-red-200 rounded-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4 border-b border-red-100 bg-red-50/50">

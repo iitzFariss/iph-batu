@@ -1,0 +1,21 @@
+[Unit]
+Description=IPH Batu web and API
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=iph-batu
+Group=iph-batu
+WorkingDirectory=/opt/iph-batu/server
+Environment=NODE_ENV=production
+Environment=SERVE_FRONTEND=true
+Environment=PORT=5011
+ExecStart=/usr/bin/node /opt/iph-batu/server/dist/index.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

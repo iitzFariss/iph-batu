@@ -1,14 +1,6 @@
-import {
-  LayoutDashboard,
-  FileInput,
-  Database,
-  Users,
-  Monitor,
-  UserCog,
-  TrendingUp,
-  Radio,
-  Menu,
-} from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useDialogFocus } from "../lib/useDialogFocus";
 
 interface SidebarProps {
   activePage: string;
@@ -17,84 +9,37 @@ interface SidebarProps {
   onClose: () => void;
   hiddenPages?: string[];
 }
-
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "input-rekap", label: "Input Rekap IPH", icon: FileInput },
-  { id: "rekapan-data", label: "Rekapan Data", icon: Database },
-  { id: "kelola-rapat", label: "Kelola Rapat", icon: Users },
-  { id: "monitoring-rapat", label: "Monitoring Rapat", icon: Monitor },
-  { id: "kelola-pegawai", label: "Kelola Pegawai", icon: UserCog },
-  { id: "visualisasi-tren", label: "Visualisasi Tren IPH", icon: TrendingUp },
-  { id: "analisis-teks", label: "Analisis Teks Siaran", icon: Radio },
+  { id: "dashboard", label: "Dashboard", group: "Pemantauan harga" },
+  { id: "input-rekap", label: "Input rekap IPH", group: "Pemantauan harga" },
+  { id: "rekapan-data", label: "Rekap data", group: "Pemantauan harga" },
+  { id: "visualisasi-tren", label: "Visualisasi tren", group: "Pemantauan harga" },
+  { id: "analisis-teks", label: "Analisis teks siaran", group: "Pemantauan harga" },
+  { id: "kelola-rapat", label: "Kelola rapat", group: "Koordinasi daerah" },
+  { id: "monitoring-rapat", label: "Monitoring rapat", group: "Koordinasi daerah" },
+  { id: "kelola-pegawai", label: "Kelola pegawai", group: "Administrasi" },
 ];
 
-export default function Sidebar({
-  activePage,
-  open,
-  onNavigate,
-  onClose,
-  hiddenPages = [],
-}: SidebarProps) {
-  return (
-    <>
-      {/* Backdrop — tampil hanya di mobile saat drawer terbuka */}
-      {open && (
-        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} />
-      )}
-
-      <aside
-        className={`sidebar-surface fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex flex-col flex-shrink-0 transition-transform duration-200 lg:static lg:translate-x-0 lg:z-auto ${
-          open ? "translate-x-0 shadow-2xl" : "-translate-x-full"
-        }`}
-      >
-        {/* Brand */}
-        <div className="px-4 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2.5">
-            <img
-              src="/bps-logo.png"
-              alt="Logo BPS Kota Batu"
-              className="h-8 w-auto flex-shrink-0"
-            />
-            <div>
-              <div className="text-sm font-bold text-gray-900 leading-tight">TPID Kota Batu</div>
-              <div className="text-xs text-gray-400 leading-tight">Sistem Pengendalian IPH</div>
-            </div>
-            <button
-              onClick={onClose}
-              aria-label="Tutup menu"
-              className="lg:hidden ml-auto p-1.5 rounded-lg text-gray-400 hover:bg-gray-100"
-            >
-              <Menu size={18} />
-            </button>
-          </div>
-        </div>
-
-      {/* Quick Action */}
-
-      {/* Navigation */}
-      <nav className="flex-1 px-3 pt-3 space-y-0.5 overflow-y-auto">
-        {navItems
-          .filter(({ id }) => !hiddenPages.includes(id))
-          .map(({ id, label, icon: Icon }) => {
-          const isActive = activePage === id;
-          return (
-            <button
-              key={id}
-              onClick={() => onNavigate(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-xs font-medium transition-colors ${
-                isActive
-                  ? "bg-emerald-600 text-white"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-            >
-              <Icon size={14} className="flex-shrink-0" />
-              <span className="truncate">{label}</span>
-            </button>
-          );
+export default function Sidebar({ activePage, open, onNavigate, onClose, hiddenPages = [] }: SidebarProps) {
+  const [desktop, setDesktop] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const changed = () => setDesktop(media.matches);
+    media.addEventListener("change", changed);
+    return () => media.removeEventListener("change", changed);
+  }, []);
+  const dialogRef = useDialogFocus<HTMLElement>(onClose, open && !desktop);
+  return <>
+    {open && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} />}
+    <aside ref={dialogRef} role={open && !desktop ? "dialog" : undefined} aria-modal={open && !desktop ? true : undefined} inert={!open && !desktop} aria-label="Navigasi utama" className={`sidebar-surface fixed inset-y-0 left-0 z-50 flex flex-col flex-shrink-0 transition-transform duration-200 lg:static lg:translate-x-0 lg:z-auto ${open ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}>
+      <div className="sidebar-brand"><img src="/bps-logo.png" alt="BPS Kota Batu" /><div><strong>TPID Kota Batu</strong><span>Pengendalian inflasi daerah</span></div><button onClick={onClose} aria-label="Tutup menu" className="sidebar-close lg:hidden"><X size={18} /></button></div>
+      <nav className="sidebar-nav flex-1 overflow-y-auto" aria-label="Halaman aplikasi">
+        {["Pemantauan harga", "Koordinasi daerah", "Administrasi"].map(group => {
+          const items = navItems.filter(item => item.group === group && !hiddenPages.includes(item.id));
+          return items.length > 0 && <div key={group}><p className="sidebar-group">{group}</p>{items.map(({ id, label }) => <button key={id} aria-current={activePage === id ? "page" : undefined} onClick={() => onNavigate(id)}>{label}</button>)}</div>;
         })}
       </nav>
-      </aside>
-    </>
-  );
+      <div className="sidebar-footer"><a href="/#/publik" target="_blank" rel="noopener noreferrer">Dashboard publik<ExternalLink size={12} /></a><p>Tim Pengendalian Inflasi Daerah<br />Kota Batu</p></div>
+    </aside>
+  </>;
 }

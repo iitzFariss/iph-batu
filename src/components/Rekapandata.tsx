@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useDialogFocus } from "../lib/useDialogFocus";
 import {
   Search,
   ChevronDown,
@@ -15,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
+import PageHeading from "./PageHeading";
 import { useAuth } from "../context/AuthContext";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -55,17 +57,15 @@ interface Periode {
 
 interface IPHConfig {
   label: string;
-  bg: string;
   text: string;
-  icon: React.ReactNode;
 }
 
 const iphConfigMap: Record<IPHStatus, IPHConfig> = {
-  "deflasi-terkendali":  { label: "Deflasi Terkendali",  bg: "bg-emerald-50", text: "text-emerald-700", icon: <TrendingDown size={12} /> },
-  "inflasi-ringan":      { label: "Inflasi Ringan",       bg: "bg-amber-50",   text: "text-amber-700",   icon: <TrendingUp size={12} />   },
-  "perlu-intervensi":    { label: "Perlu Intervensi",     bg: "bg-red-50",     text: "text-red-600",     icon: <AlertTriangle size={12} />},
-  "stabil-terkendali":   { label: "Stabil Terkendali",    bg: "bg-teal-50",    text: "text-teal-700",    icon: <TrendingDown size={12} /> },
-  "deflasi-signifikan":  { label: "Deflasi Signifikan",   bg: "bg-blue-50",    text: "text-blue-700",    icon: <TrendingDown size={12} /> },
+  "deflasi-terkendali": { label: "Deflasi terkendali", text: "text-emerald-700" },
+  "inflasi-ringan": { label: "Inflasi ringan", text: "text-amber-700" },
+  "perlu-intervensi": { label: "Perlu intervensi", text: "text-red-600" },
+  "stabil-terkendali": { label: "Stabil terkendali", text: "text-gray-700" },
+  "deflasi-signifikan": { label: "Deflasi signifikan", text: "text-blue-700" },
 };
 
 const BULAN_FE = [
@@ -87,11 +87,7 @@ function IPHBadge({ value, status }: { value: number; status: IPHStatus }) {
   const cfg = iphConfigMap[status];
   const sign = value > 0 ? "+" : "";
   return (
-    <div className={`inline-flex items-center px-3 py-1.5 rounded-lg ${cfg.bg}`}>
-      <div className={`flex items-center gap-1 text-sm font-black ${cfg.text}`}>
-        {cfg.icon}
-        {sign}{value.toFixed(2)}%
-      </div>
+    <div><div className={`text-base font-semibold tabular-nums ${cfg.text}`}>{sign}{value.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</div><span className="text-[11px] text-gray-500">{cfg.label}</span>
     </div>
   );
 }
@@ -99,12 +95,10 @@ function IPHBadge({ value, status }: { value: number; status: IPHStatus }) {
 function CommodityChip({ name, change, type }: { name: string; change: number; type: "deflasi" | "inflasi" }) {
   const isDeflasi = type === "deflasi";
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium ${
-      isDeflasi ? "bg-gray-100 text-gray-700" : "bg-red-50 text-red-700"
-    }`}>
-      <span>{name}</span>
-      <span className={`font-bold ${isDeflasi ? "text-blue-600" : "text-red-600"}`}>
-        {change > 0 ? "+" : ""}{change.toFixed(2)}%
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs">
+      <span className="text-gray-700">{name}</span>
+      <span className={`font-medium tabular-nums ${isDeflasi ? "text-emerald-700" : "text-amber-700"}`}>
+        {change > 0 ? "+" : ""}{change.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </span>
     </div>
   );
@@ -119,6 +113,7 @@ function EditRekapModal({ row, onSave, onClose }: {
   onSave: (updated: RekapRow) => void;
   onClose: () => void;
 }) {
+  const dialogRef = useDialogFocus(onClose);
   const [draft, setDraft] = useState<RekapRow>(row);
   const [error, setError] = useState("");
 
@@ -181,7 +176,7 @@ function EditRekapModal({ row, onSave, onClose }: {
   const numCls = "w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Edit rekap" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
           <div>
@@ -190,7 +185,7 @@ function EditRekapModal({ row, onSave, onClose }: {
               Perbaiki data rekap yang telah dimasukkan sebelumnya
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Tutup dialog rekap" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={15} />
           </button>
         </div>
@@ -209,6 +204,7 @@ function EditRekapModal({ row, onSave, onClose }: {
               <input
                 type="text"
                 value={draft.periode}
+                aria-label="Periode rekap"
                 onChange={(e) => setPeriode(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
@@ -218,6 +214,7 @@ function EditRekapModal({ row, onSave, onClose }: {
               <input
                 type="text"
                 value={draft.cutoffStart}
+                aria-label="Awal periode"
                 onChange={(e) => setCutoffStart(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
@@ -227,6 +224,7 @@ function EditRekapModal({ row, onSave, onClose }: {
               <input
                 type="text"
                 value={draft.cutoffEnd}
+                aria-label="Akhir periode"
                 onChange={(e) => setCutoffEnd(e.target.value)}
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
@@ -239,6 +237,7 @@ function EditRekapModal({ row, onSave, onClose }: {
                 type="text"
                 inputMode="decimal"
                 value={draft.nilaiIPH}
+                aria-label="Nilai IPH gabungan"
                 onChange={(e) => setNilaiIPH(e.target.value)}
                 className={numCls}
               />
@@ -340,7 +339,7 @@ function EditRekapModal({ row, onSave, onClose }: {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+        <div className="dialog-actions px-5 py-4 border-t border-gray-100 bg-gray-50/50">
           <button
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
@@ -495,26 +494,8 @@ export default function RekapanData() {
   for (let p = start; p <= end; p += 1) pageNumbers.push(p);
 
   return (
-    <div className="p-4 sm:p-5 space-y-4 w-full">
-      {/* Breadcrumb */}
-      <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-400">
-        <span>TPID Terpadu</span>
-        <ChevronRight size={10} />
-        <span>Basis Data Inflasi</span>
-        <ChevronRight size={10} />
-        <span className="text-gray-700 font-medium">Rekapan Data IPH</span>
-      </div>
-
-      {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 mb-1">
-            Rekapan Data Indeks Perkembangan Harga (IPH)
-          </h1>
-          <p className="text-xs text-gray-500">
-            Arsip digital pencatatan mingguan fluktuasi harga komoditas pangan pokok Kota Batu
-          </p>
-        </div>
+    <div className="rekap-page space-y-6 w-full">
+      <PageHeading title="Rekap data IPH" description="Telusuri periode pelaporan, tinjau andil komoditas, dan unduh rekap harga mingguan.">
 
         {/* Stats row */}
         <div className="flex flex-wrap items-center gap-4 flex-shrink-0">
@@ -540,10 +521,10 @@ export default function RekapanData() {
             </div>
           )}
         </div>
-      </div>
+      </PageHeading>
 
       {/* Toolbar */}
-      <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+      <div className="data-sheet"><div className="p-4 space-y-3 border-b border-gray-100">
         {loadError && (
           <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
             <span className="text-xs text-red-700">{loadError}</span>
@@ -560,6 +541,7 @@ export default function RekapanData() {
             <input
               type="text"
               placeholder="Cari berdasarkan komoditas, periode, atau petugas..."
+              aria-label="Cari rekap berdasarkan komoditas, periode, atau petugas"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               className="w-full pl-8 pr-4 py-2 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-gray-400"
@@ -570,7 +552,7 @@ export default function RekapanData() {
           <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
             <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex-1 sm:flex-none justify-center">
               <Sheet size={13} />
-              Download CSV / Excel
+              Unduh CSV / Excel
             </button>
           </div>
         </div>
@@ -607,14 +589,15 @@ export default function RekapanData() {
           </button>
 
           {/* Filter tabs */}
-          <div className="overflow-x-auto flex-1">
-            <div className="flex items-center gap-1.5 min-w-max">
-              <span className="text-sm text-gray-400 font-medium pl-1">Filter Kategori:</span>
+          <div className="rekap-category-filters">
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Kategori IPH">
+              <span className="text-sm text-gray-400 font-medium">Kategori IPH:</span>
               {tabs.map(({ key, label }) => (
                 <button
                   key={key}
                   onClick={() => { setFilterTab(key); setCurrentPage(1); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors whitespace-nowrap ${
+                  aria-pressed={filterTab === key}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     filterTab === key
                       ? "bg-gray-900 text-white"
                       : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
@@ -709,19 +692,20 @@ export default function RekapanData() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="overflow-hidden">
+        <p className="table-scroll-hint">Geser tabel untuk melihat andil komoditas dan tombol aksi.</p>
+        <div className="overflow-x-auto" role="region" aria-label="Tabel rekap IPH" tabIndex={0}>
         <table className="w-full min-w-[880px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               <th className="w-10 px-4 py-3">
-                <input type="checkbox" className="rounded" readOnly />
+                <input type="checkbox" className="rounded" aria-label="Pilih semua rekap pada halaman ini" checked={rows.length > 0 && rows.every(row => selectedRows.includes(row.id))} onChange={event => setSelectedRows(event.target.checked ? [...new Set([...selectedRows, ...rows.map(row => row.id)])] : selectedRows.filter(id => !rows.some(row => row.id === id)))} />
               </th>
               {[
                 "Periode & Rentang Data",
                 "Nilai IPH Gabungan",
-                "Komoditas Andil Penurunan (Deflasi)",
-                "Komoditas Andil Kenaikan (Inflasi)",
+                "Andil penurunan (persen poin)",
+                "Andil kenaikan (persen poin)",
                 "Fluktuasi Harga Tertinggi",
                 "",
               ].map((col, i) => (
@@ -761,6 +745,7 @@ export default function RekapanData() {
                 <td className="px-4 py-4">
                   <input
                     type="checkbox"
+                    aria-label={`Pilih rekap ${row.periode}`}
                     className="rounded"
                     checked={selectedRows.includes(row.id)}
                     onChange={() => toggleRow(row.id)}
@@ -855,6 +840,7 @@ export default function RekapanData() {
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-400">Baris per halaman:</span>
             <select
+              aria-label="Baris per halaman"
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setCurrentPage(1); }}
               className="text-sm border border-gray-200 rounded px-2 py-1 bg-white text-gray-700"
@@ -866,6 +852,7 @@ export default function RekapanData() {
           </div>
           <div className="flex items-center gap-1">
             <button
+              aria-label="Halaman sebelumnya"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
               className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:bg-gray-100 disabled:opacity-30"
@@ -886,6 +873,7 @@ export default function RekapanData() {
               </button>
             ))}
             <button
+              aria-label="Halaman berikutnya"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
               className="w-7 h-7 rounded flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30"
@@ -896,6 +884,7 @@ export default function RekapanData() {
         </div>
       </div>
 
+      </div>
       {editingRow && (
         <EditRekapModal
           row={editingRow}

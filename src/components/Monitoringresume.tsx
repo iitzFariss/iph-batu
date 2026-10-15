@@ -18,6 +18,8 @@ import { api, ApiError } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import RapatWhatsappStatus from "./RapatWhatsappStatus";
 import RapatMessageSender from "./RapatMessageSender";
+import PageHeading from "./PageHeading";
+import { useDialogFocus } from "../lib/useDialogFocus";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,11 +69,8 @@ type RapatStatus = "selesai" | "mendatang" | "belum-diisi" | "dibatalkan";
 const HARI = 86_400_000;
 
 function selisihHari(iso: string, kini: number) {
-  const d = new Date(iso);
-  const mulai = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const n = new Date(kini);
-  const hariIni = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
-  return Math.round((mulai - hariIni) / HARI);
+  const wib = 7 * 3600000;
+  return Math.floor((new Date(iso).getTime() + wib) / HARI) - Math.floor((kini + wib) / HARI);
 }
 
 function statusRapat(r: Rapat, kini: number): RapatStatus {
@@ -88,25 +87,10 @@ const statusConfig: Record<RapatStatus, { label: string; cls: string; icon: Reac
   dibatalkan: { label: "Dibatalkan", cls: "bg-gray-100 text-gray-500 border border-gray-200", icon: <AlertCircle size={10} /> },
 };
 
-const WARNA = ["bg-teal-500", "bg-emerald-500", "bg-blue-500", "bg-amber-500", "bg-purple-500", "bg-rose-500", "bg-gray-700"];
-
-function warnaNama(name: string) {
-  let sum = 0;
-  for (let i = 0; i < name.length; i++) sum += name.charCodeAt(i);
-  return WARNA[sum % WARNA.length];
-}
-
-function inisial(name: string) {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
 
 function formatTanggal(iso: string) {
   return new Date(iso).toLocaleDateString("id-ID", {
+    timeZone: "Asia/Jakarta",
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -139,6 +123,7 @@ export default function MonitoringResume() {
   const [pesan, setPesan] = useState("");
   const [pesanSukses, setPesanSukses] = useState("");
   const [hapusId, setHapusId] = useState<string | null>(null);
+  const dialogRef = useDialogFocus(() => setHapusId(null), !!hapusId);
 
   const muat = useCallback(() => {
     api
@@ -250,10 +235,10 @@ export default function MonitoringResume() {
   const rapatHapus = rapatList.find((r) => r.id === hapusId) ?? null;
 
   return (
-    <div className="p-4 sm:p-5 space-y-5 w-full">
+    <div className="monitoring-page space-y-6 w-full">
       {/* Konfirmasi hapus jadwal (admin) */}
       {hapusId && rapatHapus && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Hapus rapat" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
               <Trash2 size={20} className="text-red-500" />
@@ -282,22 +267,7 @@ export default function MonitoringResume() {
           </div>
         </div>
       )}
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-1">
-        <CheckCircle2 size={14} className="text-emerald-600" />
-        <span className="text-sm text-gray-500 font-medium">
-          Pusat Tata Kelola Notulensi &amp; Dokumentasi Koordinasi
-        </span>
-      </div>
-      <div>
-        <h1 className="text-2xl font-black text-gray-900 mb-1">
-          Monitoring Rapat &amp; Risalah TPID
-        </h1>
-        <p className="text-xs text-gray-500">
-          Monitoring jadwal rapat koordinasi pengendalian inflasi, kepatuhan pengisian notulensi,
-          dan pengingat WhatsApp untuk petugas. Notulis bertugas mengisi notulensi yang menunggu input.
-        </p>
-      </div>
+      <PageHeading title="Monitoring rapat" description="Pantau agenda, pengiriman WhatsApp, dan kelengkapan notulensi rapat." />
 
       {pesan && (
         <div className="flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
@@ -314,27 +284,20 @@ export default function MonitoringResume() {
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <dl className="summary-strip">
         {[
-          { label: "Total Agenda Terjadwal", value: statusData === "memuat" ? "—" : rapatList.filter((r) => r.status !== "dibatalkan").length, icon: <Calendar size={16} className="text-gray-400" />, cls: "" },
-          { label: "Menunggu Notulensi", value: statusData === "memuat" ? "—" : pendingCount, icon: <AlertCircle size={16} className="text-red-500" />, cls: "border-l-2 border-l-red-400" },
-          { label: "Selesai", value: statusData === "memuat" ? "—" : doneCount, icon: <CheckCircle2 size={16} className="text-emerald-500" />, cls: "border-l-2 border-l-emerald-400" },
-        ].map(({ label, value, icon, cls }) => (
-          <div key={label} className={`bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between ${cls}`}>
-            <div>
-              <div className="text-sm text-gray-400 mb-0.5">{label}</div>
-              <div className="text-3xl font-black text-gray-900">{value}</div>
-            </div>
-            {icon}
-          </div>
+          { label: "Agenda terjadwal", value: statusData === "memuat" ? "…" : rapatList.filter((r) => r.status !== "dibatalkan").length },
+          { label: "Menunggu notulensi", value: statusData === "memuat" ? "…" : pendingCount },
+          { label: "Selesai", value: statusData === "memuat" ? "…" : doneCount },
+        ].map(({ label, value }) => (
+          <div key={label}><dd>{value}</dd><dt>{label}</dt></div>
         ))}
-      </div>
+      </dl>
 
       {/* Pengingat WhatsApp (admin) */}
-      {isAdmin && <RapatMessageSender />}
-      {isAdmin && <RapatWhatsappStatus />}
+      {isAdmin && <div className="monitoring-delivery-grid"><RapatMessageSender /><RapatWhatsappStatus /></div>}
       {isAdmin && (
-        <div className="bg-white border border-gray-100 rounded-xl p-5">
+        <details className="disclosure-surface"><summary>Pengingat manual per kontak</summary><div className="p-5">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
             <div>
               <div className="flex items-center gap-2">
@@ -411,7 +374,7 @@ export default function MonitoringResume() {
                 </div>
               ))}
           </div>
-        </div>
+        </div></details>
       )}
 
       {/* Daftar Agenda */}
@@ -420,7 +383,7 @@ export default function MonitoringResume() {
           <div>
             <h2 className="text-sm font-bold text-gray-900">Daftar Agenda Rapat Terjadwal</h2>
             <p className="text-xs sm:text-sm text-gray-400">
-              Monitoring jadwal berkala, kelengkapan notulensi, dan distribusi hasil rapat koordinasi.
+              Buka agenda untuk membaca atau mengisi notulensi sesuai penugasan.
             </p>
           </div>
           <div className="relative">
@@ -502,20 +465,13 @@ export default function MonitoringResume() {
                   <div className="flex-1 min-w-0">
                     {/* ID + date + time */}
                     <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <span
-                        className={`text-xs font-bold px-2 py-0.5 rounded min-w-0 ${
-                          st === "belum-diisi" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        RAPAT-{r.id.slice(0, 8).toUpperCase()}
-                      </span>
                       <div className="flex items-center gap-1 text-xs text-gray-400">
                         <Calendar size={9} />
                         {formatTanggal(r.tanggal)}
                       </div>
                       <div className="flex items-center gap-1 text-xs text-gray-400">
                         <Clock size={9} />
-                        {new Date(r.tanggal).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB
+                        {new Date(r.tanggal).toLocaleTimeString("id-ID", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit" })} WIB
                       </div>
                       {telat > 0 && (
                         <div className="flex items-center gap-1 text-xs text-amber-600 font-semibold">
@@ -532,20 +488,7 @@ export default function MonitoringResume() {
                     <div className="flex flex-wrap items-center gap-2">
                       {r.petugas.length > 0 ? (
                         <>
-                          <div className="flex -space-x-1">
-                            {r.petugas.map((p) => (
-                              <div
-                                key={p.id}
-                                title={`${p.name} (${p.peran})`}
-                                className={`w-6 h-6 rounded-full ${warnaNama(p.name)} text-white text-[11px] font-bold flex items-center justify-center border-2 border-white`}
-                              >
-                                {inisial(p.name)}
-                              </div>
-                            ))}
-                          </div>
-                          <span className="text-sm text-gray-500">
-                            {r.petugas.length} Personil Ditugaskan
-                          </span>
+                          <p className="text-xs text-gray-500 leading-relaxed">{r.petugas.map(p => `${p.name}${p.peran === "notulis" ? " (notulis)" : ""}`).join(", ")}</p>
                         </>
                       ) : (
                         <div className="flex items-center gap-1 text-sm text-gray-400">
@@ -672,6 +615,7 @@ export default function MonitoringResume() {
                           onChange={(e) => setDraft(e.target.value)}
                           rows={4}
                           placeholder="Tuliskan poin-poin keputusan, rekomendasi, dan tindak lanjut rapat ini..."
+                          aria-label="Isi notulensi rapat"
                           className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-gray-300"
                         />
                         <div className="flex flex-wrap items-center justify-end gap-2">

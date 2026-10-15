@@ -2,19 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   RefreshCw,
   ChevronDown,
-  TrendingDown,
-  Copy,
   Clock,
-  MessageCircle,
   Bell,
-  Pencil,
-  Check,
-  RotateCcw,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { buildPublicDashboardLink } from "../lib/publicDashboard";
 import RapatMessageSender from "./RapatMessageSender";
 import { useAuth } from "../context/AuthContext";
+import PageHeading from "./PageHeading";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,17 +56,14 @@ const STATUS_IPH: Record<string, string> = {
   "perlu-intervensi": "Perlu Intervensi",
 };
 
-const drafKosong = `// Belum ada data rekap untuk periode yang dipilih.
-//
-// Pilih Tahun Anggaran, Bulan Pelaporan, dan Pekan Evaluasi IPH
-// pada toolbar di atas untuk menyusun draf.`;
+const drafKosong = "Belum ada rekap untuk periode ini. Pilih tahun, bulan, dan minggu yang memiliki data untuk menyusun draf.";
 
 function formatAndil(list: AndilItem[]): string[] {
-  return list.map((d) => `   - ${d.name} (${d.change > 0 ? "+" : ""}${d.change.toFixed(2)}%)`);
+  return list.map((d) => `   - ${d.name} (${d.change > 0 ? "+" : ""}${d.change.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} persen poin)`);
 }
 
 function formatIph(nilai: number): string {
-  return `${nilai > 0 ? "+" : ""}${nilai.toFixed(2)}%`;
+  return `${nilai > 0 ? "+" : ""}${nilai.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
 
 function hariJam(value: Date): string {
@@ -107,26 +99,27 @@ function periodeCadangan(rows: PeriodeRow[], saatIni: Periode): Periode | null {
 
 function buildDraf(row: RekapRow): string {
   const minggu = `Minggu ${ROMAWI[row.mingguIndeks - 1] ?? row.mingguIndeks} ${BULAN[row.bulan - 1]} ${row.tahun}`;
-  const nilai = `${row.nilaiIPH > 0 ? "+" : ""}${row.nilaiIPH.toFixed(2)}%`;
+  const nilai = formatIph(row.nilaiIPH);
   const baris: string[] = [
-    "// DOKUMEN DISPOSISI KEPALA DAERAH / SIARAN PERS KEMENDAGRI",
+    "Ringkasan perkembangan harga Kota Batu",
     "",
-    "Yth. Bapak Pj. Wali Kota Batu / Sekretaris Daerah Kota Batu,",
-    "Melaporkan rilis resmi Indeks Perkembangan Harga (IPH)",
+    "Yth. Bapak/Ibu peserta rapat TPID Kota Batu,",
+    "Berikut ringkasan Indeks Perkembangan Harga (IPH)",
     `Kota Batu pada ${minggu}:`,
     "",
     `1. Angka IPH Gabungan Kota Batu tercatat sebesar ${nilai}`,
     `   (kategori ${STATUS_IPH[row.statusIPH] ?? row.statusIPH}).`,
   ];
 
+  let nomor = 2;
   if (row.deflasi.length > 0) {
-    baris.push("", "2. Komoditas utama yang memberikan andil penurunan harga:", ...formatAndil(row.deflasi));
+    baris.push("", `${nomor++}. Komoditas utama yang memberikan andil penurunan harga:`, ...formatAndil(row.deflasi));
   }
   if (row.inflasi.length > 0) {
-    baris.push("", "3. Komoditas yang memberikan andil kenaikan harga:", ...formatAndil(row.inflasi));
+    baris.push("", `${nomor++}. Komoditas yang memberikan andil kenaikan harga:`, ...formatAndil(row.inflasi));
   }
   if (row.fluktuasi) {
-    baris.push("", "4. Komoditas berfluktuasi:", ...formatAndil([row.fluktuasi]));
+    baris.push("", `${nomor}. Komoditas berfluktuasi:`, ...formatAndil([row.fluktuasi]));
   }
 
   baris.push(
@@ -142,6 +135,7 @@ return baris.join("\n");
 
 export default function AnalisisTeksSiaran() {
   const [copied, setCopied]             = useState(false);
+  const [copyError, setCopyError] = useState("");
   const { user } = useAuth();
 
   // Penyuntingan manual draf. drafKustom === null → pakai draf otomatis.
@@ -359,53 +353,23 @@ export default function AnalisisTeksSiaran() {
     setMengedit(false);
   }
 
-  function handleCopyTeksLink() {
-    navigator.clipboard?.writeText(pesanSiaran);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  // Format resmi WhatsApp untuk pesan terisi tanpa nomor tujuan:
-  // https://wa.me/?text=... membuka WA lalu menampilkan daftar kontak.
-  // Jadi yang terkirim tetap oleh user sendiri, bukan oleh aplikasi ini.
-  function handleBukaWhatsapp() {
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(pesanSiaran)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+  async function handleCopyTeksLink() {
+    setCopyError("");
+    try {
+      await navigator.clipboard.writeText(pesanSiaran);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError("Teks belum tersalin. Izinkan akses clipboard atau pilih dan salin draf secara manual.");
+    }
   }
 
   return (
-    <div className="p-4 sm:p-5 space-y-4 w-full">
-      {/* Breadcrumb + badge */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-          Modul Otomasi Siaran V4
-        </span>
-        <span className="text-gray-300">•</span>
-        <span className="text-sm text-gray-400 font-mono">
-          {periode
-            ? `KEMENDAGRI-IPH-BATU-${periode.tahun}-M${String(periode.bulan).padStart(2, "0")}W${periode.minggu}`
-            : "KEMENDAGRI-IPH-BATU-"}
-        </span>
-      </div>
-
-      {/* Page header */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 mb-0.5">
-            Generator Siaran Pers &amp; Ringkasan Eksekutif TPID
-          </h1>
-          <p className="text-xs text-gray-500 max-w-xl">
-            Sintesis otomatis matriks IPH dan fluktuasi komoditas pangan menjadi draf laporan
-            resmi pimpinan daerah dan siaran pers Kemendagri.
-          </p>
-        </div>
-      </div>
+    <div className="siaran-layout space-y-6 w-full">
+      <PageHeading title="Analisis teks siaran" description="Susun ringkasan harga mingguan dan kirim bersama dashboard kepada peserta rapat." />
 
       {/* Filter toolbar */}
-      <div className="bg-white border border-gray-100 rounded-xl p-3 flex flex-wrap items-end gap-3">
+      <div className="period-toolbar">
         {loading && rows.length === 0 ? (
           <span className="text-xs text-gray-400 py-1.5">Memuat data rekap...</span>
         ) : rows.length === 0 ? (
@@ -413,7 +377,7 @@ export default function AnalisisTeksSiaran() {
         ) : (
           <>
             <div className="flex flex-col gap-0.5">
-              <label htmlFor="filterTahun" className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Tahun Anggaran</label>
+              <label htmlFor="filterTahun">Tahun data</label>
               <div className="relative">
                 <select
                   id="filterTahun"
@@ -430,7 +394,7 @@ export default function AnalisisTeksSiaran() {
             </div>
 
             <div className="flex flex-col gap-0.5">
-              <label htmlFor="filterBulan" className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Bulan Pelaporan</label>
+              <label htmlFor="filterBulan">Bulan</label>
               <div className="relative">
                 <select
                   id="filterBulan"
@@ -447,7 +411,7 @@ export default function AnalisisTeksSiaran() {
             </div>
 
             <div className="flex flex-col gap-0.5">
-              <label htmlFor="filterMinggu" className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">Pekan Evaluasi IPH</label>
+              <label htmlFor="filterMinggu">Minggu</label>
               <div className="relative">
                 <select
                   id="filterMinggu"
@@ -472,7 +436,7 @@ export default function AnalisisTeksSiaran() {
           </>
         )}
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex flex-wrap items-center gap-3">
           {loadError && <span className="text-xs text-red-600">{loadError}</span>}
           <span className="flex items-center gap-1 text-xs text-gray-400">
             <Clock size={10} />
@@ -488,7 +452,7 @@ export default function AnalisisTeksSiaran() {
             className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
           >
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-            {loading ? "Memuat Data..." : "Sinkronkan Ulang Data IPH"}
+            {loading ? "Memuat data…" : "Muat ulang data"}
           </button>
         </div>
       </div>
@@ -503,30 +467,26 @@ export default function AnalisisTeksSiaran() {
         </div>
       )}
 
-      {/* Main 2-col */}
-      <div className="grid grid-cols-1 gap-4 items-start">
+      <div className={user?.role === "admin" ? "siaran-workbench" : ""}>
+        {user?.role === "admin" && <RapatMessageSender broadcast={{ rekapId: selectedRow?.id ?? "", text: drafEfektif, periodLabel: selectedRow?.periode ?? "periode terpilih", ready: drafSiap }} />}
 
         {/* Left: draf */}
         <div className="space-y-3">
           {/* Draf header */}
-          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <div className="siaran-draft">
+            <header className="siaran-draft-heading">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-gray-900 flex items-center justify-center flex-shrink-0">
-                  <FileIconSVG />
-                </div>
                 <div>
-                  <div className="text-xs font-bold text-gray-900">Draf Siaran Resmi &amp; Notulensi Otomatis</div>
-                  <div className="text-xs text-gray-400">Draf plaintext di browser — dikirim manual, belum dienkripsi</div>
+                  <h2 className="text-base font-medium text-gray-900">Draf ringkasan harga</h2>
+                  <p className="text-xs text-gray-500 mt-1">{selectedRow?.periode ?? "Pilih periode data"}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
-                  <TrendingDown size={9} />
+              <div className="siaran-draft-meta">
+                <span className="text-xs font-medium text-gray-600">
                   {detailLoading
                     ? "Memuat..."
                     : selectedRow
-                      ? `IPH: ${selectedRow.nilaiIPH > 0 ? "+" : ""}${selectedRow.nilaiIPH.toFixed(2)}% (${STATUS_IPH[selectedRow.statusIPH] ?? selectedRow.statusIPH})`
+                      ? `IPH ${selectedRow.nilaiIPH > 0 ? "+" : ""}${selectedRow.nilaiIPH.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% · ${STATUS_IPH[selectedRow.statusIPH] ?? selectedRow.statusIPH}`
                       : "Belum ada data"}
                 </span>
                 {mengedit && (
@@ -549,133 +509,53 @@ export default function AnalisisTeksSiaran() {
                         r.bulan === periode.bulan &&
                         r.mingguIndeks === periode.minggu,
                     );
-                    return baris ? `Periode ${baris.cutoffStart} – ${baris.cutoffEnd}` : "—";
+                    return baris ? `Periode ${baris.cutoffStart} sampai ${baris.cutoffEnd}` : "Periode belum tersedia";
                   })()}
                 </span>
               </div>
+            </header>
+            <div className="px-5 py-3 flex flex-wrap items-center gap-2 border-b border-gray-100">
+              {mengedit ? <><button onClick={simpanEdit} className="primary-action">Simpan Perubahan</button><button onClick={batalEdit} className="secondary-action">Batal</button></> : <><button onClick={mulaiEdit} disabled={!drafSiap} className="secondary-action disabled:opacity-50">Edit Draf</button><button onClick={() => void handleCopyTeksLink()} disabled={!drafSiap} className="text-action disabled:opacity-50">{copied ? "Teks & Link Tersalin!" : "Salin Teks & Link"}</button>{drafKustom !== null && <button onClick={resetKustom} className="text-action">Reset Draf Otomatis</button>}</>}
             </div>
-
-            {/* Tab nav */}
-            <div className="flex items-center gap-0 border-b border-gray-100 px-4" />
+            {copyError && <p role="alert" className="px-5 pt-4 text-xs text-red-600">{copyError}</p>}
 
             {/* Draf content */}
-            <div className="p-4">
+            <div>
               {mengedit ? (
-                <div className="space-y-2">
+                <div className="p-5 space-y-2">
                   <textarea
                     value={drafEdit}
                     onChange={(e) => setDrafEdit(e.target.value)}
                     aria-label="Sunting draf siaran"
                     className="w-full min-h-48 resize-y font-mono text-sm leading-relaxed text-gray-700 bg-gray-50 rounded-lg p-4 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
                   />
-                  <div className="flex items-center justify-between text-xs text-gray-400">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
                     <span>Draf masih bisa disesuaikan sampai tombol Simpan ditekan.</span>
                     <span>{drafEdit.length} karakter</span>
                   </div>
                 </div>
               ) : (
-                <pre className="text-sm text-gray-700 leading-relaxed font-mono whitespace-pre-wrap bg-gray-50 rounded-lg p-4 border border-gray-100 max-h-72 overflow-y-auto">
+                <pre>
                   {drafEfektif}
                 </pre>
               )}
             </div>
 
-            {/* Action bar */}
-            <div className="px-4 pb-4 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={handleCopyTeksLink}
-                  disabled={!drafSiap}
-                  className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
-                >
-                  <Copy size={12} />
-                  {copied ? "Teks & Link Tersalin!" : "Salin Teks & Link"}
-                </button>
-                <button
-                  onClick={handleBukaWhatsapp}
-                  disabled={!drafSiap}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
-                >
-                  <MessageCircle size={12} />
-                  Buka WhatsApp
-                </button>
-
-                <span className="flex-1" />
-
-                {mengedit ? (
-                  <>
-                    <button
-                      onClick={simpanEdit}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                    >
-                      <Check size={12} />
-                      Simpan Perubahan
-                    </button>
-                    <button
-                      onClick={batalEdit}
-                      className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
-                    >
-                      <RotateCcw size={12} />
-                      Batal
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={mulaiEdit}
-                      disabled={!drafSiap}
-                      className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
-                    >
-                      <Pencil size={12} />
-                      Edit Draf
-                    </button>
-                    {drafKustom !== null && (
-                      <button
-                        onClick={resetKustom}
-                        className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-xs text-gray-700 hover:bg-gray-50"
-                      >
-                        <RotateCcw size={12} />
-                        Reset Draf Otomatis
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Hint */}
+            <div className="px-5 pb-5">
               <p className="text-xs text-gray-400">
-                "Salin Teks &amp; Link" menyalin draf{" "}
-                <strong>Bahasa Resmi</strong> beserta link{" "}
-                <span className="font-mono text-gray-500 break-all">{dashboardLink}</span> ke
-                clipboard. Klik <strong>Edit Draf</strong> untuk menyesuaikan
-                kalimatnya sebelum disalin/dikirim; <strong>Reset Draf Otomatis</strong>{" "}
-                mengembalikan draf hasil olah otomatis (editan hilang saat periode
-                diganti). "Buka WhatsApp" membuka WhatsApp dengan pesan terisi, lalu
-                Anda yang memilih kontak dan menekan kirim.
+                Salin draf beserta <a href={dashboardLink} target="_blank" rel="noopener noreferrer" className="underline text-emerald-700">link dashboard periode ini</a>, atau edit teksnya sebelum dikirim. Perubahan draf tidak disimpan jika periode diganti.
               </p>
             </div>
 
             {/* Footer note */}
-            <div className="px-4 pb-3 flex items-center gap-1.5 border-t border-gray-50 pt-3">
+            <footer>
               <span className="text-xs text-gray-400">
-                Draf, belum dikirim
+                Status pengiriman dapat dilihat di Monitoring Rapat.
               </span>
-            </div>
+            </footer>
           </div>
       </div>
       </div>
-      {user?.role === "admin" && <RapatMessageSender broadcast={{ rekapId: selectedRow?.id ?? "", text: drafEfektif, periodLabel: selectedRow?.periode ?? "periode terpilih", ready: drafSiap }} />}
     </div>
-  );
-}
-
-// ─── Tiny SVG icon ────────────────────────────────────────────────────────────
-
-function FileIconSVG() {
-  return (
-    <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M7 1H2C1.45 1 1 1.45 1 2v10c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V5L7 1z" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M7 1v4h4" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
   );
 }

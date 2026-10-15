@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "./prisma";
 import { normalisasiNomorWa } from "./phone";
 import { log } from "./logger";
+import { hostname } from "node:os";
 
 const WIB = 7 * 60 * 60 * 1000;
 const MINUTE = 60_000;
@@ -38,7 +39,10 @@ export async function queueMeetingNotifications(tx: Prisma.TransactionClient, ra
     if (participant.pegawai.status !== "aktif") continue;
     const phone = normalisasiNomorWa(participant.pegawai.phone ?? participant.pegawai.user?.phone);
     const events: { kind: string; scheduledAt: Date }[] = kind === "reminder_only" ? [] : [{ kind, scheduledAt: now }];
-    if (reminder > now && reminder < meeting.tanggal) events.push({ kind: "reminder", scheduledAt: reminder });
+    // An immediate invitation/update already covers a reminder whose scheduled time has passed.
+    if (reminder < meeting.tanggal && (reminder > now || kind === "reminder_only")) {
+      events.push({ kind: "reminder", scheduledAt: new Date(Math.max(reminder.getTime(), now.getTime())) });
+    }
     for (const event of events) {
       const key = { rapatId, pegawaiId: participant.pegawaiId, kind: event.kind, revision: meeting.notificationRevision };
       await tx.whatsAppNotification.upsert({ where: { rapatId_pegawaiId_kind_revision: key }, update: {}, create: {
@@ -61,7 +65,8 @@ export async function sendViaN8n(job: { id: string; phone: string; message: stri
     });
     // Only definite rejection before a send may be retried. A server error could
     // occur after WAHA accepted the message, so it must not cause an automatic resend.
-    if ([400, 401, 403, 404, 422, 429].includes(response.status)) return { status: "failed", error: `Layanan menolak permintaan (HTTP ${response.status}).` };
+    if (response.status === 401 || response.status === 403) return { status: "failed", error: `Autentikasi n8n ditolak (HTTP ${response.status}). Samakan N8N_WHATSAPP_TOKEN pada setiap backend yang memproses antrean dengan token workflow n8n.` };
+    if ([400, 404, 422, 429].includes(response.status)) return { status: "failed", error: `Layanan menolak permintaan (HTTP ${response.status}).` };
     if (!response.ok) return { status: "unknown", error: "Layanan mengalami gangguan; periksa riwayat n8n sebelum mengirim ulang." };
     const body = await response.json() as { ok?: boolean; messageId?: string; eventId?: string; dryRun?: boolean };
     if (body.ok === true && body.dryRun !== true && body.eventId === job.id && typeof body.messageId === "string" && body.messageId.length > 0) {
@@ -91,6 +96,20 @@ export async function processNotifications(now = new Date()): Promise<void> {
         await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: { in: writable } }, data: { status: "cancelled", lastError: "Rapat atau penugasan sudah tidak aktif." } });
         continue;
       }
+      const reminder = reminderTime(participant.rapat.tanggal);
+      if (job.kind === "reminder" && job.createdAt >= reminder) {
+        const immediate = await prisma.whatsAppNotification.findFirst({ where: {
+          rapatId: job.rapatId, pegawaiId: job.pegawaiId, revision: job.revision,
+          kind: { in: ["invitation", "updated"] }, createdAt: { gte: reminder },
+          status: { notIn: ["cancelled", "expired"] },
+        }, select: { id: true } });
+        if (immediate) {
+          await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: { in: writable } }, data: {
+            status: "cancelled", lastError: "Pengingat bersamaan dibatalkan karena undangan atau perubahan jadwal sudah menjadi pemberitahuan langsung.",
+          } });
+          continue;
+        }
+      }
       const phone = normalisasiNomorWa(participant.pegawai.phone ?? participant.pegawai.user?.phone);
       if (!phone) {
         await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: { in: writable } }, data: { status: "missing_phone", lastError: "Nomor WhatsApp belum diisi.", scheduledAt: new Date(now.getTime() + MINUTE) } });
@@ -99,6 +118,7 @@ export async function processNotifications(now = new Date()): Promise<void> {
       const claimed = await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: { in: writable }, attempts: job.attempts }, data: { status: "sending", phone, startedAt: new Date(), attempts: { increment: 1 }, lastError: null } });
       if (!claimed.count) continue;
       const result = await sendViaN8n({ ...job, phone });
+      if (result.status !== "sent") log.warn("whatsapp.pengirimanGagal", { notificationId: job.id, status: result.status, message: result.error, worker: hostname(), pid: process.pid });
       await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: "sending" }, data: {
         status: result.status, providerMessageId: result.messageId ?? null, sentAt: result.status === "sent" ? new Date() : null,
         lastError: result.error ?? null, ...(result.status === "failed" ? { scheduledAt: new Date(Date.now() + 5 * MINUTE) } : {}),

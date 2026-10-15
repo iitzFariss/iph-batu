@@ -96,6 +96,15 @@ describe("Meeting notification API and persisted queue", () => {
     expect((await request(app).get("/api/rapat/notifications")).status).toBe(401);
     expect((await request(app).get("/api/rapat/notifications").set("Authorization", `Bearer ${petugas}`)).status).toBe(403);
   });
+  it("only offers a retry while a failed job is still eligible", async () => {
+    const { rapat } = await meeting();
+    const job = await prisma.whatsAppNotification.findFirstOrThrow({ where: { rapatId: rapat.id, kind: "invitation" } });
+    await prisma.whatsAppNotification.update({ where: { id: job.id }, data: { status: "failed" } });
+    const history = () => request(app).get("/api/rapat/notifications").set("Authorization", `Bearer ${admin}`);
+    expect((await history()).body.rows.find((row: { id: string }) => row.id === job.id).canRetry).toBe(true);
+    await prisma.whatsAppNotification.update({ where: { id: job.id }, data: { expiresAt: new Date(Date.now() - 1000) } });
+    expect((await history()).body.rows.find((row: { id: string }) => row.id === job.id).canRetry).toBe(false);
+  });
   it("queues invitation and reminder once, atomically with meeting creation", async () => {
     const { rapat } = await meeting();
     await prisma.$transaction(tx => queueMeetingNotifications(tx, rapat.id));
@@ -113,6 +122,74 @@ describe("Meeting notification API and persisted queue", () => {
     expect(mock).toHaveBeenCalledTimes(1);
     const sent = await prisma.whatsAppNotification.findFirstOrThrow({ where: { rapatId: rapat.id, kind: "invitation" } });
     expect(sent.status).toBe("sent"); expect(sent.phone).toBe("6281234567891");
+  });
+  it.each(["invitation", "updated"] as const)("queues only the immediate %s after the reminder time has passed", async kind => {
+    const { rapat } = await meeting();
+    await prisma.whatsAppNotification.deleteMany({ where: { rapatId: rapat.id } });
+    const start = new Date("2099-10-20T11:00:00+07:00");
+    const now = new Date("2099-10-20T10:00:00+07:00");
+    await prisma.rapat.update({ where: { id: rapat.id }, data: { tanggal: start } });
+    await prisma.$transaction(tx => queueMeetingNotifications(tx, rapat.id, kind, now));
+    await prisma.$transaction(tx => queueMeetingNotifications(tx, rapat.id, kind, now));
+    const rows = await prisma.whatsAppNotification.findMany({ where: { rapatId: rapat.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].kind).toBe(kind);
+    expect(rows[0].scheduledAt).toEqual(now);
+    expect(rows[0].expiresAt).toEqual(start);
+  });
+  it("does not queue an invitation and reminder together at exactly 07:00 WIB", async () => {
+    const { rapat } = await meeting();
+    await prisma.whatsAppNotification.deleteMany({ where: { rapatId: rapat.id } });
+    await prisma.rapat.update({ where: { id: rapat.id }, data: { tanggal: new Date("2099-10-20T11:00:00+07:00") } });
+    await prisma.$transaction(tx => queueMeetingNotifications(tx, rapat.id, "invitation", new Date("2099-10-20T07:00:00+07:00")));
+    const rows = await prisma.whatsAppNotification.findMany({ where: { rapatId: rapat.id } });
+    expect(rows.map(row => row.kind)).toEqual(["invitation"]);
+  });
+  it("queues a reminder when the meeting is saved exactly at its reminder time", async () => {
+    const { rapat } = await meeting();
+    await prisma.whatsAppNotification.deleteMany({ where: { rapatId: rapat.id } });
+    await prisma.rapat.update({ where: { id: rapat.id }, data: { tanggal: new Date("2099-10-20T11:00:00+07:00") } });
+    const now = new Date("2099-10-20T07:00:00+07:00");
+    await prisma.$transaction(tx => queueMeetingNotifications(tx, rapat.id, "reminder_only", now));
+    expect(await prisma.whatsAppNotification.count({ where: { rapatId: rapat.id, kind: "reminder", scheduledAt: now } })).toBe(1);
+  });
+  it.each(["pending", "failed"])("suppresses an old redundant %s reminder without sending a second message", async status => {
+    const { rapat } = await meeting();
+    await prisma.whatsAppNotification.deleteMany({ where: { rapatId: rapat.id } });
+    const now = new Date("2099-10-20T10:00:00+07:00");
+    const start = new Date("2099-10-20T11:00:00+07:00");
+    await prisma.rapat.update({ where: { id: rapat.id }, data: { tanggal: start } });
+    await prisma.$transaction(tx => queueMeetingNotifications(tx, rapat.id, "invitation", now));
+    const invitation = await prisma.whatsAppNotification.findFirstOrThrow({ where: { rapatId: rapat.id, kind: "invitation" } });
+    await prisma.whatsAppNotification.update({ where: { id: invitation.id }, data: { createdAt: now } });
+    const reminder = await prisma.whatsAppNotification.create({ data: {
+      rapatId: rapat.id, pegawaiId: invitation.pegawaiId, revision: invitation.revision, kind: "reminder",
+      recipientName: invitation.recipientName, phone: invitation.phone, message: "Pengingat uji versi sebelumnya",
+      status, scheduledAt: now, createdAt: now, expiresAt: start,
+    } });
+    enableWorker();
+    const mock = vi.fn<typeof fetch>().mockImplementation(async (_url, options) => {
+      const body = JSON.parse(String(options?.body));
+      return new Response(JSON.stringify({ ok: true, eventId: body.eventId, messageId: "test-provider-id" }));
+    });
+    vi.stubGlobal("fetch", mock);
+    await processNotifications(now);
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(mock.mock.calls[0][1]?.body)).kind).toBe("invitation");
+    expect((await prisma.whatsAppNotification.findUniqueOrThrow({ where: { id: reminder.id } })).status).toBe("cancelled");
+  });
+  it("still sends a future scheduled reminder after its earlier invitation", async () => {
+    const { rapat } = await meeting();
+    enableWorker();
+    const mock = vi.fn<typeof fetch>().mockImplementation(async (_url, options) => {
+      const body = JSON.parse(String(options?.body));
+      return new Response(JSON.stringify({ ok: true, eventId: body.eventId, messageId: "test-provider-id" }));
+    });
+    vi.stubGlobal("fetch", mock);
+    await processNotifications();
+    await processNotifications(new Date(reminderTime(new Date(rapat.tanggal)).getTime() + 1000));
+    expect(mock.mock.calls.map(call => JSON.parse(String(call[1]?.body)).kind)).toEqual(["invitation", "reminder"]);
+    expect((await prisma.whatsAppNotification.findMany({ where: { rapatId: rapat.id } })).every(row => row.status === "sent")).toBe(true);
   });
   it("refreshes queued recipient numbers when the admin edits the employee", async () => {
     const { employee } = await meeting(null);

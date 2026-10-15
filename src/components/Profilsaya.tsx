@@ -4,14 +4,13 @@ import {
   Mail,
   Building2,
   BadgeCheck,
-  Shield,
   CheckCircle2,
-  ChevronRight,
   Clock,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api, ApiError } from "../lib/api";
 import type { UserRole } from "../types/auth";
+import PageHeading from "./PageHeading";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -21,11 +20,6 @@ const roleLabel: Record<UserRole, string> = {
   tamu:    "Tamu",
 };
 
-const roleBadgeCls: Record<UserRole, string> = {
-  admin:   "bg-purple-100 text-purple-700 border border-purple-200",
-  petugas: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-  tamu:    "bg-sky-100 text-sky-700 border border-sky-200",
-};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -95,19 +89,8 @@ export default function ProfilSaya() {
   }
 
   return (
-    <div className="p-4 sm:p-5 space-y-5 w-full">
-      {/* Page header */}
-      <div>
-        <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-1">
-          <span>Pengaturan</span>
-          <ChevronRight size={10} />
-          <span className="text-gray-700 font-medium">Profil Saya</span>
-        </div>
-        <h1 className="text-2xl font-black text-gray-900">Profil Saya</h1>
-        <p className="text-xs text-gray-400 mt-0.5">
-          Informasi akun dan riwayat aktivitas Anda di sistem TPID Kota Batu.
-        </p>
-      </div>
+    <div className="profile-page space-y-6 w-full">
+      <PageHeading title="Profil saya" description="Perbarui informasi pribadi dan lihat riwayat aktivitas akun Anda." />
 
       {/* Saved message */}
       {savedMsg && (
@@ -124,14 +107,13 @@ export default function ProfilSaya() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5 items-start">
+      <div className="feature-stack">
 
-        {/* Left: avatar card */}
         <div className="space-y-4">
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 text-center">
+          <div className="profile-identity bg-white border border-gray-100 rounded-2xl p-5 text-center">
             {/* Avatar */}
             <div className="relative inline-block mb-3">
-              <div className="w-20 h-20 rounded-full bg-emerald-600 text-white flex items-center justify-center text-2xl font-black mx-auto">
+              <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl font-medium mx-auto">
                 {initials}
               </div>
             </div>
@@ -140,8 +122,7 @@ export default function ProfilSaya() {
             <div className="text-sm text-gray-400 mb-2">{user.email}</div>
 
             {/* Role badge */}
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-sm font-bold ${roleBadgeCls[user.role]}`}>
-              <Shield size={10} />
+            <span className="text-xs text-gray-500">
               {roleLabel[user.role]}
             </span>
 
@@ -185,12 +166,11 @@ export default function ProfilSaya() {
           </div>
         </div>
 
-        {/* Right: detail form + activity */}
         <div className="space-y-4">
 
           {/* Info section */}
           <div className="bg-white border border-gray-100 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="panel-toolbar mb-4">
               <h2 className="text-sm font-bold text-gray-900">Informasi Pribadi</h2>
               {!editMode ? (
                 <button
@@ -200,7 +180,7 @@ export default function ProfilSaya() {
                   Edit Profil
                 </button>
               ) : (
-                <div className="flex gap-2">
+                <div className="dialog-actions">
                   <button
                     onClick={() => setEditMode(false)}
                     className="px-3 py-1.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
@@ -229,6 +209,7 @@ export default function ProfilSaya() {
                       <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
                         value={displayName}
+                        aria-label="Nama tampilan"
                         onChange={(e) => setDisplayName(e.target.value)}
                         className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
@@ -248,6 +229,7 @@ export default function ProfilSaya() {
                   {editMode ? (
                     <input
                       value={phone}
+                      aria-label="Nomor WhatsApp profil"
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     />
@@ -267,7 +249,7 @@ export default function ProfilSaya() {
                 <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded-lg border border-gray-100">
                   <Mail size={12} className="text-gray-400 flex-shrink-0" />
                   <span className="text-xs text-gray-600">{user.email}</span>
-                  <span className="ml-auto text-[11px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
+                  <span className="ml-auto text-xs text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded">
                     Tidak dapat diubah
                   </span>
                 </div>
@@ -282,7 +264,7 @@ export default function ProfilSaya() {
                   <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded-lg border border-gray-100">
                     <Building2 size={12} className="text-gray-400 flex-shrink-0" />
                     <span className="text-xs text-gray-600">{user.instansi}</span>
-                    <span className="ml-auto text-[11px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
+                    <span className="ml-auto text-xs text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded">
                       Tidak dapat diubah
                     </span>
                   </div>
@@ -298,7 +280,7 @@ export default function ProfilSaya() {
                   <div className="flex items-center gap-2 py-2 px-3 bg-gray-50 rounded-lg border border-gray-100">
                     <BadgeCheck size={12} className="text-gray-400 flex-shrink-0" />
                     <span className="text-xs font-mono text-gray-600 tracking-wider">{user.nip}</span>
-                    <span className="ml-auto text-[11px] text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">
+                    <span className="ml-auto text-xs text-gray-800 bg-gray-200 px-1.5 py-0.5 rounded">
                       Tidak dapat diubah
                     </span>
                   </div>
@@ -313,6 +295,7 @@ export default function ProfilSaya() {
                 {editMode ? (
                   <textarea
                     value={bio}
+                    aria-label="Bio profil"
                     onChange={(e) => setBio(e.target.value)}
                     rows={3}
                     className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"

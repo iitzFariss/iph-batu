@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useDialogFocus } from "../lib/useDialogFocus";
 import {
   Search,
   Plus,
@@ -6,17 +7,15 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
   X,
   BadgeCheck,
   User,
   Mail,
   Phone,
-  Users,
-  LayoutGrid,
   KeyRound,
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
+import PageHeading from "./PageHeading";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,13 +97,14 @@ interface ModalProps {
 }
 
 function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
+  const dialogRef = useDialogFocus(onClose);
   const [form, setForm] = useState({
     name:       initial?.name       ?? "",
     nip:        initial?.nip        ?? "",
     instansi:   initial?.instansi   ?? "",
     instansiSub: initial?.instansiSub ?? "",
     peran:      initial?.peran      ?? "",
-    peranIcon:  initial?.peranIcon  ?? "👤",
+    peranIcon:  initial?.peranIcon  ?? "",
     status:     initial?.status     ?? "aktif",
     email:      initial?.email      ?? "",
     phone:      initial?.phone      ?? "",
@@ -140,7 +140,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={mode === "add" ? "Tambah pegawai" : "Edit pegawai"} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -152,7 +152,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               {mode === "add" ? "Daftarkan personil baru ke direktori TPID" : "Perbarui informasi pegawai terdaftar"}
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Tutup dialog pegawai" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={15} />
           </button>
         </div>
@@ -175,8 +175,9 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={form.name}
+                aria-label="Nama lengkap dan gelar"
                 onChange={(e) => { setForm({...form, name: e.target.value}); setError(""); }}
-                placeholder="Contoh: Drs. Eko Prasetyo, M.Si."
+                placeholder="Nama lengkap pegawai"
                 className="w-full pl-8 pr-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
               />
             </div>
@@ -191,6 +192,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               <BadgeCheck size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={form.nip}
+                aria-label="NIP pegawai"
                 onChange={(e) => { setForm({...form, nip: e.target.value}); setError(""); }}
                 placeholder="18 digit NIP ASN"
                 maxLength={22}
@@ -208,6 +210,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               <Mail size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={form.email}
+                aria-label="Email pegawai"
                 onChange={(e) => setForm({...form, email: e.target.value})}
                 placeholder="nama@instansi.go.id"
                 type="email"
@@ -244,6 +247,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
             </label>
             <input
               value={form.peran}
+              aria-label="Peran penugasan"
               onChange={(e) => { setForm({...form, peran: e.target.value}); setError(""); }}
               placeholder="Contoh: Analis Data BPS & Verifikator"
               className="w-full px-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
@@ -261,6 +265,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
                   key={s}
                   type="button"
                   onClick={() => setForm({...form, status: s})}
+                  aria-pressed={form.status === s}
                   className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-all ${
                     form.status === s
                       ? statusConfig[s].selectedCls
@@ -275,16 +280,16 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+        <div className="dialog-actions px-5 py-4 border-t border-gray-100 bg-gray-50/50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-100"
+            className="secondary-action"
           >
             Batal
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700"
+            className="primary-action"
           >
             {mode === "add" ? "Tambah Pegawai" : "Simpan Perubahan"}
           </button>
@@ -307,6 +312,7 @@ function KataSandiModal({
   mode: "buat" | "reset";
   onClose: () => void;
 }) {
+  const dialogRef = useDialogFocus(onClose);
   const [disalin, setDisalin] = useState(false);
 
   async function salin() {
@@ -321,11 +327,11 @@ function KataSandiModal({
   const judul = mode === "buat" ? "Akun Login Dibuat" : "Kata Sandi Direset";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Kata sandi sementara" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-gray-900">{judul}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Tutup kata sandi sementara" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={15} />
           </button>
         </div>
@@ -384,6 +390,7 @@ export default function KelolaPegawai() {
   const [resetBusy, setResetBusy]     = useState(false);
   const [tempPass, setTempPass]       = useState<null | { email: string; password: string; mode: "buat" | "reset" }>(null);
   const perPage = 4;
+  const confirmationRef = useDialogFocus(() => { if (!resetBusy) { setDeleteId(null); setResetTarget(null); } }, !!deleteId || !!resetTarget);
 
   useEffect(() => {
     api
@@ -491,7 +498,7 @@ export default function KelolaPegawai() {
   }
 
   return (
-    <div className="p-4 sm:p-5 space-y-4 w-full">
+    <div className="pegawai-page space-y-6 w-full">
       {/* Modal */}
       {modal && (
         <PegawaiModal
@@ -504,7 +511,7 @@ export default function KelolaPegawai() {
 
       {/* Delete confirm */}
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div ref={confirmationRef} role="dialog" aria-modal="true" aria-label="Hapus pegawai" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
               <Trash2 size={20} className="text-red-500" />
@@ -533,7 +540,7 @@ export default function KelolaPegawai() {
 
       {/* Reset kata sandi confirm */}
       {resetTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div ref={confirmationRef} role="dialog" aria-modal="true" aria-label="Reset kata sandi" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm text-center">
             <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
               <KeyRound size={20} className="text-amber-600" />
@@ -591,63 +598,20 @@ export default function KelolaPegawai() {
         </div>
       )}
 
-      {/* Page header */}
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <ShieldCheck size={13} className="text-emerald-600" />
-            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
-              Satuan Tugas Pengendalian Inflasi Daerah (TPID) Kota Batu
-            </span>
-          </div>
-          <h1 className="text-2xl font-black text-gray-900 mb-1">
-            Kelola Pegawai &amp; Satgas TPID
-          </h1>
-<p className="text-xs text-gray-500 max-w-lg">
-            Daftar petugas dan penugasanpersonil lintas instansi dalam tim koordinasi
-            pengendalian inflasi daerah.
-          </p>
-        </div>
-
-        {/* Stat cards */}
-        <div className="flex flex-col sm:flex-row items-start gap-3 flex-shrink-0">
-          <div className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-xl">
-            <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center">
-              <Users size={16} className="text-gray-600" />
-            </div>
-            <div>
-              <div className="text-xs text-gray-400">Total Personil TPID</div>
-              <div className="text-xl font-black text-gray-900">{pegawai.length} Anggota</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 px-4 py-3 bg-white border border-gray-100 rounded-xl">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <LayoutGrid size={16} className="text-emerald-600" />
-            </div>
-            <div>
-              <div className="text-xs text-gray-400">Jumlah OPD</div>
-              <div className="text-xl font-black text-emerald-700">{totalInstansi} OPD Pemkot</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeading title="Kelola pegawai" description="Data pegawai, nomor WhatsApp, penugasan, dan akses akun TPID."><button onClick={() => setModal({ mode: "add" })} className="primary-action"><Plus size={16} />Tambah Pegawai Baru</button></PageHeading>
+      <dl className="summary-strip"><div><dd>{pegawai.length}</dd><dt>Pegawai terdaftar</dt></div><div><dd>{totalAktif}</dd><dt>Pegawai aktif</dt></div><div><dd>{totalInstansi}</dd><dt>Instansi</dt></div></dl>
 
       {/* Table card */}
       <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
           <div>
-            <div className="text-sm font-bold text-gray-900">Direktori Personil Terdaftar TPID</div>
+            <h2 className="text-base font-semibold text-gray-900">Direktori pegawai</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Manajemen fungsional penugasan dan hak akses pengoperasian sistem IPH 2026
+              Perbarui nomor WhatsApp untuk menerima undangan dan pengingat rapat.
             </p>
           </div>
 
-          {/* Badge */}
-          <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-full flex-shrink-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            {totalAktif} ASN / Satgas
-          </span>
 
           {/* Search */}
           <div className="relative flex-shrink-0">
@@ -657,24 +621,16 @@ export default function KelolaPegawai() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               placeholder="Cari nama atau NIP..."
-              className="pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 w-44 placeholder:text-gray-300"
+              aria-label="Cari pegawai berdasarkan nama atau NIP"
+              className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 w-full sm:w-64 placeholder:text-gray-300"
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={() => setModal({ mode: "add" })}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700"
-            >
-              <Plus size={13} />
-              Tambah Pegawai Baru
-            </button>
-          </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <p className="table-scroll-hint">Geser tabel untuk melihat penugasan dan tombol aksi pegawai.</p>
+        <div className="overflow-x-auto" role="region" aria-label="Tabel direktori pegawai" tabIndex={0}>
         <table className="w-full min-w-[720px]">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -707,7 +663,7 @@ export default function KelolaPegawai() {
                   {/* Nama */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full ${p.color} text-white flex items-center justify-center text-sm font-bold flex-shrink-0`}>
+                      <div className="account-avatar flex-shrink-0">
                         {p.initials}
                       </div>
                       <div>
@@ -725,8 +681,7 @@ export default function KelolaPegawai() {
 
                   {/* Peran */}
                   <td className="px-5 py-4">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-50 border border-gray-100 rounded-lg max-w-[220px]">
-                      <span className="text-sm">{p.peranIcon}</span>
+                    <div className="max-w-[220px]">
                       <span className="text-sm font-semibold text-gray-700 truncate">{p.peran}</span>
                     </div>
                   </td>
@@ -748,6 +703,7 @@ export default function KelolaPegawai() {
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5">
                       <button
+                        aria-label={`Edit pegawai ${p.name}`}
                         onClick={() => setModal({ mode: "edit", data: p })}
                         className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-colors"
                       >
@@ -762,6 +718,7 @@ export default function KelolaPegawai() {
                         <KeyRound size={12} />
                       </button>
                       <button
+                        aria-label={`Hapus pegawai ${p.name}`}
                         onClick={() => setDeleteId(p.id)}
                         className="w-7 h-7 rounded-lg border border-red-100 flex items-center justify-center hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
                       >
@@ -783,6 +740,7 @@ export default function KelolaPegawai() {
           </span>
           <div className="flex items-center gap-1">
             <button
+              aria-label="Halaman sebelumnya"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:bg-gray-100 disabled:opacity-30"
@@ -801,6 +759,7 @@ export default function KelolaPegawai() {
               </button>
             ))}
             <button
+              aria-label="Halaman berikutnya"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="w-7 h-7 rounded flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-30"

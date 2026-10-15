@@ -9,7 +9,7 @@ export type DemoHint = { email: string; password: string };
 const DEMO_HINTS: Record<UserRole, DemoHint> = {
   admin: { email: "admin@tpid-batu.go.id", password: "admin123" },
   petugas: { email: "siti.rahmawati@bps-batu.go.id", password: "petugas123" },
-  tamu: { email: "Tanpa kredensial", password: "—" },
+  tamu: { email: "Tanpa kredensial", password: "Tidak diperlukan" },
 };
 
 export default function LoginDemoHints({
@@ -24,21 +24,21 @@ export default function LoginDemoHints({
   const hint = DEMO_HINTS[role];
 
   return (
-    <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-100">
+    <details className="mt-5 bg-gray-50 rounded-lg border border-gray-100"><summary className="px-4 py-3 text-xs text-gray-500">Akun demo lokal</summary><div className="p-4 pt-0">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">
-          Akun Demo — {label}
+          Akun demo: {label}
         </span>
         <button
           type="button"
           onClick={() => onFill(hint)}
           className="text-xs text-emerald-600 font-bold hover:text-emerald-700"
         >
-          Isi Otomatis →
+          Isi otomatis
         </button>
       </div>
       <p className="text-xs text-gray-500 font-mono">{hint.email}</p>
       <p className="text-xs text-gray-500 font-mono">{hint.password}</p>
-    </div>
+    </div></details>
   );
 }

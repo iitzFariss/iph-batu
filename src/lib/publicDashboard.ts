@@ -1,9 +1,8 @@
-// Hash link dashboard publik (sama dengan yang dilihat masyarakat / tamu)
 export const PUBLIC_DASHBOARD_HASH = "#/publik";
 
-// Bangun URL lengkap dashboard publik dari alamat aplikasi saat ini
+// Tautan siaran memakai domain publik agar dapat dibuka dari ponsel.
 export function buildPublicDashboardLink(period?: { tahun: number; bulan: number; minggu: number }): string {
-  const url = new URL(window.location.href);
+  const url = new URL("https://iph.bpskotabatu.com/");
   url.hash = PUBLIC_DASHBOARD_HASH + (period ? `?tahun=${period.tahun}&bulan=${period.bulan}&minggu=${period.minggu}` : "");
   return url.toString();
 }

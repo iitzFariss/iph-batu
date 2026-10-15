@@ -47,11 +47,14 @@ for (const mode of ["remind", "broadcast"] as const) {
 }
 
 router.get("/notifications", requireAuth, requireRoles("admin"), h(async (_req, res) => {
-  const rows = await prisma.whatsAppNotification.findMany({ orderBy: { createdAt: "desc" }, take: 100, include: { rapat: { select: { topik: true } } } });
+  const rows = await prisma.whatsAppNotification.findMany({ orderBy: { createdAt: "desc" }, take: 100, include: { rapat: { select: { topik: true, status: true, notificationRevision: true } } } });
   res.json({ enabled: automationEnabled(), rows: rows.map(row => ({
     id: row.id, rapatId: row.rapatId, topik: row.rapat.topik, recipientName: row.recipientName,
     phone: row.phone, kind: row.kind, status: row.status, scheduledAt: row.scheduledAt,
-    sentAt: row.sentAt, attempts: row.attempts, lastError: row.lastError,
+    sentAt: row.sentAt, attempts: row.attempts, lastError: row.lastError, expiresAt: row.expiresAt,
+    canRetry: ["failed", "missing_phone"].includes(row.status) && row.expiresAt > new Date()
+      && row.rapat.notificationRevision === row.revision
+      && (row.kind.startsWith("broadcast:") ? row.rapat.status !== "dibatalkan" : row.rapat.status === "terjadwal"),
   })) });
 }));
 

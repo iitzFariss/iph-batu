@@ -1,460 +1,109 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ReferenceLine,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  TrendingDown,
-  TrendingUp,
-  Minus,
-  ChevronRight,
-} from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from "recharts";
 import { weeklyColumns, type WeeklyRow } from "../data/weeklyData";
 import WeeklyDataTable from "./WeeklyDataTable";
+import PageHeading from "./PageHeading";
 import { api } from "../lib/api";
+import { useTheme } from "../context/ThemeContext";
 
-// ─── types ───────────────────────────────────────────────────────────────────
-
-const BULAN_SINGKAT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"] as const;
-const ROMAWI = ["I", "II", "III", "IV", "V"] as const;
-
-interface SummaryTrendPoint {
-  tahun: number;
-  bulan: number;
-  mingguIndeks: number;
-  iph: number;
-  status: string;
-  pemicu: string | null;
-  penutupan: boolean;
-}
-
-interface SummaryResp {
-  trend: SummaryTrendPoint[];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const WEEKS = ["I", "II", "III", "IV", "V"];
+const STATUS: Record<string, string> = {
+  "deflasi-signifikan": "Deflasi signifikan", "deflasi-terkendali": "Deflasi terkendali",
+  "stabil-terkendali": "Stabil terkendali", "inflasi-ringan": "Inflasi ringan", "perlu-intervensi": "Perlu intervensi",
+};
+interface TrendPoint { tahun: number; bulan: number; mingguIndeks: number; iph: number; status: string; pemicu: string | null; penutupan: boolean }
+interface Detail { name: string; nilai: number; isFluktuasi: boolean }
+interface Summary {
+  trend: TrendPoint[];
   weekly: { tahun: number; data: Record<string, number | null> }[];
   frequency: { tahun: number; items: { name: string; count: number }[] }[];
-  latest: SummaryTrendPoint | null;
-  latestDetails: { name: string; nilai: number; isFluktuasi: boolean }[];
+  latest: TrendPoint | null;
+  latestDetails: Detail[];
+}
+const number = (value: number) => `${value > 0 ? "+" : ""}${value.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const period = (row: TrendPoint) => `Minggu ${WEEKS[row.mingguIndeks - 1]} ${MONTHS[row.bulan - 1]} ${row.tahun}`;
+
+function TrendChart({ points, year }: { points: TrendPoint[]; year: number | null }) {
+  const { isDark } = useTheme();
+  const values = points.map(row => row.iph);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const padding = Math.max(.25, (max - min) * .15);
+  const data = points.map(row => ({ label: `${MONTHS[row.bulan - 1]} M${row.mingguIndeks}`, full: period(row), iph: row.iph }));
+  return <section className="report-trend" aria-label="Tren IPH">
+    <div className="section-heading"><div><h2>Pergerakan IPH</h2><p>Rekap mingguan {year ?? ""}, dibandingkan periode acuan.</p></div><span className="text-xs text-gray-500">Persen (%)</span></div>
+    {points.length ? <div className="report-chart">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 10, right: 12, bottom: 5, left: -16 }} accessibilityLayer>
+          <CartesianGrid vertical={false} strokeDasharray="3 5" />
+          <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={24} dy={10} />
+          <YAxis tick={{ fontSize: 11 }} width={65} tickLine={false} axisLine={false} domain={[min - padding, max + padding]} tickFormatter={value => `${Number(value).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`} />
+          <ReferenceLine y={0} stroke={isDark ? "#8197a7" : "#87958c"} strokeDasharray="4 4" />
+          <Tooltip content={({ active, payload }) => active && payload?.length ? <div className="data-tooltip"><span>{payload[0]?.payload.full}</span><strong>IPH {number(Number(payload[0]?.value))}%</strong></div> : null} />
+          <Line type="linear" dataKey="iph" stroke={isDark ? "#98dfc3" : "#267259"} strokeWidth={2.5} dot={points.length < 12 ? { r: 3, fill: isDark ? "#98dfc3" : "#267259", strokeWidth: 0 } : false} activeDot={{ r: 5 }} isAnimationActive={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div> : <p className="text-sm text-gray-500 py-14">Tren akan muncul setelah data mingguan ditambahkan.</p>}
+  </section>;
 }
 
-// ─── helpers ────────────────────────────────────────────────────────────────
-
-type CommodityStatus = "deflasi" | "waspada" | "terkendali" | "stabil";
-
-interface StatusConfig {
-  label: string;
-  cls: string;
-}
-
-const statusMap: Record<CommodityStatus, StatusConfig> = {
-  deflasi:    { label: "Deflasi",    cls: "bg-blue-50 text-blue-700 border border-blue-200" },
-  waspada:    { label: "Waspada",    cls: "bg-amber-50 text-amber-700 border border-amber-200" },
-  terkendali: { label: "Terkendali", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
-  stabil:     { label: "Stabil",     cls: "bg-gray-100 text-gray-600 border border-gray-200" },
-};
-
-function StatusBadge({ status }: { status: CommodityStatus }) {
-  const { label, cls } = statusMap[status];
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${cls}`}>
-      {status === "terkendali" && <TrendingDown size={9} className="mr-1" />}
-      {status === "waspada"    && <TrendingUp   size={9} className="mr-1" />}
-      {label}
-    </span>
-  );
-}
-
-// ─── sub-sections ────────────────────────────────────────────────────────────
-
-function HeroMetrics({ latest }: { latest: SummaryTrendPoint | null }) {
-  const periodeLabel = latest
-    ? `Minggu ${ROMAWI[latest.mingguIndeks - 1] ?? latest.mingguIndeks} ${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}`
-    : "Belum ada data";
-  return (
-    <div className="bg-white border border-gray-100 rounded-xl p-5 mb-4">
-      <div className="flex flex-wrap items-center gap-1.5 mb-3">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-        <span className="text-sm text-gray-500">Periode data </span>
-        <span className="text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
-          {periodeLabel}
-        </span>
-      </div>
-
-      <div className="flex-1">
-        <h1 className="text-2xl font-bold text-gray-900 mb-0.5">
-          Dashboard Pengendalian Inflasi (IPH) Kota Batu
-        </h1>
-        <p className="text-xs text-gray-500 mb-4">
-          Rekap perubahan harga mingguan dan andil komoditas Pasar Besar Kota Batu.
-        </p>
-
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="text-xs text-gray-500 mb-0.5">
-              Indeks Perkembangan Harga (IPH)
-            </div>
-            <span className="text-4xl font-black text-gray-900 tracking-tight">
-              {latest ? `${latest.iph > 0 ? "+" : ""}${latest.iph.toFixed(2)}%` : "—"}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TrendChart({ points, year }: { points: { label: string; iph: number }[]; year: number | null }) {
-  const maxAbs = Math.max(1, ...points.map((p) => Math.abs(p.iph))) * 1.2;
-  return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4">
-      <div className="flex items-start justify-between mb-1 flex-wrap gap-2">
-        <div>
-          <h2 className="text-sm font-bold text-gray-900">
-            Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
-          </h2>
-          <p className="text-sm text-gray-400">
-            Perubahan harga mingguan komoditas di Pasar Besar Kota Batu (baseline 0.00%)
-          </p>
-        </div>
-        {year !== null && (
-          <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
-            {year}
-          </span>
-        )}
-      </div>
-
-      <div className="overflow-x-auto mt-3 pb-1">
-        <div className="min-w-[760px] h-96">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={points} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: "#9ca3af", fontSize: 15 }}
-              axisLine={{ stroke: "#e5e7eb" }}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fill: "#9ca3af", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}%`}
-              domain={[-maxAbs, maxAbs]}
-            />
-            <Tooltip
-              contentStyle={{
-                borderRadius: 8,
-                border: "1px solid #e5e7eb",
-                fontSize: 12,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              }}
-              formatter={(value) => [
-                `${(value as number) > 0 ? "+" : ""}${(value as number).toFixed(2)}%`,
-                "IPH",
-              ]}
-            />
-            <ReferenceLine
-              y={0}
-              stroke="#d1d5db"
-              strokeWidth={1}
-              label={{
-                value: "0.00%",
-                fill: "#6b7280",
-                fontSize: 10,
-                position: "insideTopLeft",
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey="iph"
-              stroke="#10b981"
-              strokeWidth={2.5}
-              dot={{ fill: "#10b981", r: 3, strokeWidth: 1, stroke: "#fff" }}
-              activeDot={{ r: 5 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FrequencyChart({ data }: { data: { name: string; count: number }[] }) {
-  return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
-        <div>
-          <h2 className="text-sm font-bold text-gray-900">Frekuensi Kemunculan Komoditas</h2>
-          <p className="text-sm text-gray-400">
-            Berapa kali komoditas muncul sebagai andil/fluktuasi dalam pemantauan tahun berjalan
-          </p>
-        </div>
-        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
-          Tahun berjalan
-        </span>
-      </div>
-
-      <div className="h-64 mt-3">
-        {data.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-sm text-gray-400">
-            Belum ada komoditas tercatat.
-          </div>
-        ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-            <XAxis
-              dataKey="name"
-              tick={{ fill: "#9ca3af", fontSize: 9 }}
-              axisLine={{ stroke: "#e5e7eb" }}
-              tickLine={false}
-              interval={0}
-              angle={-35}
-              textAnchor="end"
-              height={46}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fill: "#9ca3af", fontSize: 10 }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip
-              cursor={{ fill: "#f9fafb" }}
-              contentStyle={{
-                borderRadius: 8,
-                border: "1px solid #e5e7eb",
-                fontSize: 12,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              }}
-              formatter={(value) => [`${value} kali`, "Kemunculan"]}
-            />
-            <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
-          </BarChart>
-        </ResponsiveContainer>
-        )}
-      </div>
-    </div>
-  );
-}
-
-interface CommodityRow {
-  id: string;
-  name: string;
-  andil: number;
-  status: CommodityStatus;
-  isFluktuasi: boolean;
-}
-
-function CommodityTable({
-  details,
-  latest,
-}: {
-  details: { name: string; nilai: number; isFluktuasi: boolean }[];
-  latest: SummaryTrendPoint | null;
-}) {
+function CommodityList({ details }: { details: Detail[] }) {
   const [showAll, setShowAll] = useState(false);
-
-  const sorted = useMemo<CommodityRow[]>(() => {
-    const andil = details
-      .filter((d) => !d.isFluktuasi)
-      .sort((a, b) => b.nilai - a.nilai)
-      .map<CommodityRow>((d, i) => ({
-        id: `a-${i}-${d.name}`,
-        name: d.name,
-        andil: Number(d.nilai.toFixed(2)),
-        status: d.nilai > 0.2 ? "waspada" : d.nilai < -0.2 ? "deflasi" : "terkendali",
-        isFluktuasi: false,
-      }));
-
-    const fluktuasi = details
-      .filter((d) => d.isFluktuasi)
-      .sort((a, b) => Math.abs(b.nilai) - Math.abs(a.nilai))
-      .map<CommodityRow>((d, i) => ({
-        id: `f-${i}-${d.name}`,
-        name: d.name,
-        andil: Number(d.nilai.toFixed(2)),
-        status: Math.abs(d.nilai) < 0.01 ? "stabil" : "waspada",
-        isFluktuasi: true,
-      }));
-
-    return [...andil, ...fluktuasi];
-  }, [details]);
-
+  const sorted = useMemo(() => [
+    ...details.filter(row => !row.isFluktuasi).sort((a, b) => b.nilai - a.nilai),
+    ...details.filter(row => row.isFluktuasi).sort((a, b) => Math.abs(b.nilai) - Math.abs(a.nilai)),
+  ], [details]);
   const visible = showAll ? sorted : sorted.slice(0, 3);
-
-  return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
-        <div>
-          <h2 className="text-sm font-bold text-gray-900">Komoditas Pangan Utama Kota Batu</h2>
-          <p className="text-sm text-gray-400">
-            {showAll
-              ? "Seluruh andil komoditas pada periode terbaru di Pasar Besar Kota Batu"
-              : "3 komoditas dengan andil tertinggi pekan ini di Pasar Besar Kota Batu"}
-          </p>
-        </div>
-        <span className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded px-2 py-1 flex-shrink-0">
-          {latest
-            ? `Minggu ${ROMAWI[latest.mingguIndeks - 1]} ${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}`
-            : "Periode terbaru"}
-        </span>
-      </div>
-
-      <div className="overflow-x-auto -mx-4 px-4">
-        <table className="w-full mt-3 min-w-[560px]">
-        <thead>
-          <tr className="border-b border-gray-100">
-            {(["Komoditas", "Andil (poin %)", "Status IPH"] as const).map(
-              (col, i) => (
-                <th
-                  key={col}
-                  className={`text-xs font-normal text-gray-400 uppercase tracking-wide pb-2 ${
-                    i === 0 ? "text-left" : "text-right"
-                  }`}
-                >
-                  {col}
-                </th>
-              )
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {visible.length === 0 && (
-            <tr>
-              <td colSpan={3} className="py-4 text-xs text-gray-400 text-center">
-                Belum ada data andil untuk periode ini.
-              </td>
-            </tr>
-          )}
-          {visible.map((c) => (
-            <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
-              <td className="py-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-gray-900">{c.name}</div>
-                    <div className="text-xs text-gray-400">
-                      {c.isFluktuasi ? "Komoditas fluktuasi" : "Andil inflasi/deflasi"}
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td className="py-2.5 text-right">
-                <div className="flex items-center justify-end gap-1">
-                  {c.andil === 0 ? (
-                    <Minus size={10} className="text-gray-400" />
-                  ) : c.andil > 0 ? (
-                    <TrendingUp size={10} className="text-amber-500" />
-                  ) : (
-                    <TrendingDown size={10} className="text-blue-500" />
-                  )}
-                  <span
-                    className={`text-xs font-semibold ${
-                      c.andil > 0 ? "text-amber-600" : c.andil < 0 ? "text-blue-600" : "text-gray-500"
-                    }`}
-                  >
-                    {c.andil > 0 ? "+" : ""}
-                    {c.andil.toFixed(2)}
-                  </span>
-                </div>
-              </td>
-              <td className="py-2.5 text-right">
-                <StatusBadge status={c.status} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      </div>
-
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50 flex-wrap gap-2">
-        <span className="text-sm text-gray-400">
-          Menampilkan {visible.length} dari {sorted.length} komoditas
-        </span>
-        {sorted.length > 3 && (
-          <button
-            onClick={() => setShowAll((v) => !v)}
-            className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700"
-          >
-            {showAll ? "Tutup" : "Lihat Semua"}
-            <ChevronRight size={11} className={`transition-transform ${showAll ? "rotate-90" : ""}`} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
+  const max = Math.max(.01, ...details.map(row => Math.abs(row.nilai)));
+  return <section className="report-section">
+    <div className="section-heading"><div><h2>Andil komoditas</h2><p>Kontribusi harga pada periode terpilih.</p></div><span className="text-xs text-gray-500">Persen poin</span></div>
+    <ul className="commodity-list">{visible.map(row => <li key={`${row.name}-${row.isFluktuasi}`}>
+      <div><strong>{row.name}</strong><small>{row.isFluktuasi ? "Komoditas fluktuasi" : row.nilai > 0 ? "Andil kenaikan harga" : row.nilai < 0 ? "Andil penurunan harga" : "Tidak ada perubahan"}</small><div className="commodity-scale" aria-hidden="true"><i style={{ width: `${Math.abs(row.nilai) / max * 100}%` }} /></div></div>
+      <div><div className={`andil tabular-nums ${row.nilai > 0 ? "text-amber-600" : row.nilai < 0 ? "text-emerald-700" : "text-gray-500"}`}>{number(row.nilai)}</div><small className="text-right">{row.isFluktuasi ? "Fluktuasi" : row.nilai > .2 ? "Waspada" : row.nilai < -.2 ? "Deflasi" : "Terkendali"}</small></div>
+    </li>)}</ul>
+    {!visible.length && <p className="py-6 text-sm text-gray-500">Belum ada rincian andil untuk periode ini.</p>}
+    <div className="report-footer"><span>{visible.length} dari {sorted.length} komoditas</span>{sorted.length > 3 && <button className="text-action" onClick={() => setShowAll(value => !value)}>{showAll ? "Tampilkan lebih sedikit" : "Lihat semua komoditas"}</button>}</div>
+  </section>;
 }
 
-// ─── main ───────────────────────────────────────────────────────────────────
+function FrequencyList({ data, year }: { data: { name: string; count: number }[]; year: number | null }) {
+  const sorted = [...data].sort((a, b) => b.count - a.count);
+  const max = Math.max(1, ...sorted.map(row => row.count));
+  return <section className="report-section">
+    <div className="section-heading"><div><h2>Komoditas yang sering muncul</h2><p>Frekuensi dalam rekap {year ?? "tahun berjalan"}, hingga periode terpilih.</p></div></div>
+    {sorted.length ? <ul className="frequency-list">{sorted.map(row => <li key={row.name}><div><span>{row.name}</span><span className="tabular-nums">{row.count} kali</span></div><div className="frequency-bar" aria-hidden="true"><i style={{ width: `${row.count / max * 100}%` }} /></div></li>)}</ul> : <p className="py-6 text-sm text-gray-500">Belum ada komoditas tercatat.</p>}
+  </section>;
+}
 
 export default function Dashboard() {
-  const [summary, setSummary] = useState<SummaryResp | null>(null);
+  const [summary, setSummary] = useState<Summary | null>(null);
   const [loadError, setLoadError] = useState("");
-
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    const period = window.location.hash.startsWith("#/publik?") ? window.location.hash.split("?")[1] : "";
-    api
-      .get<SummaryResp>(`/public/rekap/summary${period ? `?${period}` : ""}`)
-      .then((data) => {
-        if (!cancelled) setSummary(data);
-      })
-      .catch((error: Error) => {
-        if (!cancelled) setLoadError(error.message || "Gagal memuat ringkasan data.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+    const query = window.location.hash.startsWith("#/publik?") ? window.location.hash.split("?")[1] : "";
+    api.get<Summary>(`/public/rekap/summary${query ? `?${query}` : ""}`)
+      .then(data => { if (!cancelled) setSummary(data); })
+      .catch((error: Error) => { if (!cancelled) setLoadError(error.message || "Ringkasan harga belum dapat dimuat."); });
+    return () => { cancelled = true; };
+  }, [attempt]);
   const latest = summary?.latest ?? null;
-  // Tanpa data, jangan memaksa ke satu tahun. Anotasi eksplisit wajib: tanpa itu
-  // tahunTersedia[0] bertipe `number` (noUncheckedIndexedAccess mati) sehingga
-  // `?? null` dianggap mati oleh tsc dan tipe sebenarnya jadi(number, bukan
-  // number | null) padahal runtime bisa null.
-  const tahunTersedia = [...new Set((summary?.trend ?? []).map((t) => t.tahun))].sort((a, b) => b - a);
-  const year: number | null = latest?.tahun ?? tahunTersedia[0] ?? null;
-  const trendPoints = (summary?.trend ?? [])
-    .filter((t) => year === null || t.tahun === year)
-    .map((t) => ({ label: `${BULAN_SINGKAT[t.bulan - 1]} M${t.mingguIndeks}`, iph: t.iph }));
-  const freqItems = year === null
-    ? []
-    : summary?.frequency.find((f) => f.tahun === year)?.items ?? [];
-  const weeklyRows: WeeklyRow[] = (summary?.weekly ?? []).map((w) => ({ tahun: w.tahun, data: w.data }));
-
-  return (
-    <div className="p-4 sm:p-5 space-y-4 w-full">
-      <HeroMetrics latest={latest} />
-
-      <div className="space-y-4">
-        {loadError ? (
-          <div className="bg-white border border-red-100 rounded-xl p-10 text-center text-sm text-red-500">
-            {loadError}
-          </div>
-        ) : !summary ? (
-          <div className="bg-white border border-gray-100 rounded-xl p-10 text-center text-sm text-gray-400">
-            Memuat data ringkasan…
-          </div>
-        ) : (
-          <>
-            <CommodityTable details={summary.latestDetails} latest={latest} />
-            <TrendChart points={trendPoints} year={year} />
-            <FrequencyChart data={freqItems} />
-            <WeeklyDataTable rows={weeklyRows} columns={weeklyColumns} />
-          </>
-        )}
+  const year = latest?.tahun ?? null;
+  const trend = (summary?.trend ?? []).filter(row => year === null || row.tahun === year);
+  const weeklyRows: WeeklyRow[] = (summary?.weekly ?? []).map(row => ({ tahun: row.tahun, data: row.data }));
+  return <div className="dashboard-view w-full">
+    <PageHeading title="Dashboard harga Kota Batu" description="Perubahan harga mingguan dan andil komoditas Pasar Besar Kota Batu.">
+      {latest && <div className="report-period"><span>Periode data</span><strong className="font-medium">{period(latest)}</strong></div>}
+    </PageHeading>
+    {loadError ? <div className="form-surface" role="alert"><h2 className="form-section-title">Ringkasan belum dapat dimuat</h2><p className="text-sm text-gray-500 mb-4">{loadError}</p><button className="secondary-action" onClick={() => { setLoadError(""); setAttempt(value => value + 1); }}>Coba lagi</button></div> : !summary ? <div role="status" className="form-surface text-sm text-gray-500">Memuat data ringkasan…</div> : <>
+      <div className="report-board">
+        <section className="iph-summary" aria-label="Indeks Perkembangan Harga"><p className="metric-label">Indeks Perkembangan Harga</p><div className={latest ? "iph-value" : "text-xl my-8"}>{latest ? <>{number(latest.iph)}<small>%</small></> : "Belum ada data"}</div>{latest && <span className={`text-xs font-medium ${latest.iph > 0 ? "text-amber-600" : "text-emerald-700"}`}>{STATUS[latest.status] ?? latest.status}</span>}<p className="iph-explanation">{latest ? latest.iph > 0 ? "Harga meningkat dibandingkan periode acuan." : latest.iph < 0 ? "Harga menurun dibandingkan periode acuan." : "Harga tidak berubah dibandingkan periode acuan." : "Data akan tampil setelah rekap IPH ditambahkan."}</p></section>
+        <TrendChart points={trend} year={year} />
       </div>
-    </div>
-  );
+      <div className="report-detail-grid"><CommodityList details={summary.latestDetails} /><FrequencyList data={summary.frequency.find(row => row.tahun === year)?.items ?? []} year={year} /></div>
+      <div className="mt-6"><WeeklyDataTable rows={weeklyRows} columns={weeklyColumns} title="Arsip IPH mingguan" description="Nilai IPH setiap minggu dalam persen. Geser tabel untuk melihat periode lainnya." /></div>
+      <p className="text-xs text-gray-500 mt-5 leading-relaxed">IPH menunjukkan perubahan harga terhadap periode acuan. Rincian andil dapat bersifat parsial dan tidak selalu berjumlah sama dengan IPH.</p>
+    </>}
+  </div>;
 }

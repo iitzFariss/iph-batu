@@ -1,23 +1,33 @@
-import { useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { isPublicDashboard } from "./lib/publicDashboard";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
-import Dashboard from "./components/Dashboard";
-import RekapanData from "./components/Rekapandata";
-import InputRekapIPH from "./components/InputRekapIPH";
-import VisualisasiTren from "./components/Visualisasitren";
-import KelolaRapat from "./components/Kelolarapat";
-import MonitoringResume from "./components/Monitoringresume";
-import AnalisisTeksSiaran from "./components/Analisistekssiaran";
-import KelolaPegawai from "./components/Kelolapegawai";
 import LoginPage from "./components/LoginPage";
 import LandingPage from "./components/LandingPage";
-import ProfilSaya from "./components/Profilsaya";
-import PengaturanAkun from "./components/Pengaturanakun";
 import Error404 from "./components/Error404";
 import Error500 from "./components/Error500";
+import PublicHeader from "./components/PublicHeader";
+import PageBoundary from "./components/PageBoundary";
+
+const Dashboard = lazy(() => import("./components/Dashboard"));
+const RekapanData = lazy(() => import("./components/Rekapandata"));
+const InputRekapIPH = lazy(() => import("./components/InputRekapIPH"));
+const VisualisasiTren = lazy(() => import("./components/Visualisasitren"));
+const KelolaRapat = lazy(() => import("./components/Kelolarapat"));
+const MonitoringResume = lazy(() => import("./components/Monitoringresume"));
+const AnalisisTeksSiaran = lazy(() => import("./components/Analisistekssiaran"));
+const KelolaPegawai = lazy(() => import("./components/Kelolapegawai"));
+const ProfilSaya = lazy(() => import("./components/Profilsaya"));
+const PengaturanAkun = lazy(() => import("./components/Pengaturanakun"));
+
+const PAGE_TITLES: Record<string, string> = {
+  dashboard: "Dashboard", "input-rekap": "Input rekap IPH", "rekapan-data": "Rekap data",
+  "kelola-rapat": "Kelola rapat", "monitoring-rapat": "Monitoring rapat", "kelola-pegawai": "Kelola pegawai",
+  "visualisasi-tren": "Visualisasi tren", "analisis-teks": "Analisis teks siaran", "profil-saya": "Profil saya", "pengaturan-akun": "Pengaturan akun",
+};
+const pageLoading = <div className="text-sm text-gray-500 p-6" role="status">Memuat halaman…</div>;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -148,7 +158,7 @@ function InternalApp() {
   const [activePage, setActivePage] = useState<PageId>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Link publik (#/publik): hanya dashboard — persis seperti tampilan masyarakat/tamu.
+  // Link periode publik memakai izin tamu, termasuk saat akun admin sedang masuk.
   const isPublicView = typeof window !== "undefined"
     && isPublicDashboard();
 
@@ -166,10 +176,12 @@ function InternalApp() {
   function navigate(id: PageId) {
     setActivePage(id);
     setSidebarOpen(false);
+    document.getElementById("main-content")?.scrollTo(0, 0);
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans overflow-hidden">
+    <div className="workspace flex bg-gray-50 dark:bg-gray-900 font-sans overflow-hidden">
+      <a href="#main-content" className="skip-link">Lewati navigasi</a>
       {role !== "tamu" && (
         <Sidebar
           activePage={activePage}
@@ -186,12 +198,13 @@ function InternalApp() {
       >
         {!isDark && (
           <Header
+            title={PAGE_TITLES[activePage]}
             onNavigate={(id) => navigate(id as PageId)}
             onOpenSidebar={role === "tamu" ? undefined : () => setSidebarOpen(true)}
           />
         )}
-        <main className="flex-1 overflow-y-auto">
-          <PageContent page={activePage} navigate={navigate} role={role} />
+        <main id="main-content" tabIndex={-1} className="workspace-main flex-1 overflow-y-auto">
+          <PageBoundary key={activePage}><Suspense fallback={pageLoading}><PageContent page={activePage} navigate={navigate} role={role} /></Suspense></PageBoundary>
         </main>
       </div>
     </div>
@@ -202,23 +215,26 @@ function InternalApp() {
 
 function AppShell() {
   const { user, isAuthenticated } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark } = useTheme();
   const [authView, setAuthView] = useState<"landing" | "login">("landing");
+  const [hash, setHash] = useState(() => window.location.hash);
+  useEffect(() => {
+    const changed = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", changed);
+    return () => window.removeEventListener("hashchange", changed);
+  }, []);
 
   // Link publik (#/publik): otomatis masuk sebagai tamu → dashboard yang
   // sama persis dengan yang dilihat masyarakat.
   const isPublicView =
     typeof window !== "undefined" &&
-    isPublicDashboard();
+    hash.split("?")[0] === "#/publik";
 
   if (isPublicView) {
     return <div className={isDark ? "dark h-full" : "h-full"}>
-      <div className="h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900 font-sans">
-        <header className="flex items-center justify-between gap-3 px-5 py-4 bg-white border-b border-gray-100">
-          <span className="font-semibold text-sm text-gray-900">TPID Kota Batu <span className="font-normal text-gray-500">· Dashboard publik</span></span>
-          <button type="button" onClick={toggleTheme} className="text-xs text-gray-600 border border-gray-200 rounded-lg px-3 py-2">{isDark ? "Mode terang" : "Mode gelap"}</button>
-        </header>
-        <Dashboard />
+      <div className="public-dashboard min-h-screen bg-gray-50 font-sans">
+        <PublicHeader />
+        <main><PageBoundary key={hash}><Suspense fallback={pageLoading}><Dashboard /></Suspense></PageBoundary></main>
       </div>
     </div>;
   }

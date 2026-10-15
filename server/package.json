@@ -14,6 +14,7 @@
     "db:migrate": "tsx scripts/database-command.ts deploy",
     "db:status": "tsx scripts/database-command.ts status",
     "db:check": "tsx scripts/check-database.ts",
+    "wa:check": "tsx scripts/check-whatsapp.ts",
     "db:bootstrap": "tsx prisma/bootstrap.ts",
     "db:transfer": "tsx scripts/migrate-legacy.ts",
     "db:studio": "prisma studio",

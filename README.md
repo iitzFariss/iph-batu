@@ -238,19 +238,20 @@ Konsekuensinya, aplikasi **tidak pernah menghitung IPH dari andil**. Nilai IPH d
 
 Karena itu, menghitung ulang IPH dari data yang sama membutuhkan keranjang komoditas lengkap beserta bobot belanja - data itu tidak ada di repo ini dan tidak diperlukan selama sumbernya tetap file Scanning Harga dari BPS.
 
-## Yang belum ada
+## Cakupan fitur dan batasan
 
-Fitur berikut masih kosong, jadi tidak ada di antarmuka maupun di backend. Dicatat supaya README dan tampilan aplikasi tidak menjanjikan sesuatu yang tidak dikerjakan.
-
-- **Modul rapat dan notulen.** Sudah ada: backend punya model `Rapat`, `PetugasRapat`, dan `Notulensi` lengkap dengan route CRUD di `server/src/routes/rapat.routes.ts`. Admin menjadwalkan rapat serta mengubah, membatalkan, atau menghapus agenda di `Kelolarapat.tsx`; notulis mengisi notulensi di `Monitoringresume.tsx`, dan rapat yang sudah bernotulensi otomatis ditandai selesai. Pengingat WhatsApp H-1/H-0 dan notulensi terlambat disusun aplikasi dari jadwal terkini (pengiriman tetap manual lewat tautan `wa.me`, lihat Integrasi Kemendagri).
-- **Integrasi Kemendagri.** Tidak ada integrasi API ke Pusda. Draf siaran pers disusun di browser, lalu dikirim manual. Tombol "Buka WhatsApp" memakai deep link resmi `wa.me` yang membuka WhatsApp dengan pesan terisi; user sendiri yang memilih kontak dan menekan kirim. Tidak ada nomor tujuan di database.
-- **Notifikasi.** Tidak ada email maupun notifikasi browser. Satu-satunya pengingat adalah *reminder* WhatsApp (H-1/H-0 rapat dan notulensi terlambat) di halaman Monitoring Rapat, yang disusun aplikasi dan dikirim manual oleh admin.
-- **Enkripsi dokumen.** Draf siaran pers berupa teks plaintext di browser. Tidak ada enkripsi saat transit maupun saat disimpan.
+- **Rapat dan notulensi.** Admin mengatur jadwal, peserta dan notulis, serta dapat mengubah, membatalkan, atau menghapus agenda. Notulis mengisi hasil rapat sesuai penugasan. Rapat dengan notulensi ditandai selesai.
+- **WhatsApp.** Nomor disimpan pada data pegawai. Undangan dan pengingat hari rapat menggunakan antrean backend melalui n8n/WAHA. Monitoring menyediakan pengingat langsung, riwayat pengiriman, dan alternatif manual per kontak. Lihat [integrasi WhatsApp rapat](docs/whatsapp-rapat.md).
+- **Teks siaran.** Draf berasal dari rekap periode terpilih dan dapat disunting, disalin, atau dikirim oleh admin kepada peserta rapat. Pesan menyertakan link dashboard publik pada periode yang sama. Tidak ada integrasi API ke Pusda atau klaim rilis resmi Kemendagri.
+- **Notifikasi lain.** Email dan notifikasi browser belum tersedia.
+- **Enkripsi dokumen.** Draf berupa teks di browser. Domain produksi memakai HTTPS; aplikasi tidak menyediakan enkripsi dokumen tersendiri.
 - **PIN berjenjang.** Koreksi rekap hanya memerlukan akun admin; tidak ada PIN berjenjang. Trail audit sudah ada: aksi sensitif (hapus/koreksi rekap, kelola akun, reset kata sandi, jadwal rapat, komoditas, pegawai) tercatat di tabel `AuditLog` beserta pelaku, aksi, rincian, dan IP. Waktu perubahan juga tersimpan di `Rekap.updatedAt`.
 - **Unggah Scanning Harga dari web.** Impor lewat CLI (`npm run import`).
 - **Harga absolut.** Data yang tersedia hanya IPH dan andil lihat [Makna andil](#makna-andil).
 
 ## Catatan produksi (PostgreSQL)
+
+Panduan pemasangan server dan domain `iph.bpskotabatu.com`: [Deployment satu port 5011](docs/deployment.md). Aktifkan `SERVE_FRONTEND=true` untuk melayani hasil build frontend dan API dari layanan yang sama.
 
 Provider Prisma sudah PostgreSQL. Model memakai `@@schema("iph_batu")`; schema lain tidak dikelola. Konfigurasi memakai PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD. Terapkan migration yang sudah ditinjau:
 

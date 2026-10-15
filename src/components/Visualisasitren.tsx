@@ -10,12 +10,13 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
-  AlertCircle,
   ChevronRight,
   BarChart2,
   BarChart3,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { useTheme } from "../context/ThemeContext";
+import PageHeading from "./PageHeading";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,7 +62,8 @@ interface SummaryResp {
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const BULAN_SINGKAT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const ROMAWI = ["I", "II", "III", "IV", "V"];
-const PALETTE = ["#10b981", "#8b5cf6", "#f59e0b", "#ef4444"];
+const LIGHT_PALETTE = ["#19684e", "#6550a0", "#92500e", "#ad302b"];
+const DARK_PALETTE = ["#8ad6b5", "#dbc8f5", "#f6c27d", "#ffaaa5"];
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
 
@@ -113,9 +115,9 @@ interface StatusChipConfig {
 }
 
 const weeklyStatusMap: Record<WeeklyStatus, StatusChipConfig> = {
-  waspada:  { label: "Waspada Naik",  cls: "bg-amber-100 text-amber-700"    },
-  stabil:   { label: "Stabil Netral", cls: "bg-gray-100 text-gray-600"      },
-  deflasi:  { label: "Deflasi Sehat", cls: "bg-emerald-100 text-emerald-700" },
+  waspada:  { label: "Waspada", cls: "bg-amber-100 text-amber-700" },
+  stabil:   { label: "Stabil", cls: "bg-gray-100 text-gray-600" },
+  deflasi:  { label: "Deflasi", cls: "bg-emerald-100 text-emerald-700" },
 };
 
 function WeeklyStatusBadge({ status }: { status: WeeklyStatus }) {
@@ -134,6 +136,8 @@ function statusFromIph(iph: number): WeeklyStatus {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function VisualisasiTren() {
+  const { isDark } = useTheme();
+  const PALETTE = isDark ? DARK_PALETTE : LIGHT_PALETTE;
   const [summary, setSummary] = useState<SummaryResp | null>(null);
   const [error, setError] = useState("");
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
@@ -229,7 +233,7 @@ export default function VisualisasiTren() {
 
   const latestLabel = latest
     ? `M${latest.mingguIndeks} ${BULAN_SINGKAT[latest.bulan - 1]}`
-    : "—";
+    : "Belum tersedia";
 
   const matrixRows: WeeklyRow[] = (summary?.trend ?? [])
     .filter((t) => latest && t.tahun === latest.tahun && t.bulan === latest.bulan)
@@ -237,7 +241,7 @@ export default function VisualisasiTren() {
       minggu: `Minggu ${ROMAWI[t.mingguIndeks - 1]} ${BULAN[t.bulan - 1]}`,
       iph: t.iph,
       status: statusFromIph(t.iph),
-      pemicu: t.pemicu ?? "—",
+      pemicu: t.pemicu ?? "Belum tersedia",
       highlighted: t.mingguIndeks === latest?.mingguIndeks,
     }));
 
@@ -276,49 +280,19 @@ export default function VisualisasiTren() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      {/* Page header */}
-      <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
-          <span className="text-emerald-600 font-semibold">Periode Evaluasi {latestYear ?? "—"}</span>
-          <span className="text-gray-300">•</span>
-          <span>
-            Terakhir diperbarui:{" "}
-            {latest
-              ? `Minggu ${ROMAWI[latest.mingguIndeks - 1]} ${BULAN[latest.bulan - 1]} ${latest.tahun}`
-              : "—"}
-          </span>
-        </div>
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 mb-0.5">
-              Visualisasi Tren &amp; Analitik IPH Kota Batu
-            </h1>
-            <p className="text-xs text-gray-500">
-              Grafik interaktif pemantauan stabilitas harga dan andil komoditas pangan Kota Batu
-            </p>
-          </div>
-          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 flex-shrink-0 md:self-start">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <div>
-              <div className="text-xs text-emerald-700 font-semibold uppercase tracking-wide">
-                Status Regional
-              </div>
-              <div className="text-sm font-bold text-emerald-700">
-                {latest ? (latest.iph < 0 ? "Deflasi Terkendali" : latest.iph < 1 ? "Terkendali" : "Waspada") : "—"}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="trend-view space-y-6 text-gray-900 w-full">
+      <PageHeading title="Visualisasi tren IPH" description="Bandingkan pergerakan harga antar tahun dan telusuri komoditas yang muncul dalam rekap.">
+        {latest && <div className="report-period"><span>Rekap terakhir</span><strong className="font-medium">Minggu {ROMAWI[latest.mingguIndeks - 1]} {BULAN_SINGKAT[latest.bulan - 1]} {latest.tahun}</strong></div>}
+      </PageHeading>
 
       {/* Toolbar */}
-      <div className="px-4 sm:px-6 py-3 border-b border-gray-200 bg-white flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+      <div className="form-surface flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-1 bg-gray-100 rounded-lg p-1">
           {years.map((y) => (
             <button
               key={y}
               onClick={() => toggleYear(y)}
+              aria-pressed={selectedYears.includes(y)}
               className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-colors ${
                 selectedYears.includes(y)
                   ? "bg-emerald-600 text-white"
@@ -349,26 +323,16 @@ export default function VisualisasiTren() {
         </button>
       </div>
 
-      {/* Info banner */}
-      <div className="mx-4 sm:mx-6 mt-4 flex flex-wrap items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-        <AlertCircle size={13} className="text-amber-600 flex-shrink-0" />
-        <span className="text-sm text-amber-800">
-          <strong>Catatan Pantauan:</strong>
-          {latest
-            ? ` IPH terakhir tercatat ${latest.iph > 0 ? "+" : ""}${latest.iph.toFixed(2)}% (${latest.pemicu ? "pemicu utama " + latest.pemicu : "tanpa pemicu utama"}).`
-            : " Belum ada data pemantauan."}
-        </span>
-      </div>
 
       {/* Chart card */}
-      <div className="mx-4 sm:mx-6 mt-4 bg-white border border-gray-200 rounded-2xl p-4 sm:p-5">
+      <div className="form-surface">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
           <div>
             <h2 className="text-base font-black text-gray-900 mb-0.5">
-              Tren Indikator Perubahan Harga (IPH) Sepanjang Periode
+              Perbandingan IPH tahunan
             </h2>
             <p className="text-sm text-gray-500">
-              Pergerakan kumulatif komoditas strategis Kota Batu per minggu (Baseline 0.00%)
+              Nilai mingguan dibandingkan periode acuan. Pilih titik pada grafik untuk melihat rinciannya.
             </p>
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-500 flex-shrink-0 flex-wrap">
@@ -380,18 +344,14 @@ export default function VisualisasiTren() {
             ))}
             <div className="flex items-center gap-1.5">
               <div className="w-6 border-t-2 border-dashed border-red-400" />
-              <span>Batas Waspada (+1.50%)</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 rounded">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-emerald-700">Zona Aman Terkendali</span>
+              <span>Ambang pantauan (+1,50%)</span>
             </div>
           </div>
         </div>
 
         {/* Recharts Line Chart */}
-        <div className="overflow-x-auto pb-1">
-        <div className="min-w-[820px] h-96 sm:h-[28rem]">
+        <div>
+        <div className="h-72 sm:h-96 w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={mergedData} margin={{ top: 10, right: 16, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
@@ -400,12 +360,13 @@ export default function VisualisasiTren() {
                 type="category"
                 allowDuplicatedCategory={false}
                 interval="preserveStartEnd"
-                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                tick={{ fill: isDark ? "#b1c0cd" : "#5d6c64", fontSize: 11 }}
+                minTickGap={24}
                 axisLine={{ stroke: "#e5e7eb" }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: "#9ca3af", fontSize: 10 }}
+                tick={{ fill: isDark ? "#b1c0cd" : "#5d6c64", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}%`}
@@ -418,41 +379,42 @@ export default function VisualisasiTren() {
                 strokeWidth={1}
                 label={
                   window.innerWidth < 640
-                    ? { value: "0.00%", fill: "#6b7280", fontSize: 9, position: "insideBottomLeft" }
+                    ? { value: "0,00%", fill: isDark ? "#b1c0cd" : "#5d6c64", fontSize: 11, position: "insideBottomLeft" }
                     : {
-                        value: "0.00% Titik Keseimbangan Normal",
-                        fill: "#6b7280",
-                        fontSize: 10,
+                        value: "Periode acuan 0,00%",
+                        fill: isDark ? "#b1c0cd" : "#5d6c64",
+                        fontSize: 11,
                         position: "insideBottomLeft",
                       }
                 }
               />
               <ReferenceLine
                 y={1.5}
-                stroke="#ef4444"
+                stroke={isDark ? "#ffaaa5" : "#a62e29"}
                 strokeDasharray="4 3"
                 strokeWidth={1.5}
                 label={
                   window.innerWidth < 640
-                    ? { value: "+1.50%", fill: "#ef4444", fontSize: 9, position: "insideTopRight" }
+                    ? { value: "+1,50%", fill: isDark ? "#ffaaa5" : "#a62e29", fontSize: 11, position: "insideTopRight" }
                     : {
-                        value: "Ambang Waspada Kemendagri (+1.50%)",
-                        fill: "#ef4444",
-                        fontSize: 9,
+                        value: "Ambang pantauan (+1,50%)",
+                        fill: isDark ? "#ffaaa5" : "#a62e29",
+                        fontSize: 11,
                         position: "insideTopRight",
                       }
                 }
               />
               {selectedYears.map((y) => (
                 <Line
+                  isAnimationActive={false}
                   key={y}
-                  type="monotone"
+                  type="linear"
                   dataKey={y}
                   name={`${y} IPH`}
                   connectNulls
                   stroke={colorOf(y)}
                   strokeWidth={2.5}
-                  dot={{ fill: colorOf(y), r: 4, strokeWidth: 2, stroke: "#fff" }}
+                  dot={mergedData.length < 12 ? { fill: colorOf(y), r: 3, strokeWidth: 0 } : false}
                   activeDot={{ r: 6 }}
                 />
               ))}
@@ -475,24 +437,23 @@ export default function VisualisasiTren() {
         </div>
       </div>
 
-      {/* Bottom 2-col */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mx-4 sm:mx-6 mt-4 mb-6">
+      <div className="feature-stack">
         {/* Matriks Evaluasi Mingguan */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+        <div className="form-surface">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-sm font-bold text-gray-900">Matriks Evaluasi Mingguan</h3>
               <p className="text-xs text-gray-500">
                 Pergerakan IPH{" "}
-                {latest ? `${BULAN[latest.bulan - 1]} ${latest.tahun}` : "—"} dan komoditas pemicu
+                {latest ? `${BULAN[latest.bulan - 1]} ${latest.tahun}` : "Periode belum tersedia"} dan komoditas pemicu
               </p>
             </div>
             <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">
-              {latest ? `${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}` : "—"}
+              {latest ? `${BULAN_SINGKAT[latest.bulan - 1]} ${latest.tahun}` : "Belum tersedia"}
             </span>
           </div>
 
-          <div className="overflow-x-auto -mx-4 px-4">
+          <div className="overflow-x-auto -mx-4 px-4" tabIndex={0} role="region" aria-label="Matriks evaluasi mingguan, geser untuk melihat semua kolom">
             <table className="w-full min-w-[520px]">
               <thead>
               <tr className="border-b border-gray-200">
@@ -554,7 +515,7 @@ export default function VisualisasiTren() {
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-500">
-              {summary ? `${summary.trend.length} pekan tercatat` : "—"} • {summary?.weekly.length ?? 0} tahun
+              {summary ? `${summary.trend.length} pekan tercatat` : "Belum tersedia"} · {summary?.weekly.length ?? 0} tahun
             </span>
             <button
               onClick={() => setShowRincianMingguan((v) => !v)}
@@ -574,7 +535,7 @@ export default function VisualisasiTren() {
                   Rincian Matriks Evaluasi Mingguan
                 </span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="feature-stack">
                 <div>
                   <div className="text-xs font-bold text-gray-700 mb-2">
                     Andil Komoditas Pemicu ({matrixRows.length} minggu)
@@ -611,7 +572,7 @@ export default function VisualisasiTren() {
                           <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
                           <span>
                             {r.minggu}: IPH {r.iph > 0 ? "+" : ""}
-                            {r.iph.toFixed(2)}% (pemicu {r.pemicu || "—"}).
+                            {r.iph.toFixed(2)}% (pemicu {r.pemicu || "belum tersedia"}).
                           </span>
                         </li>
                       ))
@@ -624,12 +585,12 @@ export default function VisualisasiTren() {
         </div>
 
         {/* Andil Komoditas */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+        <div className="form-surface">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-bold text-gray-900">Andil Komoditas Terhadap Fluktuasi</h3>
+              <h3 className="text-base font-semibold text-gray-900">Frekuensi komoditas</h3>
               <p className="text-xs text-gray-500">
-                Jumlah kemunculan sebagai pemicu utama fluktuasi harga ({latestYear ?? "—"})
+                Jumlah kemunculan sebagai pemicu utama fluktuasi harga ({latestYear ?? "belum tersedia"})
               </p>
             </div>
             <BarChart3 size={16} className="text-gray-500" />
@@ -659,13 +620,13 @@ export default function VisualisasiTren() {
           </div>
 
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-            <span className="text-xs text-gray-500">Sumber: Rekap IPH Kota Batu (CSV)</span>
+            <span className="text-xs text-gray-500">Sumber: rekap IPH Kota Batu yang tersimpan di sistem.</span>
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="mx-4 sm:mx-6 mb-6 py-3 border-t border-gray-200 text-center">
+      <div className="py-3 border-t border-gray-200">
         <span className="text-xs text-gray-500">
           © 2026 Tim Pengendali Inflasi Daerah (TPID) Kota Batu • Badan Pusat Statistik Kota Batu
           • Dinas Koperasi, Usaha Mikro, Perindustrian dan Perdagangan Kota Batu

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Minus, X, TrendingDown, TrendingUp } from "lucide-react";
+import { useDialogFocus } from "../lib/useDialogFocus";
+import PageHeading from "./PageHeading";
+import { Plus, X, TrendingDown, TrendingUp } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -47,19 +49,20 @@ const parseNum = (val: string) => {
   return isNaN(n) ? null : n;
 };
 
-const formatPct = (value: number | null) => {
-  if (value === null) return "â€”";
+const formatNumber = (value: number | null) => {
+  if (value === null) return "Belum diisi";
   const pos = value > 0;
   const sign = pos ? "+" : value < 0 ? "" : "";
-  return `${sign}${value.toFixed(2)}%`;
+  return `${sign}${value.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
+const formatPct = (value: number | null, unit: string) => value === null ? formatNumber(value) : `${formatNumber(value)}${unit === "%" ? "%" : ` ${unit}`}`;
 
-function PctCell({ value }: { value: number | null }) {
+function PctCell({ value, unit = "%" }: { value: number | null; unit?: string }) {
   if (value === null) {
-    return <span className="text-xs text-gray-400">â€”</span>;
+    return <span className="text-xs text-gray-400">Belum diisi</span>;
   }
   if (value === 0) {
-    return <span className="text-xs font-semibold text-gray-500">0.00%</span>;
+    return <span className="text-xs font-semibold text-gray-500">{formatPct(value, unit)}</span>;
   }
   const pos = value > 0;
   return (
@@ -67,7 +70,7 @@ function PctCell({ value }: { value: number | null }) {
       pos ? "text-red-600" : "text-blue-600"
     }`}>
       {pos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-      {formatPct(value)}
+      {formatPct(value, unit)}
     </span>
   );
 }
@@ -87,6 +90,7 @@ export default function InputRekapIPH() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newKomoditas, setNewKomoditas] = useState("");
   const [addError, setAddError] = useState("");
+  const dialogRef = useDialogFocus(() => setShowAddModal(false), showAddModal);
 
   // Daftar commodities harus berasal dari database. Fallback ke daftar hardcoded
   // akan membuat pengguna memilih komoditas yang tidak ada, lalu POST /rekap
@@ -148,8 +152,10 @@ export default function InputRekapIPH() {
     }
     try {
       await api.delete(`/komoditas/${id}`);
-    } catch {
-      // tetap disinkronkan lokal
+      setKomoditasError("");
+    } catch (error) {
+      setKomoditasError(error instanceof ApiError ? error.message : "Komoditas belum dapat dihapus. Coba lagi setelah koneksi pulih.");
+      return;
     }
     setKomoditasList((prev) => prev.filter((k) => k !== nama));
     setKomoditasIds((prev) => {
@@ -176,7 +182,7 @@ export default function InputRekapIPH() {
     if (!form.bulan.trim()) e.bulan = "Bulan wajib diisi";
     if (!form.mingguKe) e.mingguKe = "Minggu ke wajib dipilih";
     if (parseNum(form.indikator) === null) e.indikator = "Isi angka persen, misal -0.42 atau +0.15";
-    if (filledCount === 0) e.andil = "Isi minimal satu komoditas beserta nilainya (%)";
+    if (filledCount === 0) e.andil = "Isi minimal satu komoditas beserta nilai andilnya.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -242,7 +248,7 @@ export default function InputRekapIPH() {
             {form.andil.filter(isCommodityValid).map((r, i) => (
               <div key={i} className="flex items-center justify-between gap-3">
                 <span className="text-xs text-gray-600">{r.nama}</span>
-                <PctCell value={parseNum(r.nilai)} />
+                <PctCell value={parseNum(r.nilai)} unit="persen poin" />
               </div>
             ))}
             {isCommodityValid(form.fluktuasi) && (
@@ -277,26 +283,16 @@ export default function InputRekapIPH() {
   // â”€â”€ Main form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   return (
-    <div className="p-4 sm:p-6 space-y-5 bg-gray-50 min-h-full">
+    <div className="rekap-entry space-y-6 w-full">
 
       {/* Page header */}
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h1 className="text-base font-bold text-gray-900">Input Rekap IPH</h1>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Indeks Perkembangan Harga Mingguan â€” TPID Kota Batu
-          </p>
-        </div>
-        <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-full px-3 py-1.5 text-xs text-gray-500 font-medium shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-          {filledCount} / {form.andil.length} komoditas andil terisi
-        </div>
-      </div>
+      <PageHeading title="Input rekap IPH" description="Catat nilai IPH dan andil komoditas pada periode mingguan yang dipilih."><span className="text-xs text-gray-500">{filledCount} dari {form.andil.length} andil terisi</span></PageHeading>
 
+      <div className="entry-sheet"><div className="entry-fields">
       {/* Informasi periode */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
-          Informasi Periode
+      <section className="form-surface entry-period">
+        <h2 className="form-section-title mb-5">
+          Periode pelaporan
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1">
@@ -304,6 +300,7 @@ export default function InputRekapIPH() {
             <input
               type="text"
               inputMode="numeric"
+              aria-label="Tahun rekap"
               value={form.tahun}
               onChange={(e) => updateField("tahun", e.target.value)}
               className={nilaiInputCls(!!errors.tahun)}
@@ -314,6 +311,7 @@ export default function InputRekapIPH() {
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-500">Bulan</label>
             <select
+              aria-label="Bulan rekap"
               value={form.bulan}
               onChange={(e) => updateField("bulan", e.target.value)}
               className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
@@ -327,6 +325,7 @@ export default function InputRekapIPH() {
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-500">Minggu Ke</label>
             <select
+              aria-label="Minggu rekap"
               value={form.mingguKe}
               onChange={(e) => updateField("mingguKe", e.target.value)}
               className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
@@ -337,38 +336,38 @@ export default function InputRekapIPH() {
             </select>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Indikator */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-          Indikator Perubahan Harga
+      <section className="form-surface entry-indicator">
+        <h2 className="form-section-title">
+          Indeks Perkembangan Harga
         </h2>
-        <p className="text-xs text-gray-400 mb-3">
-          Tulis angka persen â€” nilai negatif (<Minus size={10} className="inline" />) berarti turun
-          (deflasi), positif berarti naik (inflasi).
-        </p>
-        <div className="flex items-center gap-2 w-full sm:max-w-xs">
+        <label htmlFor="rekap-iph-value" className="block text-xs font-medium text-gray-500 mb-1">Nilai IPH (%)</label>
+        <div className="flex items-center gap-2 w-full">
           <input
+            id="rekap-iph-value"
             type="text"
             inputMode="decimal"
-            placeholder="Contoh: -0.42"
+            placeholder="Contoh: -0,42"
+            aria-label="Nilai IPH"
             value={form.indikator}
             onChange={(e) => updateField("indikator", e.target.value)}
             className={nilaiInputCls(!!errors.indikator)}
           />
           <span className="text-sm text-gray-400 flex-shrink-0">%</span>
         </div>
+        <p className="text-xs text-gray-400 mt-2">Negatif berarti harga turun; positif berarti harga naik.</p>
         {errors.indikator && <p className="text-xs text-red-500 mt-1">{errors.indikator}</p>}
-      </div>
+      </section>
 
       {/* Komoditas andil */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-          Komoditas Andil Pergerakan Harga
+      <section className="form-surface entry-andil">
+        <h2 className="form-section-title">
+          Andil komoditas
         </h2>
         <p className="text-xs text-gray-400 mb-4">
-          Komoditas dengan kenaikan &amp; penurunan tertinggi minggu ini (maks. 3). Nilai dalam persen â€”
+          Komoditas dengan kenaikan dan penurunan tertinggi minggu ini (maksimal 3). Nilai dalam persen poin,
           negatif turun, positif naik.
         </p>
 
@@ -390,26 +389,28 @@ export default function InputRekapIPH() {
                   type="text"
                   list="daftar-komoditas"
                   placeholder="Nama komoditas (mis. Cabai Rawit)"
+                  aria-label={`Komoditas andil ${idx + 1}`}
                   value={row.nama}
                   onChange={(e) => updateAndil(idx, "nama", e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-500">Nilai (%)</label>
+                <label className="text-xs font-medium text-gray-500">Andil (persen poin)</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     inputMode="decimal"
-                    placeholder="Contoh: +0.82"
+                    placeholder="Contoh: +0,82"
+                    aria-label={`Nilai andil ${idx + 1}`}
                     value={row.nilai}
                     onChange={(e) => updateAndil(idx, "nilai", e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums"
+                    className="min-w-0 flex-1 w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums"
                   />
                   <span className="text-sm text-gray-400 flex-shrink-0">
                     {parseNum(row.nilai) !== null && (
                       <span className={`font-semibold ${(parseNum(row.nilai) ?? 0) > 0 ? "text-red-600" : (parseNum(row.nilai) ?? 0) < 0 ? "text-blue-600" : "text-gray-500"}`}>
-                        {formatPct(parseNum(row.nilai))}
+                        {formatNumber(parseNum(row.nilai))}
                       </span>
                     )}
                   </span>
@@ -418,23 +419,24 @@ export default function InputRekapIPH() {
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* Komoditas fluktuasi */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-          Komoditas Fluktuasi
+      <section className="form-surface entry-fluctuation">
+        <h2 className="form-section-title">
+          Komoditas fluktuasi
         </h2>
         <p className="text-xs text-gray-400 mb-4">
           Komoditas dengan gejolak harga paling signifikan minggu ini (opsional).
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-500">Komoditas</label>
             <input
               type="text"
               list="daftar-komoditas"
               placeholder="Nama komoditas"
+              aria-label="Komoditas fluktuasi"
               value={form.fluktuasi.nama}
               onChange={(e) => updateFluktuasi("nama", e.target.value)}
               className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -445,15 +447,17 @@ export default function InputRekapIPH() {
             <input
               type="text"
               inputMode="decimal"
-              placeholder="Contoh: -1.20"
+              placeholder="Contoh: -1,20"
+              aria-label="Nilai fluktuasi"
               value={form.fluktuasi.nilai}
               onChange={(e) => updateFluktuasi("nilai", e.target.value)}
               className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums"
             />
           </div>
         </div>
-      </div>
+      </section>
 
+      </div><div className="entry-reference">
       {komoditasError && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
           <span className="text-xs text-red-600">{komoditasError}</span>
@@ -474,14 +478,16 @@ export default function InputRekapIPH() {
       </datalist>
 
       {/* Daftar komoditas master */}
-      <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+      <details className="entry-catalog">
+        <summary>Daftar komoditas <span>{komoditasList.length} jenis terdaftar</span></summary>
+        <div className="entry-catalog-body">
         <div className="flex items-start justify-between gap-3 mb-1">
           <div>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Daftar Komoditas ({komoditasList.length})
+            <h2 className="form-section-title">
+              Daftar komoditas
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Jenis komoditas yang dipantau â€” bisa ditambah atau dihapus sesuai kebutuhan survei.
+              {komoditasList.length} jenis komoditas. Pilih nama yang sama saat mengisi rekap.
             </p>
           </div>
           <button
@@ -494,29 +500,39 @@ export default function InputRekapIPH() {
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="commodity-catalog mt-4" role="region" aria-label="Daftar komoditas terdaftar">
           {komoditasList.map((k) => (
-            <span
+            <div
               key={k}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs font-medium text-gray-700"
+              className="flex items-center justify-between gap-3 py-1 border-b border-gray-100 text-sm text-gray-700"
             >
               {k}
               <button
                 type="button"
                 onClick={() => removeKomoditas(k)}
+                aria-label={`Hapus komoditas ${k}`}
                 title={`Hapus ${k}`}
                 className="p-0.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
               >
                 <X size={12} />
               </button>
-            </span>
+            </div>
           ))}
         </div>
+        </div>
+      </details>
       </div>
-
+      <div className="entry-submit">
+        {submitError && <div role="alert" className="text-sm text-red-600 mb-3">{submitError}</div>}
+        <div className="form-actions">
+          <button type="button" onClick={handleReset} className="secondary-action">Reset Form</button>
+          <button type="button" onClick={handleSubmit} disabled={busy} className="primary-action">{busy ? "Menyimpan…" : "Simpan rekap"}</button>
+        </div>
+      </div>
+      </div>
       {/* Modal: Tambah Komoditas */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Tambah komoditas" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden">
             <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
               <div>
@@ -526,6 +542,7 @@ export default function InputRekapIPH() {
                 </p>
               </div>
               <button
+                aria-label="Tutup dialog komoditas"
                 onClick={() => setShowAddModal(false)}
                 className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
               >
@@ -548,6 +565,7 @@ export default function InputRekapIPH() {
                 <input
                   type="text"
                   value={newKomoditas}
+                  aria-label="Nama komoditas"
                   onChange={(e) => { setNewKomoditas(e.target.value); setAddError(""); }}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addKomoditas(); } }}
                   placeholder="Contoh: Kentang"
@@ -557,7 +575,7 @@ export default function InputRekapIPH() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+            <div className="dialog-actions px-5 py-4 border-t border-gray-100 bg-gray-50/50">
               <button
                 onClick={() => setShowAddModal(false)}
                 className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
@@ -576,32 +594,6 @@ export default function InputRekapIPH() {
         </div>
       )}
 
-      {/* Footer actions */}
-      <div className="space-y-3">
-        {submitError && (
-          <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
-            <X size={13} className="text-red-500 flex-shrink-0 mt-0.5" />
-            <span className="text-xs text-red-600">{submitError}</span>
-          </div>
-        )}
-        <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-3 pt-1 pb-6">
-          <button
-            onClick={handleReset}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors self-start sm:self-auto"
-          >
-            Reset Form
-          </button>
-          <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
-            <button
-              onClick={handleSubmit}
-              disabled={busy}
-              className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors flex-1 sm:flex-none disabled:opacity-60"
-            >
-              {busy ? "Menyimpan..." : "Simpan & Kirim Rekap"}
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
