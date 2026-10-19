@@ -289,8 +289,13 @@ router.patch(
       }
     }
 
-    const details = [...body.deflasi, ...body.inflasi];
-    const fluktuasiNilai = body.fluktuasi?.nilai ?? null;
+    const previous = await prisma.rekapDetail.findMany({ where: { rekapId: rekap.id }, include: { komoditas: true } });
+    const oldGroup = (negative: boolean) => previous.filter(d => !d.isFluktuasi && (d.nilai < 0) === negative).map(d => ({ nama: d.komoditas.nama, nilai: d.nilai }));
+    const details = [...(body.deflasi ?? oldGroup(true)), ...(body.inflasi ?? oldGroup(false))];
+    const previousFluktuasi = previous.find(d => d.isFluktuasi);
+    const fluktuasi = body.fluktuasi === undefined
+      ? previousFluktuasi ? { nama: previousFluktuasi.komoditas.nama, nilai: previousFluktuasi.nilai } : null
+      : body.fluktuasi;
 
     await prisma.$transaction(async (tx) => {
       await tx.rekap.update({
@@ -304,10 +309,10 @@ router.patch(
           data: { rekapId: rekap.id, komoditasId: komoditas.id, nilai: d.nilai, isFluktuasi: false },
         });
       }
-      if (body.fluktuasi && fluktuasiNilai !== null) {
-        const komoditas = await findOrCreateKomoditas(body.fluktuasi.nama, tx);
+      if (fluktuasi) {
+        const komoditas = await findOrCreateKomoditas(fluktuasi.nama, tx);
         await tx.rekapDetail.create({
-          data: { rekapId: rekap.id, komoditasId: komoditas.id, nilai: body.fluktuasi.nilai, isFluktuasi: true },
+          data: { rekapId: rekap.id, komoditasId: komoditas.id, nilai: fluktuasi.nilai, isFluktuasi: true },
         });
       }
     });

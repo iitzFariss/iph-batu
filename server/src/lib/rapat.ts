@@ -78,12 +78,12 @@ export function toRapatDTO(rapat: RapatQueryRow, me?: Peminta): RapatDTO {
 
 /** Selisih tanggal rapat dengan hari ini dalam satuan hari; negatif = sudah lewat. */
 export function selisihHari(tanggal: Date, sekarang: Date = new Date()): number {
-  const mulai = new Date(tanggal.getFullYear(), tanggal.getMonth(), tanggal.getDate());
-  const hariIni = new Date(sekarang.getFullYear(), sekarang.getMonth(), sekarang.getDate());
-  return Math.round((mulai.getTime() - hariIni.getTime()) / 86_400_000);
+  const wibDay = (date: Date) => Math.floor((date.getTime() + 7 * 3_600_000) / 86_400_000);
+  return wibDay(tanggal) - wibDay(sekarang);
 }
 
 const FORMAT_HARI = new Intl.DateTimeFormat("id-ID", {
+  timeZone: "Asia/Jakarta",
   weekday: "long",
   day: "numeric",
   month: "long",
@@ -137,7 +137,7 @@ export function susunReminder(rapat: ReminderSource): ReminderItem[] {
       const pesan =
         `Pengingat TPID Kota Batu\n` +
         `Anda terdaftar sebagai ${p.peran} pada rapat:\n` +
-        `"${rapat.topik}" — ${formatTanggal(rapat.tanggal)}.\n` +
+        `"${rapat.topik}" pada ${formatTanggal(rapat.tanggal)}.\n` +
         `Mohon hadir tepat waktu.`;
       hasil.push({
         id: `${rapat.rapatId}:rapat:${p.id}`,
@@ -155,8 +155,7 @@ export function susunReminder(rapat: ReminderSource): ReminderItem[] {
   }
 
   if (!rapat.notulensi && selisih <= -1) {
-    const notulis = rapat.petugas.find((p) => p.peran === "notulis");
-    if (notulis) {
+    for (const notulis of rapat.petugas.filter((p) => p.peran === "notulis")) {
       const pesan =
         `Pengingat TPID Kota Batu\n` +
         `Notulensi rapat "${rapat.topik}" (${formatTanggal(rapat.tanggal)}) belum diisi. ` +

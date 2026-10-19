@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User, UserRole, AuthState } from "../types/auth";
-import { api, ApiError, clearTokens, getAccessToken, setAccessToken } from "../lib/api";
+import { api, ApiError, clearTokens, getAccessToken, refreshTokens, setAccessToken } from "../lib/api";
 
 // ─── Tipe data dari server ───────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // selalu mencoba refresh kalau access token belum ada; kalau cookie-nya
         // memang habis, refresh menolak dan kita berhenti di sini.
         if (!getAccessToken()) {
-          const ok = await refreshTokensDirect();
+          const ok = await refreshTokens();
           if (!ok) return;
         }
         const data = await api.get<{ user: ApiUser }>("/auth/me");
@@ -79,22 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function refreshTokensDirect(): Promise<boolean> {
-    try {
-      const res = await fetch("/api/auth/refresh", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!res.ok) return false;
-      const data = (await res.json()) as { accessToken: string };
-      setAccessToken(data.accessToken);
-      return true;
-    } catch {
-      return false;
-    }
-  }
 
   async function login(email: string, password: string) {
     try {
@@ -128,10 +112,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function refresh() {
-    return refreshTokensDirect().then((ok) => {
-      if (!ok) setState({ user: null, isAuthenticated: false });
-      return ok;
-    });
+    try {
+      const { user } = await api.get<{ user: ApiUser }>("/auth/me");
+      applyUser(toAppUser(user));
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearTokens();
+        setState({ user: null, isAuthenticated: false });
+        return false;
+      }
+      throw error;
+    }
   }
 
   return (

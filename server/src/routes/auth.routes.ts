@@ -269,7 +269,7 @@ router.patch(
       }
     }
 
-    const instansi = body.instansi ? await findOrCreateInstansi(body.instansi) : null;
+    const instansi = body.instansi === undefined ? undefined : body.instansi ? await findOrCreateInstansi(body.instansi) : null;
 
     const user = await prisma.user.update({
       where: { id: me.id },
@@ -309,22 +309,20 @@ router.post(
       return;
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { password: await hashPassword(body.passwordBaru) },
-    });
-
-    // Cabut sesi lain setelah password berubah. Tanpa ini akun yang
-    // dikompromikan tetap hidup lewat cookie refresh-nya sampai 30 hari,
-    // walaupun korban sudah mengganti password. Sesi yang sedang dipakai
-    // untuk permintaan ini dibiarkan supaya user tidak langsung keluar.
-    await prisma.session.updateMany({
-      where: {
-        userId: user.id,
-        revokedAt: null,
-        ...(me.sessionId ? { id: { not: me.sessionId } } : {}),
-      },
-      data: { revokedAt: new Date() },
+    const passwordHash = await hashPassword(body.passwordBaru);
+    await prisma.$transaction(async tx => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { password: passwordHash },
+      });
+      await tx.session.updateMany({
+        where: {
+          userId: user.id,
+          revokedAt: null,
+          ...(me.sessionId ? { id: { not: me.sessionId } } : {}),
+        },
+        data: { revokedAt: new Date() },
+      });
     });
 
     res.json({ message: "Kata sandi berhasil diperbarui." });
@@ -338,7 +336,7 @@ router.get(
   h(async (req, res) => {
     const me = (req as AuthedRequest).user!;
     const sessions = await prisma.session.findMany({
-      where: { userId: me.id, revokedAt: null },
+      where: { userId: me.id, revokedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { lastActiveAt: "desc" },
     });
     const rows = sessions.map((s) => ({
@@ -366,7 +364,7 @@ router.get(
     const [user, sessions, rekapCount, rekapTerakhir] = await Promise.all([
       prisma.user.findUnique({ where: { id: me.id }, select: { lastLoginAt: true } }),
       prisma.session.findMany({
-        where: { userId: me.id, revokedAt: null },
+        where: { userId: me.id, revokedAt: null, expiresAt: { gt: new Date() } },
         select: { id: true, device: true, lastActiveAt: true },
         orderBy: { lastActiveAt: "desc" },
       }),

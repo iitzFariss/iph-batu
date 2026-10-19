@@ -2,11 +2,13 @@
 
 export class ApiError extends Error {
   status: number;
+  field?: string;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, field?: string) {
     super(message);
     this.status = status;
     this.name = "ApiError";
+    this.field = field;
   }
 }
 
@@ -28,7 +30,16 @@ export function clearTokens() {
   localStorage.removeItem(ACCESS_KEY);
 }
 
-async function refreshTokens(): Promise<boolean> {
+let refreshInFlight: Promise<boolean> | null = null;
+
+export function refreshTokens(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = performRefresh().finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
+}
+
+async function performRefresh(): Promise<boolean> {
   try {
     // Refresh token dikirim lewat cookie, bukan body. credentials wajib
     // supaya browser ikut mengirimnya.
@@ -76,15 +87,16 @@ async function request<T>(path: string, options: RequestOptions = {}, sudahCobaR
   // error diteruskan — kalau tidak, sesi lama yang kedaluwarsa bisa memicu
   // perulangan refresh tanpa batas.
   if (res.status === 401 && !sudahCobaRefresh && !path.includes("/auth/login") && !path.includes("/auth/refresh")) {
+    if (getAccessToken() && getAccessToken() !== access) return request<T>(path, options, true);
     if (await refreshTokens()) {
       return request<T>(path, options, true);
     }
   }
 
-  const data = (await res.json().catch(() => ({}))) as { message?: string } & T;
+  const data = (await res.json().catch(() => ({}))) as { message?: string; field?: string } & T;
 
   if (!res.ok) {
-    throw new ApiError(res.status, data.message ?? "Terjadi kesalahan pada server.");
+    throw new ApiError(res.status, data.message ?? "Terjadi kesalahan pada server.", data.field);
   }
 
   return data;
@@ -113,6 +125,7 @@ async function unduh(path: string, sudahCobaRefresh = false): Promise<Blob> {
   }
 
   if (res.status === 401 && !sudahCobaRefresh && !path.includes("/auth/login")) {
+    if (getAccessToken() && getAccessToken() !== access) return unduh(path, true);
     if (await refreshTokens()) {
       return unduh(path, true);
     }

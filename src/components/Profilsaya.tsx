@@ -43,6 +43,7 @@ export default function ProfilSaya() {
   const [editMode, setEditMode] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [displayName, setDisplayName] = useState(user?.name ?? "");
   const [phone, setPhone]             = useState(user?.phone ?? "");
@@ -72,7 +73,9 @@ export default function ProfilSaya() {
     .join("").toUpperCase();
 
   async function handleSave() {
+    if (saving) return;
     setErrorMsg("");
+    setSaving(true);
     try {
       await api.patch("/auth/me", {
         name: displayName.trim(),
@@ -85,7 +88,7 @@ export default function ProfilSaya() {
       setTimeout(() => setSavedMsg(false), 3000);
     } catch (e) {
       setErrorMsg(e instanceof ApiError ? e.message : "Gagal memperbarui profil.");
-    }
+    } finally { setSaving(false); }
   }
 
   return (
@@ -174,7 +177,14 @@ export default function ProfilSaya() {
               <h2 className="text-sm font-bold text-gray-900">Informasi Pribadi</h2>
               {!editMode ? (
                 <button
-                  onClick={() => setEditMode(true)}
+                  onClick={() => {
+                    setDisplayName(user.name);
+                    setPhone(user.phone ?? "");
+                    setBio(user.bio ?? "");
+                    setErrorMsg("");
+                    setSavedMsg(false);
+                    setEditMode(true);
+                  }}
                   className="px-3 py-1.5 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100"
                 >
                   Edit Profil
@@ -182,16 +192,24 @@ export default function ProfilSaya() {
               ) : (
                 <div className="dialog-actions">
                   <button
-                    onClick={() => setEditMode(false)}
+                    disabled={saving}
+                    onClick={() => {
+                      setDisplayName(user.name);
+                      setPhone(user.phone ?? "");
+                      setBio(user.bio ?? "");
+                      setEditMode(false);
+                      setErrorMsg("");
+                    }}
                     className="px-3 py-1.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
                   >
                     Batal
                   </button>
                   <button
+                    disabled={saving}
                     onClick={handleSave}
                     className="px-3 py-1.5 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
                   >
-                    Simpan
+                    {saving ? "Menyimpan..." : "Simpan"}
                   </button>
                 </div>
               )}
@@ -209,6 +227,7 @@ export default function ProfilSaya() {
                       <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
                         value={displayName}
+                        disabled={saving}
                         aria-label="Nama tampilan"
                         onChange={(e) => setDisplayName(e.target.value)}
                         className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -229,6 +248,7 @@ export default function ProfilSaya() {
                   {editMode ? (
                     <input
                       value={phone}
+                      disabled={saving}
                       aria-label="Nomor WhatsApp profil"
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -296,6 +316,7 @@ export default function ProfilSaya() {
                   <textarea
                     value={bio}
                     aria-label="Bio profil"
+                    disabled={saving}
                     onChange={(e) => setBio(e.target.value)}
                     rows={3}
                     className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"

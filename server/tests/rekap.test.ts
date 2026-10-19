@@ -359,6 +359,22 @@ describe("master data", () => {
     expect(setelah?.isActive).toBe(false);
   });
 
+  it("menambahkan kembali komoditas nonaktif tanpa menggandakan atau menghapus riwayat", async () => {
+    const admin = await token("admin@uji.test");
+    const before = await prisma.komoditas.findUniqueOrThrow({ where: { namaNorm: "beras medium" }, include: { details: true } });
+    expect((await request(app).delete(`/api/komoditas/${before.id}`).set("Authorization", `Bearer ${admin}`)).status).toBe(200);
+    const res = await request(app).post("/api/komoditas").set("Authorization", `Bearer ${admin}`).send({ nama: "  BERAS MEDIUM  " });
+    expect(res.status).toBe(201);
+    expect(res.body.komoditas.id).toBe(before.id);
+    expect(res.body.komoditas.isActive).toBe(true);
+    const after = await prisma.komoditas.findUniqueOrThrow({ where: { id: before.id }, include: { details: true } });
+    expect(after.details).toEqual(before.details);
+    expect(await prisma.komoditas.count({ where: { namaNorm: "beras medium" } })).toBe(1);
+    expect((await request(app).post("/api/komoditas").set("Authorization", `Bearer ${admin}`).send({ nama: "beras medium" })).status).toBe(409);
+    const list = await request(app).get("/api/komoditas").set("Authorization", `Bearer ${admin}`);
+    expect(list.body.rows.some((row: { id: string }) => row.id === before.id)).toBe(true);
+  });
+
   it("menolak pegawai dengan NIP duplikat", async () => {
     const admin = await token("admin@uji.test");
 

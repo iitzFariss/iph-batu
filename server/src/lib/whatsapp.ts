@@ -56,11 +56,35 @@ export async function queueMeetingNotifications(tx: Prisma.TransactionClient, ra
 
 export type SendResult = { status: "sent" | "failed" | "unknown"; messageId?: string; error?: string };
 
+export async function queueMinutesReminders(now = new Date()): Promise<void> {
+  const today = new Date(now.getTime() + WIB).toISOString().slice(0, 10);
+  const due = new Date(`${today}T09:00:00+07:00`);
+  if (now < due) return;
+  const dayStart = new Date(`${today}T00:00:00+07:00`);
+  const meetings = await prisma.rapat.findMany({ where: {
+    tanggal: { gte: new Date(dayStart.getTime() - 86_400_000), lt: dayStart },
+    status: { not: "dibatalkan" }, notulensi: { is: null },
+  }, include: { petugas: { where: { peran: "notulis", pegawai: { status: "aktif" } }, include: { pegawai: { include: { user: { select: { phone: true } } } } } } } });
+  for (const meeting of meetings) {
+    for (const participant of meeting.petugas) {
+      const phone = normalisasiNomorWa(participant.pegawai.phone ?? participant.pegawai.user?.phone);
+      const key = { rapatId: meeting.id, pegawaiId: participant.pegawaiId, kind: "minutes_reminder", revision: meeting.notificationRevision };
+      const date = meeting.tanggal.toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "long", year: "numeric" });
+      const baseUrl = process.env.PUBLIC_APP_URL?.replace(/\/$/, "");
+      const message = `Pengingat pengisian notulensi\n\nYth. Bapak/Ibu ${participant.pegawai.name},\nNotulensi rapat ${meeting.topik} pada ${date} belum diisi. Mohon lengkapi notulensi melalui menu Kelola rapat.${baseUrl ? `\n\n${baseUrl}` : ""}\n\nTerima kasih.`;
+      await prisma.whatsAppNotification.upsert({ where: { rapatId_pegawaiId_kind_revision: key }, update: {}, create: {
+        ...key, recipientName: participant.pegawai.name, phone, message,
+        scheduledAt: due, expiresAt: new Date(dayStart.getTime() + 86_400_000), status: phone ? "pending" : "missing_phone",
+      } });
+    }
+  }
+}
+
 export async function sendViaN8n(job: { id: string; phone: string; message: string; kind: string; rapatId: string; expiresAt: Date }, request: typeof fetch = fetch): Promise<SendResult> {
   try {
     const response = await request(process.env.N8N_WHATSAPP_WEBHOOK_URL!, {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.N8N_WHATSAPP_TOKEN}`, "X-IPH-Event-ID": job.id },
-      body: JSON.stringify({ eventId: job.id, rapatId: job.rapatId, kind: job.kind.startsWith("broadcast:") ? "broadcast" : job.kind.startsWith("manual_reminder:") ? "reminder" : job.kind, phone: job.phone, message: job.message, expiresAt: job.expiresAt.toISOString() }),
+      body: JSON.stringify({ eventId: job.id, rapatId: job.rapatId, kind: job.kind.startsWith("broadcast:") ? "broadcast" : job.kind === "minutes_reminder" || job.kind.startsWith("manual_reminder:") ? "reminder" : job.kind, phone: job.phone, message: job.message, expiresAt: job.expiresAt.toISOString() }),
       signal: AbortSignal.timeout(45_000), redirect: "error",
     });
     // Only definite rejection before a send may be retried. A server error could
@@ -86,13 +110,17 @@ export async function processNotifications(now = new Date()): Promise<void> {
   if (running || !automationEnabled()) return;
   running = true;
   try {
+    await queueMinutesReminders(now);
     // A crashed worker may have sent the request. Never blindly retry its lease.
     await prisma.whatsAppNotification.updateMany({ where: { status: "sending", startedAt: { lt: new Date(now.getTime() - 5 * MINUTE) } }, data: { status: "unknown", lastError: "Proses pengiriman terputus; periksa riwayat n8n." } });
-    await prisma.whatsAppNotification.updateMany({ where: { status: { in: writable }, expiresAt: { lte: now } }, data: { status: "expired", lastError: "Waktu rapat telah lewat." } });
+    await prisma.whatsAppNotification.updateMany({ where: { status: { in: writable }, expiresAt: { lte: now } }, data: { status: "expired", lastError: "Batas waktu pengiriman telah lewat." } });
     const jobs = await prisma.whatsAppNotification.findMany({ where: { status: { in: writable }, scheduledAt: { lte: now }, expiresAt: { gt: now }, attempts: { lt: 3 } }, orderBy: { scheduledAt: "asc" }, take: 20 });
     for (const job of jobs) {
-      const participant = await prisma.petugasRapat.findUnique({ where: { rapatId_pegawaiId: { rapatId: job.rapatId, pegawaiId: job.pegawaiId } }, include: { rapat: true, pegawai: { include: { user: { select: { phone: true } } } } } });
-      if (!participant || (job.kind.startsWith("broadcast:") ? participant.rapat.status === "dibatalkan" : participant.rapat.status !== "terjadwal") || participant.rapat.notificationRevision !== job.revision || participant.pegawai.status !== "aktif") {
+      const participant = await prisma.petugasRapat.findUnique({ where: { rapatId_pegawaiId: { rapatId: job.rapatId, pegawaiId: job.pegawaiId } }, include: { rapat: { include: { notulensi: { select: { id: true } } } }, pegawai: { include: { user: { select: { phone: true } } } } } });
+      const invalidMeeting = participant && (job.kind === "minutes_reminder"
+        ? participant.rapat.status === "dibatalkan" || Boolean(participant.rapat.notulensi) || participant.peran !== "notulis"
+        : job.kind.startsWith("broadcast:") ? participant.rapat.status === "dibatalkan" : participant.rapat.status !== "terjadwal");
+      if (!participant || invalidMeeting || participant.rapat.notificationRevision !== job.revision || participant.pegawai.status !== "aktif") {
         await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: { in: writable } }, data: { status: "cancelled", lastError: "Rapat atau penugasan sudah tidak aktif." } });
         continue;
       }

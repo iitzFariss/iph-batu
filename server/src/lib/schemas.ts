@@ -54,9 +54,9 @@ export const updateMeSchema = z.object({
 
 export const changePasswordSchema = z
   .object({
-    passwordSaatIni: z.string().min(1, "Kata sandi saat ini wajib diisi."),
-    passwordBaru: z.string().min(8, "Kata sandi baru minimal 8 karakter."),
-    konfirmasi: z.string().min(1, "Konfirmasi kata sandi wajib diisi."),
+    passwordSaatIni: z.string({ required_error: "Kata sandi saat ini wajib diisi." }).min(1, "Kata sandi saat ini wajib diisi."),
+    passwordBaru: z.string({ required_error: "Kata sandi baru wajib diisi." }).min(8, "Kata sandi baru minimal 8 karakter."),
+    konfirmasi: z.string({ required_error: "Konfirmasi kata sandi wajib diisi." }).min(1, "Konfirmasi kata sandi wajib diisi."),
   })
   .refine((d) => d.passwordBaru === d.konfirmasi, {
     message: "Konfirmasi kata sandi tidak cocok.",
@@ -99,8 +99,8 @@ export const rekapCreateSchema = z.object({
 export const rekapUpdateSchema = z.object({
   periode: z.string().trim().nullish(),
   nilaiIPH: angka.nullish(),
-  deflasi: z.array(detailSchema).default([]),
-  inflasi: z.array(detailSchema).default([]),
+  deflasi: z.array(detailSchema).optional(),
+  inflasi: z.array(detailSchema).optional(),
   fluktuasi: detailSchema.nullish(),
 });
 

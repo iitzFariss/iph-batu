@@ -110,24 +110,18 @@ type FilterTab = "semua" | "deflasi" | "inflasi" | "intervensi";
 
 function EditRekapModal({ row, onSave, onClose }: {
   row: RekapRow;
-  onSave: (updated: RekapRow) => void;
+  onSave: (updated: RekapRow) => Promise<void>;
   onClose: () => void;
 }) {
-  const dialogRef = useDialogFocus(onClose);
+  const [saving, setSaving] = useState(false);
+  const dialogRef = useDialogFocus(() => { if (!saving) onClose(); });
   const [draft, setDraft] = useState<RekapRow>(row);
   const [error, setError] = useState("");
+  const [numbers, setNumbers] = useState({ iph: String(row.nilaiIPH), deflasi: row.deflasi.map(t => String(t.change)), inflasi: row.inflasi.map(t => String(t.change)), fluktuasi: String(row.fluktuasi?.change ?? 0) });
 
   const setPeriode = (val: string) => setDraft((p) => ({ ...p, periode: val }));
-  const setCutoffStart = (val: string) => setDraft((p) => ({ ...p, cutoffStart: val }));
-  const setCutoffEnd = (val: string) => setDraft((p) => ({ ...p, cutoffEnd: val }));
   const setNilaiIPH = (val: string) => {
-    const n = val.replace(",", ".");
-    const num = parseFloat(n);
-    setDraft((p) => ({
-      ...p,
-      nilaiIPH: isNaN(num) ? p.nilaiIPH : num,
-      statusIPH: num < 0 ? "deflasi-terkendali" : num >= 1 ? "perlu-intervensi" : "inflasi-ringan",
-    }));
+    setNumbers(p => ({ ...p, iph: val }));
   };
 
   const setTag = (
@@ -136,41 +130,68 @@ function EditRekapModal({ row, onSave, onClose }: {
     field: keyof CommodityTag,
     val: string
   ) => {
+    if (field === "change") {
+      setNumbers(p => ({ ...p, [group]: p[group].map((v, i) => i === idx ? val : v) }));
+      return;
+    }
     setDraft((p) => ({
       ...p,
       [group]: p[group].map((t, i) => {
         if (i !== idx) return t;
         if (field === "name") return { ...t, name: val };
-        const num = parseFloat(val.replace(",", "."));
-        return { ...t, change: isNaN(num) ? t.change : num };
+        return t;
       }),
     }));
   };
 
-  const addTag = (group: "deflasi" | "inflasi") =>
+  const addTag = (group: "deflasi" | "inflasi") => {
     setDraft((p) => ({ ...p, [group]: [...p[group], { name: "", change: 0 }] }));
+    setNumbers(p => ({ ...p, [group]: [...p[group], "0"] }));
+  };
 
-  const removeTag = (group: "deflasi" | "inflasi", idx: number) =>
+  const removeTag = (group: "deflasi" | "inflasi", idx: number) => {
     setDraft((p) => ({ ...p, [group]: p[group].filter((_, i) => i !== idx) }));
+    setNumbers(p => ({ ...p, [group]: p[group].filter((_, i) => i !== idx) }));
+  };
 
-  const setFluktuasi = (field: "name" | "change", val: string) =>
-    setDraft((p) => {
-      const change = p.fluktuasi?.change ?? 0;
-      const name = p.fluktuasi?.name ?? "";
-      if (field === "name") return { ...p, fluktuasi: { name: val, change } };
-      const num = parseFloat(val.replace(",", "."));
-      return { ...p, fluktuasi: { name, change: isNaN(num) ? change : num } };
-    });
+  const setFluktuasi = (field: "name" | "change", val: string) => {
+    if (field === "change") { setNumbers(p => ({ ...p, fluktuasi: val })); return; }
+    setDraft(p => ({ ...p, fluktuasi: { name: val, change: p.fluktuasi?.change ?? 0 } }));
+  };
 
   const clearFluktuasi = () => setDraft((p) => ({ ...p, fluktuasi: null }));
   const addFluktuasi = () => setDraft((p) => ({ ...p, fluktuasi: { name: "", change: 0 } }));
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return;
     if (!draft.periode.trim()) {
       setError("Periode tidak boleh kosong");
       return;
     }
-    onSave(draft);
+    const raw = [numbers.iph, ...numbers.deflasi, ...numbers.inflasi, ...(draft.fluktuasi ? [numbers.fluktuasi] : [])];
+    const numeric = (value: string) => Number(value.trim().replace(",", "."));
+    if (raw.some(value => !value.trim() || !Number.isFinite(numeric(value)))) {
+      setError("Isi nilai IPH dan andil dengan angka yang valid. Gunakan koma atau titik untuk desimal.");
+      return;
+    }
+    const commodities = [...draft.deflasi, ...draft.inflasi, ...(draft.fluktuasi ? [draft.fluktuasi] : [])];
+    if (commodities.some(t => !t.name.trim())) {
+      setError("Nama komoditas wajib diisi. Hapus baris yang tidak digunakan.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      await onSave({
+        ...draft,
+        nilaiIPH: numeric(numbers.iph),
+        deflasi: draft.deflasi.map((t, i) => ({ ...t, change: numeric(numbers.deflasi[i]) })),
+        inflasi: draft.inflasi.map((t, i) => ({ ...t, change: numeric(numbers.inflasi[i]) })),
+        fluktuasi: draft.fluktuasi ? { ...draft.fluktuasi, change: numeric(numbers.fluktuasi) } : null,
+      });
+    } catch (error) {
+      setError(error instanceof ApiError ? error.message : "Gagal menyimpan perubahan. Coba lagi.");
+    } finally { setSaving(false); }
   };
 
   const numCls = "w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums";
@@ -185,14 +206,14 @@ function EditRekapModal({ row, onSave, onClose }: {
               Perbaiki data rekap yang telah dimasukkan sebelumnya
             </p>
           </div>
-          <button onClick={onClose} aria-label="Tutup dialog rekap" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button disabled={saving} onClick={onClose} aria-label="Tutup dialog rekap" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={15} />
           </button>
         </div>
 
         <div className="px-5 py-4 overflow-y-auto space-y-4">
           {error && (
-            <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
+            <div role="alert" className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
               <AlertTriangle size={12} className="flex-shrink-0" />
               {error}
             </div>
@@ -209,13 +230,14 @@ function EditRekapModal({ row, onSave, onClose }: {
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
+            <p className="text-xs text-gray-500 sm:col-span-2">Rentang tanggal mengikuti periode pelaporan dan ditentukan otomatis.</p>
             <div className="space-y-1">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Cutoff Awal</label>
               <input
                 type="text"
                 value={draft.cutoffStart}
                 aria-label="Awal periode"
-                onChange={(e) => setCutoffStart(e.target.value)}
+                readOnly
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
@@ -225,7 +247,7 @@ function EditRekapModal({ row, onSave, onClose }: {
                 type="text"
                 value={draft.cutoffEnd}
                 aria-label="Akhir periode"
-                onChange={(e) => setCutoffEnd(e.target.value)}
+                readOnly
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
@@ -236,7 +258,7 @@ function EditRekapModal({ row, onSave, onClose }: {
               <input
                 type="text"
                 inputMode="decimal"
-                value={draft.nilaiIPH}
+                value={numbers.iph}
                 aria-label="Nilai IPH gabungan"
                 onChange={(e) => setNilaiIPH(e.target.value)}
                 className={numCls}
@@ -274,7 +296,8 @@ function EditRekapModal({ row, onSave, onClose }: {
                         type="text"
                         inputMode="decimal"
                         placeholder="%"
-                        value={tag.change}
+                        value={numbers[group][idx]}
+                        aria-label={`Andil ${group} ${idx + 1}`}
                         onChange={(e) => setTag(group, idx, "change", e.target.value)}
                         className="w-24 px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums"
                       />
@@ -330,7 +353,8 @@ function EditRekapModal({ row, onSave, onClose }: {
                   type="text"
                   inputMode="decimal"
                   placeholder="%"
-                  value={draft.fluktuasi.change}
+                  value={numbers.fluktuasi}
+                  aria-label="Andil fluktuasi"
                   onChange={(e) => setFluktuasi("change", e.target.value)}
                   className="w-24 px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 tabular-nums"
                 />
@@ -341,16 +365,18 @@ function EditRekapModal({ row, onSave, onClose }: {
 
         <div className="dialog-actions px-5 py-4 border-t border-gray-100 bg-gray-50/50">
           <button
+            disabled={saving}
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
           >
             Batal
           </button>
           <button
+            disabled={saving}
             onClick={handleSave}
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
           >
-            Simpan Perubahan
+            {saving ? "Menyimpan..." : "Simpan Perubahan"}
           </button>
         </div>
       </div>
@@ -438,26 +464,22 @@ export default function RekapanData() {
   };
 
   const handleSaveEdit = async (updated: RekapRow) => {
-    try {
-      await api.patch(`/rekap/${updated.id}`, {
-        periode: updated.periode,
-        nilaiIPH: updated.nilaiIPH,
-        deflasi: updated.deflasi
-          .filter((t) => t.name.trim())
-          .map((t) => ({ nama: t.name.trim(), nilai: t.change })),
-        inflasi: updated.inflasi
-          .filter((t) => t.name.trim())
-          .map((t) => ({ nama: t.name.trim(), nilai: t.change })),
-        fluktuasi:
-          updated.fluktuasi && updated.fluktuasi.name.trim()
-            ? { nama: updated.fluktuasi.name.trim(), nilai: updated.fluktuasi.change }
-            : null,
-      });
-      setEditingRow(null);
-      setReloadKey((k) => k + 1);
-    } catch (e) {
-      setLoadError(e instanceof ApiError ? e.message : "Gagal menyimpan perubahan.");
-    }
+    await api.patch(`/rekap/${updated.id}`, {
+      periode: updated.periode,
+      nilaiIPH: updated.nilaiIPH,
+      deflasi: updated.deflasi
+        .filter((t) => t.name.trim())
+        .map((t) => ({ nama: t.name.trim(), nilai: t.change })),
+      inflasi: updated.inflasi
+        .filter((t) => t.name.trim())
+        .map((t) => ({ nama: t.name.trim(), nilai: t.change })),
+      fluktuasi:
+        updated.fluktuasi && updated.fluktuasi.name.trim()
+          ? { nama: updated.fluktuasi.name.trim(), nilai: updated.fluktuasi.change }
+          : null,
+    });
+    setEditingRow(null);
+    setReloadKey((k) => k + 1);
   };
 
   const handleDeleteRow = async (id: string) => {

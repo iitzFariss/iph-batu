@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Eye,
   EyeOff,
@@ -87,16 +87,24 @@ export default function PengaturanAkun() {
 
   // Sessions
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState("");
+  const [sessionsBusy, setSessionsBusy] = useState(false);
 
   // Danger zone confirm
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
-  useEffect(() => {
-    api
-      .get<{ rows: SessionRow[] }>("/auth/sessions")
-      .then(({ rows }) => setSessions(rows))
-      .catch(() => null);
-  }, []);
+  const loadSessions = useCallback(() => api.get<{ rows: SessionRow[] }>("/auth/sessions")
+    .then(({ rows }) => {
+      setSessions(rows);
+      setSessionsError("");
+    }).catch(error => {
+      setSessionsError(error instanceof ApiError ? error.message : "Gagal memuat sesi aktif. Coba lagi.");
+    }).finally(() => setSessionsLoading(false)), []);
+
+  useEffect(() => { void loadSessions(); }, [loadSessions]);
 
   if (!user) return null;
 
@@ -104,10 +112,13 @@ export default function PengaturanAkun() {
 
   function handlePassSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (passLoading) return;
     setPassError("");
+    setPassSaved(false);
 
     if (!passForm.current)              { setPassError("Kata sandi saat ini wajib diisi."); return; }
     if (passForm.newPass.length < 8)    { setPassError("Kata sandi baru minimal 8 karakter."); return; }
+    if (!passForm.confirm) { setPassError("Konfirmasi kata sandi wajib diisi."); return; }
     if (passForm.newPass !== passForm.confirm) { setPassError("Konfirmasi kata sandi tidak cocok."); return; }
 
     setPassLoading(true);
@@ -115,10 +126,13 @@ export default function PengaturanAkun() {
       .post("/auth/change-password", {
         passwordSaatIni: passForm.current,
         passwordBaru: passForm.newPass,
+        konfirmasi: passForm.confirm,
       })
       .then(() => {
         setPassSaved(true);
         setPassForm({ current: "", newPass: "", confirm: "" });
+        setShowPass({ current: false, newPass: false, confirm: false });
+        void loadSessions();
         setTimeout(() => setPassSaved(false), 3000);
       })
       .catch((e) => {
@@ -128,21 +142,42 @@ export default function PengaturanAkun() {
   }
 
   async function revokeSession(id: string) {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
-    await api.post("/auth/sessions/revoke", { id }).catch(() => null);
+    if (sessionsBusy) return;
+    setSessionsBusy(true);
+    setSessionsError("");
+    try {
+      await api.post("/auth/sessions/revoke", { id });
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+    } catch (error) {
+      setSessionsError(error instanceof ApiError ? error.message : "Sesi belum berhasil diakhiri. Coba lagi.");
+    } finally { setSessionsBusy(false); }
   }
 
   async function revokeAllOthers() {
+    if (sessionsBusy) return;
+    setSessionsBusy(true);
+    setSessionsError("");
     const others = sessions.filter((s) => !s.isCurrent);
-    setSessions(sessions.filter((s) => s.isCurrent));
-    for (const s of others) {
-      await api.post("/auth/sessions/revoke", { id: s.id }).catch(() => null);
-    }
+    try {
+      for (const s of others) {
+        await api.post("/auth/sessions/revoke", { id: s.id });
+        setSessions(prev => prev.filter(row => row.id !== s.id));
+      }
+    } catch (error) {
+      setSessionsError(error instanceof ApiError ? error.message : "Sebagian sesi belum berhasil diakhiri. Coba lagi.");
+    } finally { setSessionsBusy(false); }
   }
 
   async function deleteAccount() {
-    await api.delete("/auth/me").catch(() => null);
-    await logout();
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      await api.delete("/auth/me");
+      await logout();
+    } catch (error) {
+      setDeleteError(error instanceof ApiError ? error.message : "Akun belum berhasil dihapus. Coba lagi.");
+    } finally { setDeleteBusy(false); }
   }
 
   const passStrength = (() => {
@@ -176,7 +211,7 @@ export default function PengaturanAkun() {
           </div>
         )}
 
-        <form onSubmit={handlePassSubmit} className="space-y-4">
+        <form onSubmit={handlePassSubmit} noValidate className="space-y-4" aria-busy={passLoading}>
           <div className="grid grid-cols-1 gap-4">
             {/* Current password */}
             <div>
@@ -189,6 +224,7 @@ export default function PengaturanAkun() {
                   type={showPass.current ? "text" : "password"}
                   value={passForm.current}
                   aria-label="Kata sandi saat ini"
+                  autoComplete="current-password" required disabled={passLoading}
                   onChange={(e) => setPassForm({ ...passForm, current: e.target.value })}
                   placeholder="Masukkan kata sandi saat ini"
                   className="w-full pl-8 pr-10 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
@@ -216,6 +252,8 @@ export default function PengaturanAkun() {
                     type={showPass.newPass ? "text" : "password"}
                     value={passForm.newPass}
                     aria-label="Kata sandi baru"
+                    autoComplete="new-password" required minLength={8} disabled={passLoading}
+                    aria-describedby="new-password-help"
                     onChange={(e) => setPassForm({ ...passForm, newPass: e.target.value })}
                     placeholder="Min. 8 karakter"
                     className="w-full pl-8 pr-10 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300"
@@ -229,6 +267,7 @@ export default function PengaturanAkun() {
                     {showPass.newPass ? <EyeOff size={13} /> : <Eye size={13} />}
                   </button>
                 </div>
+                <p id="new-password-help" className="text-xs text-gray-500 mt-1.5">Minimal 8 karakter. Kombinasikan huruf, angka, dan simbol agar lebih sulit ditebak.</p>
                 {passForm.newPass && (
                   <div className="mt-1.5 flex items-center gap-2">
                     <div className="flex gap-0.5 flex-1">
@@ -257,6 +296,7 @@ export default function PengaturanAkun() {
                     type={showPass.confirm ? "text" : "password"}
                     value={passForm.confirm}
                     aria-label="Konfirmasi kata sandi baru"
+                    autoComplete="new-password" required disabled={passLoading}
                     onChange={(e) => setPassForm({ ...passForm, confirm: e.target.value })}
                     placeholder="Ulangi kata sandi baru"
                     className={`w-full pl-8 pr-10 py-2.5 text-xs border rounded-xl focus:outline-none focus:ring-2 placeholder:text-gray-300 ${
@@ -281,7 +321,7 @@ export default function PengaturanAkun() {
           </div>
 
           {passError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+            <div role="alert" className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
               <AlertCircle size={12} className="text-red-500 flex-shrink-0" />
               <span className="text-xs text-red-600">{passError}</span>
             </div>
@@ -316,8 +356,9 @@ export default function PengaturanAkun() {
         desc="Perangkat yang sedang atau pernah login ke akun Anda"
         icon={<Monitor size={15} className="text-gray-600" />}
       >
+        {sessionsError && <div role="alert" className="text-sm text-red-600 mb-3">{sessionsError}<button type="button" disabled={sessionsLoading || sessionsBusy} onClick={() => void loadSessions()} className="secondary-action ml-2">Muat ulang sesi</button></div>}
         <div className="space-y-3">
-          {sessions.length === 0 ? (
+          {sessionsLoading ? <p role="status" className="text-sm text-gray-500">Memuat sesi aktif...</p> : sessions.length === 0 && !sessionsError ? (
             <div className="text-xs text-gray-400 py-3 text-center">Belum ada sesi aktif.</div>
           ) : (
             sessions.map((s) => (
@@ -353,6 +394,7 @@ export default function PengaturanAkun() {
                 </div>
                 {!s.isCurrent && (
                   <button
+                    type="button" disabled={sessionsBusy}
                     onClick={() => revokeSession(s.id)}
                     className="text-xs text-red-500 font-semibold hover:text-red-700 flex items-center gap-1"
                   >
@@ -365,6 +407,7 @@ export default function PengaturanAkun() {
           )}
         </div>
         <button
+          type="button" disabled={sessionsLoading || sessionsBusy || !sessions.some(s => !s.isCurrent)}
           onClick={revokeAllOthers}
           className="mt-3 text-sm text-red-500 font-semibold hover:text-red-700 flex items-center gap-1"
         >
@@ -390,7 +433,7 @@ export default function PengaturanAkun() {
               <div>
                 <div className="text-xs font-semibold text-gray-900">Hapus Akun</div>
                 <div className="text-sm text-gray-400 mt-0.5">
-                  Seluruh data akun Anda akan dihapus secara permanen.
+                  Hapus akun login Anda secara permanen. Akun yang masih memiliki rekap tidak dapat dihapus.
                 </div>
               </div>
               {!deleteConfirm ? (
@@ -404,12 +447,14 @@ export default function PengaturanAkun() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-red-600 font-semibold">Yakin?</span>
                   <button
+                    disabled={deleteBusy}
                     onClick={deleteAccount}
                     className="px-3 py-1.5 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700"
                   >
-                    Ya, Hapus
+                    {deleteBusy ? "Menghapus..." : "Ya, Hapus"}
                   </button>
                   <button
+                    disabled={deleteBusy}
                     onClick={() => setDeleteConfirm(false)}
                     className="px-3 py-1.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
                   >
@@ -418,6 +463,7 @@ export default function PengaturanAkun() {
                 </div>
               )}
             </div>
+            {deleteError && <p role="alert" className="text-sm text-red-600 mt-3">{deleteError}</p>}
           </div>
         </div>
       )}

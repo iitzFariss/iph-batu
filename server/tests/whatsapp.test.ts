@@ -2,7 +2,7 @@ import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import prisma from "../src/lib/prisma";
 import { createApp } from "../src/app";
-import { automationEnabled, meetingMessage, processNotifications, queueMeetingNotifications, reminderTime, sendViaN8n } from "../src/lib/whatsapp";
+import { automationEnabled, meetingMessage, processNotifications, queueMeetingNotifications, queueMinutesReminders, reminderTime, sendViaN8n } from "../src/lib/whatsapp";
 import { bersihkanSemua, buatUser, PASSWORD } from "./fixtures";
 
 const app = createApp();
@@ -240,5 +240,78 @@ describe("Meeting notification API and persisted queue", () => {
     await processNotifications(new Date(new Date(rapat.tanggal).getTime() + 1));
     expect(mock).not.toHaveBeenCalled();
     expect((await prisma.whatsAppNotification.findMany()).every(row => row.status === "expired")).toBe(true);
+  });
+
+  const minutesNow = new Date("2026-10-21T09:00:00+07:00");
+  async function overdueMeeting(phone: string | null = "081234567890") {
+    const fixture = await meeting(phone);
+    await prisma.whatsAppNotification.deleteMany();
+    await prisma.rapat.update({ where: { id: fixture.rapat.id }, data: { tanggal: new Date("2026-10-20T23:30:00+07:00") } });
+    return fixture;
+  }
+  it("queues only H+1 at 09 WIB, once per assigned notulis", async () => {
+    const { rapat } = await overdueMeeting();
+    const guest = await prisma.pegawai.create({ data: { name: "Peserta", nip: "minutes-guest", peran: "Peserta", phone: "081234567891" } });
+    await prisma.petugasRapat.create({ data: { rapatId: rapat.id, pegawaiId: guest.id, peran: "peserta" } });
+    await queueMinutesReminders(new Date(minutesNow.getTime() - 1));
+    expect(await prisma.whatsAppNotification.count()).toBe(0);
+    await queueMinutesReminders(minutesNow);
+    await queueMinutesReminders(minutesNow);
+    const rows = await prisma.whatsAppNotification.findMany();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].kind).toBe("minutes_reminder");
+    expect(rows[0].scheduledAt.toISOString()).toBe("2026-10-21T02:00:00.000Z");
+    expect(rows[0].expiresAt.toISOString()).toBe("2026-10-21T17:00:00.000Z");
+    expect(rows[0].message).toContain("belum diisi");
+    await prisma.whatsAppNotification.deleteMany();
+    await queueMinutesReminders(new Date("2026-10-22T09:00:00+07:00"));
+    expect(await prisma.whatsAppNotification.count()).toBe(0);
+  });
+  it("sends minutes through the existing reminder gateway without resending", async () => {
+    await overdueMeeting(); enableWorker();
+    const mock = vi.fn<typeof fetch>().mockImplementation(async (_url, options) => {
+      const body = JSON.parse(String(options?.body));
+      return new Response(JSON.stringify({ ok: true, eventId: body.eventId, messageId: "minutes-test-id" }));
+    });
+    vi.stubGlobal("fetch", mock);
+    await processNotifications(minutesNow); await processNotifications(minutesNow);
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(mock.mock.calls[0][1]?.body))).toMatchObject({ kind: "reminder", phone: "6281234567890" });
+  });
+  it.each(["dibatalkan", "filled", "inactive"])("skips minutes when %s", async state => {
+    const { rapat, employee } = await overdueMeeting();
+    if (state === "filled") await prisma.notulensi.create({ data: { rapatId: rapat.id, notulisPegawaiId: employee.id, isi: "Sudah lengkap" } });
+    else if (state === "inactive") await prisma.pegawai.update({ where: { id: employee.id }, data: { status: "nonaktif" } });
+    else await prisma.rapat.update({ where: { id: rapat.id }, data: { status: state } });
+    await queueMinutesReminders(minutesNow);
+    expect(await prisma.whatsAppNotification.count()).toBe(0);
+  });
+  it("cancels queued minutes if the minutes were filled or the role changed before delivery", async () => {
+    const { rapat, employee } = await overdueMeeting();
+    await queueMinutesReminders(minutesNow);
+    await prisma.notulensi.create({ data: { rapatId: rapat.id, notulisPegawaiId: employee.id, isi: "Sudah lengkap" } });
+    enableWorker(); const mock = vi.fn<typeof fetch>(); vi.stubGlobal("fetch", mock);
+    await processNotifications(minutesNow);
+    expect(mock).not.toHaveBeenCalled();
+    expect((await prisma.whatsAppNotification.findFirstOrThrow()).status).toBe("cancelled");
+    await prisma.notulensi.deleteMany(); await prisma.whatsAppNotification.deleteMany();
+    await queueMinutesReminders(minutesNow);
+    await prisma.petugasRapat.updateMany({ data: { peran: "peserta" } });
+    await processNotifications(minutesNow);
+    expect(mock).not.toHaveBeenCalled();
+    expect((await prisma.whatsAppNotification.findFirstOrThrow()).status).toBe("cancelled");
+  });
+  it("waits for a missing phone and uses the corrected directory number", async () => {
+    const { employee } = await overdueMeeting(null);
+    enableWorker(); const mock = vi.fn<typeof fetch>().mockImplementation(async (_url, options) => {
+      const body = JSON.parse(String(options?.body)); return new Response(JSON.stringify({ ok: true, eventId: body.eventId, messageId: "minutes-test-id" }));
+    }); vi.stubGlobal("fetch", mock);
+    await processNotifications(minutesNow);
+    expect(mock).not.toHaveBeenCalled();
+    expect((await prisma.whatsAppNotification.findFirstOrThrow()).status).toBe("missing_phone");
+    await prisma.pegawai.update({ where: { id: employee.id }, data: { phone: "081234567892" } });
+    await processNotifications(new Date(minutesNow.getTime() + 60_000));
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(mock.mock.calls[0][1]?.body)).phone).toBe("6281234567892");
   });
 });

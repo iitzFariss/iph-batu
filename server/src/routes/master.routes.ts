@@ -52,8 +52,22 @@ router.post(
     const existing = await prisma.komoditas.findFirst({
       where: { namaNorm: nama.toLowerCase() },
     });
-    if (existing) {
+    if (existing?.isActive) {
       res.status(409).json({ message: "Nama komoditas sudah ada." });
+      return;
+    }
+    if (existing) {
+      const restored = await prisma.komoditas.updateMany({
+        where: { id: existing.id, isActive: false },
+        data: { isActive: true },
+      });
+      if (!restored.count) {
+        res.status(409).json({ message: "Nama komoditas sudah ada." });
+        return;
+      }
+      await catatAudit(req, "komoditas.diaktifkan", existing.nama);
+      invalidateSummary();
+      res.status(201).json({ message: "Komoditas berhasil ditambahkan kembali.", komoditas: { ...existing, isActive: true } });
       return;
     }
     const kom = await prisma.komoditas.create({
@@ -109,13 +123,12 @@ router.post(
 
     const existingNip = await prisma.pegawai.findUnique({ where: { nip: body.nip } });
     if (existingNip) {
-      res.status(409).json({ message: "NIP sudah digunakan." });
+      res.status(409).json({ message: "NIP sudah digunakan.", field: "nip" });
       return;
     }
 
     const instansi = body.instansi ? await findOrCreateInstansi(body.instansi) : null;
 
-    let userId: string | null = null;
     let createUserPassword: string | null = null;
     if (body.email) {
       const emailNorm = body.email.toLowerCase();
@@ -125,33 +138,29 @@ router.post(
         return;
       }
       createUserPassword = generateTemporaryPassword();
-      const user = await prisma.user.create({
-        data: {
-          name: body.name,
-          email: body.email,
-          emailNorm,
-          password: await hashPassword(createUserPassword),
-          role: "petugas",
-          status: body.status === "aktif" ? "aktif" : "nonaktif",
-          instansiId: instansi?.id ?? null,
-          nip: body.nip,
-        },
-      });
-      userId = user.id;
     }
 
     const peg = await prisma.pegawai.create({
       data: {
         name: body.name,
         nip: body.nip,
-        instansiId: instansi?.id ?? null,
+        instansi: instansi ? { connect: { id: instansi.id } } : undefined,
         instansiSub: body.instansiSub ?? null,
         peran: body.peran,
         peranIcon: body.peranIcon ?? null,
         email: body.email ?? null,
         phone: body.phone ?? null,
         status: body.status,
-        userId,
+        user: body.email ? { create: {
+          name: body.name,
+          email: body.email,
+          emailNorm: body.email.toLowerCase(),
+          password: await hashPassword(createUserPassword!),
+          role: "petugas",
+          status: body.status === "aktif" ? "aktif" : "nonaktif",
+          instansiId: instansi?.id ?? null,
+          nip: body.nip,
+        } } : undefined,
       },
       include: { instansi: true, user: { select: { id: true } } },
     });
@@ -191,12 +200,12 @@ router.patch(
     if (body.nip && body.nip !== pegawai.nip) {
       const conflict = await prisma.pegawai.findUnique({ where: { nip: body.nip } });
       if (conflict) {
-        res.status(409).json({ message: "NIP sudah digunakan." });
+        res.status(409).json({ message: "NIP sudah digunakan.", field: "nip" });
         return;
       }
     }
 
-    const instansi = body.instansi ? await findOrCreateInstansi(body.instansi) : null;
+    const instansi = body.instansi === undefined ? undefined : body.instansi ? await findOrCreateInstansi(body.instansi) : null;
     const emailDiberikan = body.email !== undefined;
     const emailBaru = emailDiberikan ? (body.email ? body.email.trim() : null) : pegawai.email;
 
@@ -215,7 +224,7 @@ router.patch(
           return;
         }
       }
-    } else if (emailBaru) {
+    } else if (emailDiberikan && emailBaru) {
       const conflict = await prisma.user.findFirst({ where: { emailNorm: emailBaru.toLowerCase() } });
       if (conflict) {
         res.status(409).json({ message: "Email sudah terdaftar sebagai akun pengguna." });
@@ -259,7 +268,7 @@ router.patch(
             data: { revokedAt: new Date() },
           });
         }
-      } else if (emailBaru) {
+      } else if (emailDiberikan && emailBaru) {
         const akun = await tx.user.create({
           data: {
             name: body.name ?? pegawai.name,
@@ -268,7 +277,7 @@ router.patch(
             password: await hashPassword(temporaryPassword!),
             role: "petugas",
             status: (body.status ?? pegawai.status) === "aktif" ? "aktif" : "nonaktif",
-            instansiId: instansi?.id ?? null,
+            instansiId: instansi === undefined ? pegawai.instansiId : instansi?.id ?? null,
             nip: body.nip ?? pegawai.nip,
           },
         });

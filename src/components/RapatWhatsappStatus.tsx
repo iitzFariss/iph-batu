@@ -12,9 +12,9 @@ interface Delivery {
 const labels: Record<string, string> = {
   pending: "Terjadwal", missing_phone: "Nomor belum diisi", sending: "Sedang dikirim",
   sent: "Diserahkan ke WhatsApp", failed: "Gagal", unknown: "Perlu diperiksa",
-  cancelled: "Dibatalkan", expired: "Waktu rapat lewat",
+  cancelled: "Dibatalkan", expired: "Batas waktu lewat",
 };
-const kinds: Record<string, string> = { invitation: "Undangan", updated: "Perubahan jadwal", reminder: "Pengingat hari ini" };
+const kinds: Record<string, string> = { invitation: "Undangan", updated: "Perubahan jadwal", reminder: "Pengingat hari ini", minutes_reminder: "Pengingat pengisian notulensi" };
 const attention = ["failed", "unknown", "missing_phone"];
 const formatTime = (value: string) => new Date(value).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "medium", timeStyle: "short" });
 
@@ -47,10 +47,11 @@ export default function RapatWhatsappStatus() {
       <div className="section-heading">
         <div>
           <h2>Riwayat pengiriman WhatsApp</h2>
-          <p>Undangan, pengingat, dan teks siaran. Hingga 100 pengiriman terbaru.</p>
+          <p>Undangan, pengingat rapat dan notulensi, serta teks siaran. Hingga 100 pengiriman terbaru.</p>
         </div>
         <button type="button" aria-label="Muat ulang riwayat pengiriman" onClick={() => void load()} className="icon-button border border-gray-200"><RefreshCw size={16} /></button>
       </div>
+      <p className="dispatch-note">Notulis yang belum mengisi notulensi mendapat satu pengingat pada H+1 pukul 09.00 WIB. Pengiriman memerlukan nomor WhatsApp dan layanan otomatis yang aktif.</p>
       {loaded && !enabled && <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3 mb-3">Pengiriman otomatis belum aktif. Jadwal dan nomor WhatsApp tetap dapat disiapkan.</p>}
       {error && <p role="alert" className="text-sm text-red-600 mb-3">{error}</p>}
       {needsAttention > 0 && <p className="delivery-attention">{needsAttention} pengiriman perlu perhatian. Buka detail status sebelum mengirim ulang.</p>}

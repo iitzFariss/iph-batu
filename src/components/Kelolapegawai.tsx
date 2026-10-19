@@ -93,11 +93,12 @@ interface ModalProps {
   mode: "add" | "edit";
   initial?: Pegawai;
   onClose: () => void;
-  onSave: (p: Pegawai) => void;
+  onSave: (p: Pegawai) => Promise<void>;
 }
 
 function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
-  const dialogRef = useDialogFocus(onClose);
+  const [saving, setSaving] = useState(false);
+  const dialogRef = useDialogFocus(() => { if (!saving) onClose(); });
   const [form, setForm] = useState({
     name:       initial?.name       ?? "",
     nip:        initial?.nip        ?? "",
@@ -110,20 +111,33 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
     phone:      initial?.phone      ?? "",
   });
   const [error, setError] = useState("");
+  const [errorField, setErrorField] = useState("");
 
-  function handleSave() {
-    if (!form.name.trim())    { setError("Nama pegawai wajib diisi."); return; }
-    if (!form.nip.trim())     { setError("NIP wajib diisi."); return; }
-    if (!form.peran.trim())   { setError("Peran penugasan wajib diisi."); return; }
+  function reportError(message: string, field = "") {
+    setError(message);
+    setErrorField(field);
+    const input = dialogRef.current?.querySelector<HTMLInputElement>(`[name="${field}"]`);
+    input?.focus();
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (saving) return;
+    if (form.name.trim().length < 3) { reportError("Nama pegawai minimal 3 karakter.", "name"); return; }
+    if (!/^[0-9]{16,18}$/.test(form.nip.replace(/\s/g, ""))) { reportError("NIP harus 16–18 digit angka. Spasi pemisah boleh digunakan.", "nip"); return; }
+    if (form.peran.trim().length < 3) { reportError("Peran penugasan minimal 3 karakter.", "peran"); return; }
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) { reportError("Format email tidak valid.", "email"); return; }
     if (form.phone.trim() && !/^(\+?62|0)8[0-9]{8,12}$/.test(form.phone.trim().replace(/[\s\-()]/g, ""))) {
-      setError("Nomor WhatsApp tidak valid. Gunakan awalan 08 atau +628."); return;
+      reportError("Nomor WhatsApp tidak valid. Gunakan awalan 08 atau +628.", "phone"); return;
     }
 
     const initials = form.name.split(" ").slice(0,2).map((n: string) => n[0]).join("").toUpperCase();
     const colors = ["bg-gray-700","bg-emerald-600","bg-blue-600","bg-teal-600","bg-purple-600","bg-amber-600","bg-rose-600"];
     const color  = initial?.color ?? colors[Math.floor(Math.random() * colors.length)];
 
-    onSave({
+    setSaving(true);
+    setError("");
+    try { await onSave({
       id:         initial?.id ?? String(Date.now()),
       initials,
       color,
@@ -136,12 +150,14 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
       status:     form.status,
       email:      form.email.trim() || undefined,
       phone:      form.phone.trim() || null,
-    });
+    }); } catch (error) {
+      reportError(error instanceof ApiError ? error.message : "Gagal menyimpan pegawai. Coba lagi.", error instanceof ApiError ? error.field ?? "" : "");
+    } finally { setSaving(false); }
   }
 
   return (
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={mode === "add" ? "Tambah pegawai" : "Edit pegawai"} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+      <form onSubmit={handleSave} noValidate className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden" aria-busy={saving}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
@@ -152,15 +168,15 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               {mode === "add" ? "Daftarkan personil baru ke direktori TPID" : "Perbarui informasi pegawai terdaftar"}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Tutup dialog pegawai" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button type="button" disabled={saving} onClick={onClose} aria-label="Tutup dialog pegawai" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X size={15} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
+        <div className="px-5 py-4 space-y-3 min-h-0 overflow-y-auto">
           {error && (
-            <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl">
+            <div id="pegawai-form-error" role="alert" className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl">
               <X size={11} className="text-red-500 flex-shrink-0" />
               <span className="text-xs text-red-600">{error}</span>
             </div>
@@ -175,6 +191,9 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               <User size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={form.name}
+                name="name" required minLength={3} disabled={saving}
+                aria-invalid={!!error && errorField === "name"}
+                aria-describedby={error && errorField === "name" ? "pegawai-form-error" : undefined}
                 aria-label="Nama lengkap dan gelar"
                 onChange={(e) => { setForm({...form, name: e.target.value}); setError(""); }}
                 placeholder="Nama lengkap pegawai"
@@ -192,13 +211,16 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               <BadgeCheck size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={form.nip}
+                name="nip" required inputMode="numeric" disabled={saving}
+                aria-invalid={!!error && errorField === "nip"}
+                aria-describedby={error && errorField === "nip" ? "pegawai-nip-help pegawai-form-error" : "pegawai-nip-help"}
                 aria-label="NIP pegawai"
                 onChange={(e) => { setForm({...form, nip: e.target.value}); setError(""); }}
                 placeholder="18 digit NIP ASN"
-                maxLength={22}
                 className="w-full pl-8 pr-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300 font-mono tracking-wider"
               />
             </div>
+            <p id="pegawai-nip-help" className="text-xs text-gray-500 mt-1.5">NIP terdiri dari 16–18 digit angka. Spasi pemisah boleh digunakan.</p>
           </div>
 
           {/* Email */}
@@ -210,6 +232,9 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               <Mail size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={form.email}
+                name="email" disabled={saving}
+                aria-invalid={!!error && errorField === "email"}
+                aria-describedby={error && errorField === "email" ? "pegawai-form-error" : undefined}
                 aria-label="Email pegawai"
                 onChange={(e) => setForm({...form, email: e.target.value})}
                 placeholder="nama@instansi.go.id"
@@ -232,7 +257,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
             <label htmlFor="pegawai-phone" className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nomor WhatsApp</label>
             <div className="relative">
               <Phone size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input id="pegawai-phone" type="tel" inputMode="tel" autoComplete="tel" value={form.phone}
+              <input id="pegawai-phone" name="phone" disabled={saving} aria-invalid={!!error && errorField === "phone"} aria-describedby={error && errorField === "phone" ? "pegawai-form-error" : undefined} type="tel" inputMode="tel" autoComplete="tel" value={form.phone}
                 onChange={(e) => { setForm({ ...form, phone: e.target.value }); setError(""); }}
                 placeholder="Contoh: 0812 3456 7890"
                 className="w-full pl-8 pr-3 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-gray-300" />
@@ -247,6 +272,9 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
             </label>
             <input
               value={form.peran}
+              name="peran" required minLength={3} disabled={saving}
+              aria-invalid={!!error && errorField === "peran"}
+              aria-describedby={error && errorField === "peran" ? "pegawai-form-error" : undefined}
               aria-label="Peran penugasan"
               onChange={(e) => { setForm({...form, peran: e.target.value}); setError(""); }}
               placeholder="Contoh: Analis Data BPS & Verifikator"
@@ -263,6 +291,7 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
               {DAFTAR_STATUS.map((s) => (
                 <button
                   key={s}
+                  disabled={saving}
                   type="button"
                   onClick={() => setForm({...form, status: s})}
                   aria-pressed={form.status === s}
@@ -282,19 +311,20 @@ function PegawaiModal({ mode, initial, onClose, onSave }: ModalProps) {
         {/* Footer */}
         <div className="dialog-actions px-5 py-4 border-t border-gray-100 bg-gray-50/50">
           <button
+            type="button" disabled={saving}
             onClick={onClose}
             className="secondary-action"
           >
             Batal
           </button>
           <button
-            onClick={handleSave}
+            type="submit" disabled={saving}
             className="primary-action"
           >
-            {mode === "add" ? "Tambah Pegawai" : "Simpan Perubahan"}
+            {saving ? "Menyimpan..." : mode === "add" ? "Tambah Pegawai" : "Simpan Perubahan"}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
@@ -438,30 +468,23 @@ export default function KelolaPegawai() {
       // Email hanya dikirim saat berubah. Email kosong tidak menghapus akun
       // yang sudah ada (akun tetap aktif), hanya data direktori saja.
       const emailSemula = (modal?.data?.email ?? "").trim();
-      if (emailBaru !== emailSemula) payload.email = emailBaru || "";
+      if (emailBaru !== emailSemula) payload.email = emailBaru || null;
     }
-    try {
-      if (modal?.mode === "add") {
-        const res = await api.post<{ pegawai: Pegawai; temporaryPassword?: string | null }>("/pegawai", payload);
-        setPegawai((prev) => [res.pegawai, ...prev]);
-        if (res.temporaryPassword) {
-          setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword, mode: "buat" });
-        }
-      } else {
-        const res = await api.patch<{ pegawai: Pegawai; temporaryPassword?: string | null }>(
-          `/pegawai/${p.id}`,
-          payload
-        );
-        setPegawai((prev) => prev.map((x) => (x.id === p.id ? res.pegawai : x)));
-        if (res.temporaryPassword) {
-          setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword, mode: "buat" });
-        }
+    if (modal?.mode === "add") {
+      const res = await api.post<{ pegawai: Pegawai; temporaryPassword?: string | null }>("/pegawai", payload);
+      setPegawai((prev) => [res.pegawai, ...prev]);
+      if (res.temporaryPassword) {
+        setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword, mode: "buat" });
       }
-      setModal(null);
-    } catch (e) {
-      setMessage(e instanceof ApiError ? `Gagal menyimpan: ${e.message}` : "Gagal menyimpan pegawai.");
-      setMessageType("error");
+    } else {
+      const res = await api.patch<{ pegawai: Pegawai; temporaryPassword?: string | null }>(`/pegawai/${p.id}`, payload);
+      setPegawai((prev) => prev.map((x) => (x.id === p.id ? res.pegawai : x)));
+      if (res.temporaryPassword) {
+        setTempPass({ email: res.pegawai.email ?? "", password: res.temporaryPassword, mode: "buat" });
+      }
     }
+    setModal(null);
+    setCurrentPage(1);
   }
 
   async function handleResetPassword(p: Pegawai) {

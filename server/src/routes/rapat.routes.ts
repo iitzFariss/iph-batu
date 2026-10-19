@@ -47,26 +47,26 @@ for (const mode of ["remind", "broadcast"] as const) {
 }
 
 router.get("/notifications", requireAuth, requireRoles("admin"), h(async (_req, res) => {
-  const rows = await prisma.whatsAppNotification.findMany({ orderBy: { createdAt: "desc" }, take: 100, include: { rapat: { select: { topik: true, status: true, notificationRevision: true } } } });
+  const rows = await prisma.whatsAppNotification.findMany({ orderBy: { createdAt: "desc" }, take: 100, include: { rapat: { select: { topik: true, status: true, notificationRevision: true, notulensi: { select: { id: true } } } } } });
   res.json({ enabled: automationEnabled(), rows: rows.map(row => ({
     id: row.id, rapatId: row.rapatId, topik: row.rapat.topik, recipientName: row.recipientName,
     phone: row.phone, kind: row.kind, status: row.status, scheduledAt: row.scheduledAt,
     sentAt: row.sentAt, attempts: row.attempts, lastError: row.lastError, expiresAt: row.expiresAt,
     canRetry: ["failed", "missing_phone"].includes(row.status) && row.expiresAt > new Date()
       && row.rapat.notificationRevision === row.revision
-      && (row.kind.startsWith("broadcast:") ? row.rapat.status !== "dibatalkan" : row.rapat.status === "terjadwal"),
+      && (row.kind === "minutes_reminder" ? row.rapat.status !== "dibatalkan" && !row.rapat.notulensi : row.kind.startsWith("broadcast:") ? row.rapat.status !== "dibatalkan" : row.rapat.status === "terjadwal"),
   })) });
 }));
 
 router.post("/notifications/:notificationId/retry", writeLimiter, requireAuth, requireRoles("admin"), h(async (req, res) => {
-  const job = await prisma.whatsAppNotification.findUnique({ where: { id: req.params.notificationId }, include: { rapat: true } });
+  const job = await prisma.whatsAppNotification.findUnique({ where: { id: req.params.notificationId }, include: { rapat: { include: { notulensi: { select: { id: true } } } } } });
   if (!job) { res.status(404).json({ message: "Pengiriman tidak ditemukan." }); return; }
-  if (!["failed", "missing_phone"].includes(job.status) || job.expiresAt <= new Date() || (job.kind.startsWith("broadcast:") ? job.rapat.status === "dibatalkan" : job.rapat.status !== "terjadwal") || job.rapat.notificationRevision !== job.revision) {
+  if (!["failed", "missing_phone"].includes(job.status) || job.expiresAt <= new Date() || (job.kind === "minutes_reminder" ? job.rapat.status === "dibatalkan" || Boolean(job.rapat.notulensi) : job.kind.startsWith("broadcast:") ? job.rapat.status === "dibatalkan" : job.rapat.status !== "terjadwal") || job.rapat.notificationRevision !== job.revision) {
     res.status(409).json({ message: "Pengiriman ini tidak dapat diulang. Periksa status dan jadwal rapat." }); return;
   }
   const participant = await prisma.petugasRapat.findUnique({ where: { rapatId_pegawaiId: { rapatId: job.rapatId, pegawaiId: job.pegawaiId } }, include: { pegawai: { include: { user: { select: { phone: true } } } } } });
   const phone = normalisasiNomorWa(participant?.pegawai.phone ?? participant?.pegawai.user?.phone);
-  if (!participant || participant.pegawai.status !== "aktif" || !phone) {
+  if (!participant || participant.pegawai.status !== "aktif" || !phone || (job.kind === "minutes_reminder" && participant.peran !== "notulis")) {
     res.status(400).json({ message: "Isi nomor WhatsApp yang valid pada pegawai aktif yang ditugaskan." }); return;
   }
   const result = await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: job.status }, data: { status: "pending", phone, attempts: 0, scheduledAt: new Date(), lastError: null } });
@@ -336,9 +336,9 @@ router.post(
       });
       return;
     }
-    const notulisPegawaiId = notulisBagian?.pegawaiId ?? me.role === "admin"
-      ? rapat.petugas.find((p) => p.peran === "notulis")?.pegawaiId ?? rapat.petugas[0]?.pegawaiId
-      : undefined;
+    const notulisPegawaiId = notulisBagian?.pegawaiId ?? (me.role === "admin"
+      ? rapat.petugas.find((p) => p.peran === "notulis")?.pegawaiId
+      : undefined);
 
     if (!notulisPegawaiId) {
       res.status(400).json({ message: "Rapat belum memiliki petugas notulis." });
