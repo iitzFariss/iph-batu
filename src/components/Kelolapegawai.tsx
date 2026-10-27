@@ -745,7 +745,7 @@ export default function KelolaPegawai() {
                         onClick={() => setDeleteId(p.id)}
                         className="w-7 h-7 rounded-lg border border-red-100 flex items-center justify-center hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={14} /><span>Hapus</span>
                       </button>
                     </div>
                   </td>

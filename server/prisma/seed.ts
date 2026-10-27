@@ -222,7 +222,7 @@ async function main() {
   console.log("Seed akun...");
   const admin = await upsertUser({
     name: "Administrator TPID",
-    email: "admin@tpid-batu.go.id",
+    email: "admin@bpskotabatu.com",
     password: "admin123",
     role: "admin",
     instansi: "Bagian Perekonomian Setda Kota Batu",

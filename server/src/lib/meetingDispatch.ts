@@ -44,7 +44,7 @@ export async function queueDispatch(tx: Prisma.TransactionClient, rapatId: strin
     const record = await tx.rekap.findUnique({ where: { id: broadcast.rekapId } });
     if (!record) return { error: "Rekap periode yang dipilih tidak tersedia.", code: 404 } as const;
     try { link = publicPeriodLink(record); } catch (error) { return { error: (error as Error).message, code: 400 } as const; }
-    text = `Bahan rapat: ${meeting.topik}\n\n${broadcast.text}\n\nDashboard analisis periode ini:\n${link}`;
+    text = `${broadcast.text}\n\nDashboard analisis periode ini:\n${link}`;
     if (text.length > 4000) return { error: "Teks beserta link maksimal 4.000 karakter. Ringkas draf terlebih dahulu.", code: 400 } as const;
     kind = `broadcast:${record.id}:${createHash("sha256").update(text).digest("hex").slice(0, 20)}`;
   }
@@ -58,7 +58,7 @@ export async function queueDispatch(tx: Prisma.TransactionClient, rapatId: strin
     if (existing) continue;
     await tx.whatsAppNotification.upsert({ where: { rapatId_pegawaiId_kind_revision: key }, update: {}, create: {
       ...key, recipientName: recipient.name, phone: recipient.phone,
-      message: broadcast ? text : meetingMessage(meeting, recipient.name, recipient.peran, "reminder").replace("Pengingat rapat hari ini", day === wibDay(now) ? "Pengingat rapat hari ini" : "Pengingat jadwal rapat"),
+      message: broadcast ? text : meetingMessage(meeting, recipient.name, recipient.peran, "reminder", recipient.pegawaiId).replace("Pengingat rapat hari ini", day === wibDay(now) ? "Pengingat rapat hari ini" : "Pengingat jadwal rapat"),
       scheduledAt: now, expiresAt: broadcast ? new Date(`${day}T23:59:59.999+07:00`) : meeting.tanggal,
     } });
     queued++;

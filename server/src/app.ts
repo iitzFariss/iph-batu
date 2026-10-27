@@ -7,6 +7,7 @@ import masterRoutes from "./routes/master.routes";
 import rekapRoutes from "./routes/rekap.routes";
 import rapatRoutes from "./routes/rapat.routes";
 import publicRoutes from "./routes/public.routes";
+import minutesRoutes from "./routes/minutes.routes";
 import {
   authLimiter,
   guestLimiter,
@@ -32,6 +33,7 @@ export function createApp() {
       allowedHeaders: ["Content-Type", "Authorization"],
     })
   );
+  app.use("/api/rekap/import", express.json({ limit: "2mb" }));
   app.use(express.json({ limit: "1mb" }));
 
   app.get("/api/health", async (_req, res) => {
@@ -52,6 +54,7 @@ export function createApp() {
 
   app.use("/api/auth", authRoutes);
   app.use("/api/public", publicRoutes);
+  app.use("/api/public/notulensi", minutesRoutes);
   app.use("/api", masterRoutes);
   app.use("/api/rekap", rekapRoutes);
   app.use("/api/rapat", rapatRoutes);

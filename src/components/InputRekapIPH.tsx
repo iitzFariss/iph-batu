@@ -3,6 +3,7 @@ import { useDialogFocus } from "../lib/useDialogFocus";
 import PageHeading from "./PageHeading";
 import { Plus, X, TrendingDown, TrendingUp } from "lucide-react";
 import { api, ApiError } from "../lib/api";
+import ExcelImport from "./ExcelImport";
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -45,7 +46,8 @@ const monthIndex = (name: string) => Math.max(0, BULAN.indexOf(name))
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const parseNum = (val: string) => {
-  const n = parseFloat(val.replace(",", "."));
+  if (!/^[+-]?\d+(?:[.,]\d+)?$/.test(val.trim())) return null;
+  const n = Number(val.replace(",", "."));
   return isNaN(n) ? null : n;
 };
 
@@ -53,7 +55,7 @@ const formatNumber = (value: number | null) => {
   if (value === null) return "Belum diisi";
   const pos = value > 0;
   const sign = pos ? "+" : value < 0 ? "" : "";
-  return `${sign}${value.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${sign}${value.toLocaleString("id-ID", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
 };
 const formatPct = (value: number | null, unit: string) => value === null ? formatNumber(value) : `${formatNumber(value)}${unit === "%" ? "%" : ` ${unit}`}`;
 
@@ -181,13 +183,17 @@ export default function InputRekapIPH() {
     if (!form.tahun || isNaN(tahun)) e.tahun = "Tahun wajib diisi angka";
     if (!form.bulan.trim()) e.bulan = "Bulan wajib diisi";
     if (!form.mingguKe) e.mingguKe = "Minggu ke wajib dipilih";
-    if (parseNum(form.indikator) === null) e.indikator = "Isi angka persen, misal -0.42 atau +0.15";
+    const fourDecimals = (value: string) => /^[+-]?\d+[.,]\d{4}$/.test(value.trim());
+    if (!fourDecimals(form.indikator)) e.indikator = "Wajib empat angka di belakang koma, contoh 2,1100 atau -0,4200.";
+    if (form.andil.some(r => (r.nama.trim() || r.nilai.trim()) && (!r.nama.trim() || !fourDecimals(r.nilai)))) e.andil = "Lengkapi nama dan andil setiap komoditas yang diisi. Andil wajib empat desimal, contoh 0,8342.";
+    if ((form.fluktuasi.nama.trim() || form.fluktuasi.nilai.trim()) && (!form.fluktuasi.nama.trim() || !fourDecimals(form.fluktuasi.nilai))) e.fluktuasi = "Lengkapi nama dan nilai fluktuasi dengan empat angka di belakang koma.";
     if (filledCount === 0) e.andil = "Isi minimal satu komoditas beserta nilai andilnya.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async () => {
+    if (busy) return;
     if (!validate()) return;
     setBusy(true);
     setSubmitError("");
@@ -287,6 +293,7 @@ export default function InputRekapIPH() {
 
       {/* Page header */}
       <PageHeading title="Input rekap IPH" description="Catat nilai IPH dan andil komoditas pada periode mingguan yang dipilih."><span className="text-xs text-gray-500">{filledCount} dari {form.andil.length} andil terisi</span></PageHeading>
+      <ExcelImport onImported={loadKomoditas} />
 
       <div className="entry-sheet"><div className="entry-fields">
       {/* Informasi periode */}
@@ -349,7 +356,7 @@ export default function InputRekapIPH() {
             id="rekap-iph-value"
             type="text"
             inputMode="decimal"
-            placeholder="Contoh: -0,42"
+            placeholder="Contoh: -0,4200"
             aria-label="Nilai IPH"
             value={form.indikator}
             onChange={(e) => updateField("indikator", e.target.value)}
@@ -357,7 +364,7 @@ export default function InputRekapIPH() {
           />
           <span className="text-sm text-gray-400 flex-shrink-0">%</span>
         </div>
-        <p className="text-xs text-gray-400 mt-2">Negatif berarti harga turun; positif berarti harga naik.</p>
+        <p className="text-xs text-gray-500 mt-2">Wajib empat angka di belakang koma. Negatif untuk deflasi, positif untuk inflasi.</p>
         {errors.indikator && <p className="text-xs text-red-500 mt-1">{errors.indikator}</p>}
       </section>
 
@@ -423,6 +430,7 @@ export default function InputRekapIPH() {
 
       {/* Komoditas fluktuasi */}
       <section className="form-surface entry-fluctuation">
+        {errors.fluktuasi && <p role="alert" className="text-sm text-red-600 mb-3">{errors.fluktuasi}</p>}
         <h2 className="form-section-title">
           Komoditas fluktuasi
         </h2>
@@ -447,7 +455,7 @@ export default function InputRekapIPH() {
             <input
               type="text"
               inputMode="decimal"
-              placeholder="Contoh: -1,20"
+              placeholder="Contoh: -1,2000"
               aria-label="Nilai fluktuasi"
               value={form.fluktuasi.nilai}
               onChange={(e) => updateFluktuasi("nilai", e.target.value)}

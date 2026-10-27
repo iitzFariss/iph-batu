@@ -5,16 +5,16 @@ import WeeklyDataTable from "./WeeklyDataTable";
 import PageHeading from "./PageHeading";
 import { api } from "../lib/api";
 import { useTheme } from "../context/ThemeContext";
+import CommodityFrequency from "./CommodityFrequency";
+import { iphDirection, type FrequencyPeriod } from "../lib/iph";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const WEEKS = ["I", "II", "III", "IV", "V"];
-const STATUS: Record<string, string> = {
-  "deflasi-signifikan": "Deflasi signifikan", "deflasi-terkendali": "Deflasi terkendali",
-  "stabil-terkendali": "Stabil terkendali", "inflasi-ringan": "Inflasi ringan", "perlu-intervensi": "Perlu intervensi",
-};
+const STATUS: Record<string, string> = { inflasi: "Inflasi", deflasi: "Deflasi", "tidak-berubah": "Tidak berubah" };
 interface TrendPoint { tahun: number; bulan: number; mingguIndeks: number; iph: number; status: string; pemicu: string | null; penutupan: boolean }
 interface Detail { name: string; nilai: number; isFluktuasi: boolean }
 interface Summary {
+  frequencyPeriods: FrequencyPeriod[];
   trend: TrendPoint[];
   weekly: { tahun: number; data: Record<string, number | null> }[];
   frequency: { tahun: number; items: { name: string; count: number }[] }[];
@@ -60,19 +60,10 @@ function CommodityList({ details }: { details: Detail[] }) {
     <div className="section-heading"><div><h2>Andil komoditas</h2><p>Kontribusi harga pada periode terpilih.</p></div><span className="text-xs text-gray-500">Persen poin</span></div>
     <ul className="commodity-list">{visible.map(row => <li key={`${row.name}-${row.isFluktuasi}`}>
       <div><strong>{row.name}</strong><small>{row.isFluktuasi ? "Komoditas fluktuasi" : row.nilai > 0 ? "Andil kenaikan harga" : row.nilai < 0 ? "Andil penurunan harga" : "Tidak ada perubahan"}</small><div className="commodity-scale" aria-hidden="true"><i style={{ width: `${Math.abs(row.nilai) / max * 100}%` }} /></div></div>
-      <div><div className={`andil tabular-nums ${row.nilai > 0 ? "text-amber-600" : row.nilai < 0 ? "text-emerald-700" : "text-gray-500"}`}>{number(row.nilai)}</div><small className="text-right">{row.isFluktuasi ? "Fluktuasi" : row.nilai > .2 ? "Waspada" : row.nilai < -.2 ? "Deflasi" : "Terkendali"}</small></div>
+      <div><div className={`andil tabular-nums ${row.nilai > 0 ? "text-amber-600" : row.nilai < 0 ? "text-emerald-700" : "text-gray-500"}`}>{row.nilai.toLocaleString("id-ID", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</div><small className="text-right">{row.isFluktuasi ? "Fluktuasi" : iphDirection(row.nilai)}</small></div>
     </li>)}</ul>
     {!visible.length && <p className="py-6 text-sm text-gray-500">Belum ada rincian andil untuk periode ini.</p>}
     <div className="report-footer"><span>{visible.length} dari {sorted.length} komoditas</span>{sorted.length > 3 && <button className="text-action" onClick={() => setShowAll(value => !value)}>{showAll ? "Tampilkan lebih sedikit" : "Lihat semua komoditas"}</button>}</div>
-  </section>;
-}
-
-function FrequencyList({ data, year }: { data: { name: string; count: number }[]; year: number | null }) {
-  const sorted = [...data].sort((a, b) => b.count - a.count);
-  const max = Math.max(1, ...sorted.map(row => row.count));
-  return <section className="report-section">
-    <div className="section-heading"><div><h2>Komoditas yang sering muncul</h2><p>Frekuensi dalam rekap {year ?? "tahun berjalan"}, hingga periode terpilih.</p></div></div>
-    {sorted.length ? <ul className="frequency-list">{sorted.map(row => <li key={row.name}><div><span>{row.name}</span><span className="tabular-nums">{row.count} kali</span></div><div className="frequency-bar" aria-hidden="true"><i style={{ width: `${row.count / max * 100}%` }} /></div></li>)}</ul> : <p className="py-6 text-sm text-gray-500">Belum ada komoditas tercatat.</p>}
   </section>;
 }
 
@@ -101,7 +92,7 @@ export default function Dashboard() {
         <section className="iph-summary" aria-label="Indeks Perkembangan Harga"><p className="metric-label">Indeks Perkembangan Harga</p><div className={latest ? "iph-value" : "text-xl my-8"}>{latest ? <>{number(latest.iph)}<small>%</small></> : "Belum ada data"}</div>{latest && <span className={`text-xs font-medium ${latest.iph > 0 ? "text-amber-600" : "text-emerald-700"}`}>{STATUS[latest.status] ?? latest.status}</span>}<p className="iph-explanation">{latest ? latest.iph > 0 ? "Harga meningkat dibandingkan periode acuan." : latest.iph < 0 ? "Harga menurun dibandingkan periode acuan." : "Harga tidak berubah dibandingkan periode acuan." : "Data akan tampil setelah rekap IPH ditambahkan."}</p></section>
         <TrendChart points={trend} year={year} />
       </div>
-      <div className="report-detail-grid"><CommodityList details={summary.latestDetails} /><FrequencyList data={summary.frequency.find(row => row.tahun === year)?.items ?? []} year={year} /></div>
+      <div className="report-detail-grid"><CommodityList details={summary.latestDetails} /><CommodityFrequency key={year} periods={summary.frequencyPeriods ?? []} defaultYear={year ?? undefined} /></div>
       <div className="mt-6"><WeeklyDataTable rows={weeklyRows} columns={weeklyColumns} title="Arsip IPH mingguan" description="Nilai IPH setiap minggu dalam persen. Geser tabel untuk melihat periode lainnya." /></div>
       <p className="text-xs text-gray-500 mt-5 leading-relaxed">IPH menunjukkan perubahan harga terhadap periode acuan. Rincian andil dapat bersifat parsial dan tidak selalu berjumlah sama dengan IPH.</p>
     </>}

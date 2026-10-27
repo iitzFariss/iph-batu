@@ -21,12 +21,7 @@ import { useAuth } from "../context/AuthContext";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type IPHStatus =
-  | "deflasi-terkendali"
-  | "inflasi-ringan"
-  | "perlu-intervensi"
-  | "stabil-terkendali"
-  | "deflasi-signifikan";
+type IPHStatus = "inflasi" | "deflasi" | "tidak-berubah";
 
 interface CommodityTag {
   name: string;
@@ -61,11 +56,9 @@ interface IPHConfig {
 }
 
 const iphConfigMap: Record<IPHStatus, IPHConfig> = {
-  "deflasi-terkendali": { label: "Deflasi terkendali", text: "text-emerald-700" },
-  "inflasi-ringan": { label: "Inflasi ringan", text: "text-amber-700" },
-  "perlu-intervensi": { label: "Perlu intervensi", text: "text-red-600" },
-  "stabil-terkendali": { label: "Stabil terkendali", text: "text-gray-700" },
-  "deflasi-signifikan": { label: "Deflasi signifikan", text: "text-blue-700" },
+  deflasi: { label: "Deflasi", text: "text-emerald-700" },
+  inflasi: { label: "Inflasi", text: "text-amber-700" },
+  "tidak-berubah": { label: "Tidak berubah", text: "text-gray-700" },
 };
 
 const BULAN_FE = [
@@ -84,10 +77,10 @@ const BULAN_FE = [
 ] as const;
 
 function IPHBadge({ value, status }: { value: number; status: IPHStatus }) {
-  const cfg = iphConfigMap[status];
+  const cfg = iphConfigMap[status] ?? iphConfigMap[value < 0 ? "deflasi" : value > 0 ? "inflasi" : "tidak-berubah"];
   const sign = value > 0 ? "+" : "";
   return (
-    <div><div className={`text-base font-semibold tabular-nums ${cfg.text}`}>{sign}{value.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</div><span className="text-[11px] text-gray-500">{cfg.label}</span>
+    <div><div className={`text-base font-semibold tabular-nums ${cfg.text}`}>{sign}{value.toLocaleString("id-ID", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}%</div><span className="text-[11px] text-gray-500">{cfg.label}</span>
     </div>
   );
 }
@@ -98,13 +91,13 @@ function CommodityChip({ name, change, type }: { name: string; change: number; t
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs">
       <span className="text-gray-700">{name}</span>
       <span className={`font-medium tabular-nums ${isDeflasi ? "text-emerald-700" : "text-amber-700"}`}>
-        {change > 0 ? "+" : ""}{change.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        {change > 0 ? "+" : ""}{change.toLocaleString("id-ID", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
       </span>
     </div>
   );
 }
 
-type FilterTab = "semua" | "deflasi" | "inflasi" | "intervensi";
+type FilterTab = "semua" | "deflasi" | "inflasi";
 
 // ─── Modal Edit ───────────────────────────────────────────────────────────────
 
@@ -227,27 +220,6 @@ function EditRekapModal({ row, onSave, onClose }: {
                 value={draft.periode}
                 aria-label="Periode rekap"
                 onChange={(e) => setPeriode(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-            <p className="text-xs text-gray-500 sm:col-span-2">Rentang tanggal mengikuti periode pelaporan dan ditentukan otomatis.</p>
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Cutoff Awal</label>
-              <input
-                type="text"
-                value={draft.cutoffStart}
-                aria-label="Awal periode"
-                readOnly
-                className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide">Cutoff Akhir</label>
-              <input
-                type="text"
-                value={draft.cutoffEnd}
-                aria-label="Akhir periode"
-                readOnly
                 className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
@@ -454,7 +426,6 @@ export default function RekapanData() {
     { key: "semua",      label: "Semua Periode" },
     { key: "deflasi",    label: "IPH Deflasi (< 0%)" },
     { key: "inflasi",    label: "IPH Inflasi (> 0%)" },
-    { key: "intervensi", label: "Perlu Intervensi" },
   ];
 
   const toggleRow = (id: string) => {
@@ -493,14 +464,14 @@ export default function RekapanData() {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: "csv" | "xlsx" = "xlsx") => {
     setLoadError("");
     try {
-      const blob = await api.download("/rekap/export");
+      const blob = await api.download(`/rekap/export?format=${format}`);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "rekap-iph.csv";
+      a.download = `rekap-iph.${format}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -572,9 +543,10 @@ export default function RekapanData() {
 
           {/* Export */}
           <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-            <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex-1 sm:flex-none justify-center">
+            <button onClick={() => void handleExport("csv")} className="secondary-action">Unduh CSV</button>
+            <button onClick={() => void handleExport("xlsx")} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex-1 sm:flex-none justify-center">
               <Sheet size={13} />
-              Unduh CSV / Excel
+              Unduh Excel
             </button>
           </div>
         </div>
@@ -625,9 +597,6 @@ export default function RekapanData() {
                       : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  {key === "intervensi" && (
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              )}
               {label}
             </button>
           ))}
@@ -777,9 +746,6 @@ export default function RekapanData() {
                 {/* Periode */}
                 <td className="px-3 py-4">
                   <div className="text-sm font-bold text-gray-900 mb-0.5">{row.periode}</div>
-                  <div className="text-xs text-gray-400">
-                    Rentang: {row.cutoffStart} – {row.cutoffEnd}
-                  </div>
                 </td>
 
                 {/* Nilai IPH */}
@@ -842,7 +808,7 @@ export default function RekapanData() {
                         title="Hapus rekap"
                         className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                       >
-                        <Trash2 size={11} />
+                        <Trash2 size={14} /><span>Hapus</span>
                       </button>
                     </div>
                   )}

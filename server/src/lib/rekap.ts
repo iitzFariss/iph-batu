@@ -2,17 +2,13 @@ import type { Komoditas, RekapDetail } from "@prisma/client";
 import { BULAN, BULAN_SINGKAT, ROMAWI } from "./dates";
 import { IphStatus } from "./enums";
 
-export function round(value: number, digits = 2): number {
+export function round(value: number, digits = 4): number {
   const f = 10 ** digits;
   return Math.round(value * f) / f;
 }
 
 export function computeStatusIPH(indikator: number): IphStatus {
-  if (indikator < -1) return "deflasi-signifikan";
-  if (indikator < 0) return "deflasi-terkendali";
-  if (indikator === 0) return "stabil-terkendali";
-  if (indikator < 1) return "inflasi-ringan";
-  return "perlu-intervensi";
+  return indikator < 0 ? "deflasi" : indikator > 0 ? "inflasi" : "tidak-berubah";
 }
 
 export interface CommodityTag {
@@ -35,12 +31,10 @@ export function computeCommodityGroups(
   const deflasi = items
     .filter((d) => d.nilai < 0)
     .sort((a, b) => a.nilai - b.nilai)
-    .slice(0, 3)
     .map((d) => ({ name: d.name, change: round(d.nilai) }));
   const inflasi = items
     .filter((d) => d.nilai > 0)
     .sort((a, b) => b.nilai - a.nilai)
-    .slice(0, 3)
     .map((d) => ({ name: d.name, change: round(d.nilai) }));
 
   const fluktuasiTag = fluktuasi

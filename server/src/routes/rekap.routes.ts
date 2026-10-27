@@ -15,8 +15,31 @@ import { writeLimiter } from "../middleware/rateLimit";
 import { findOrCreateKomoditas } from "./master.helpers";
 import { getSummary, invalidateSummary } from "../lib/rekapCache";
 import { catatAudit } from "../lib/audit";
+import { z } from "zod";
+import { DEFAULT_BROADCAST_TEMPLATE, TEMPLATE_FIELDS } from "../lib/broadcastTemplate";
+import { parseRekapWorkbook, styledWorkbook, styleSheet, templateWorkbook } from "../lib/rekapExcel";
 
 export const router = Router();
+
+router.get("/siaran-template", requireAuth, requireRoles("admin", "petugas"), h(async (_req, res) => {
+  const stored = await prisma.appSetting.findUnique({ where: { id: "broadcast-template" } });
+  res.set("Cache-Control", "no-store");
+  res.json({ template: stored?.value ?? DEFAULT_BROADCAST_TEMPLATE, custom: Boolean(stored), fields: TEMPLATE_FIELDS });
+}));
+router.put("/siaran-template", writeLimiter, requireAuth, requireRoles("admin"), h(async (req, res) => {
+  const { template } = z.object({ template: z.string().trim().min(10).max(3300).refine(value => {
+    const fields = [...value.matchAll(/{{\s*([^{}]+?)\s*}}/g)].map(match => match[1]);
+    return fields.every(field => TEMPLATE_FIELDS.includes(field)) && TEMPLATE_FIELDS.every(field => fields.includes(field));
+  }, "Pertahankan penanda {{minggu}}, {{bulan}}, {{tahun}}, {{arah}}, {{iph}}, dan {{komoditas}} agar data periode terisi otomatis.") }).parse(req.body);
+  await prisma.appSetting.upsert({ where: { id: "broadcast-template" }, update: { value: template }, create: { id: "broadcast-template", value: template } });
+  await catatAudit(req, "siaran.template-diubah");
+  res.json({ template });
+}));
+router.delete("/siaran-template", writeLimiter, requireAuth, requireRoles("admin"), h(async (req, res) => {
+  await prisma.appSetting.deleteMany({ where: { id: "broadcast-template" } });
+  await catatAudit(req, "siaran.template-direset");
+  res.json({ template: DEFAULT_BROADCAST_TEMPLATE });
+}));
 
 /**
  * Query string bisa berasal dari URL mana pun, sehingga `?page=abc` menghasilkan
@@ -75,7 +98,6 @@ router.get(
     const where: Record<string, unknown> = {};
     if (tab === "deflasi") where.indikator = { lt: 0 };
     else if (tab === "inflasi") where.indikator = { gt: 0 };
-    else if (tab === "intervensi") where.indikator = { gte: 1 };
     if (tahun) where.tahun = tahun;
     if (bulan && bulan >= 1 && bulan <= 12) where.bulan = bulan;
     if (minggu && minggu >= 1 && minggu <= 5) where.mingguIndeks = minggu;
@@ -115,7 +137,7 @@ router.get(
   "/periods",
   requireAuth,
   requireRoles("admin", "petugas"),
-  h(async (_req, res) => {
+  h(async (req, res) => {
     const records = await prisma.rekap.findMany({
       select: { id: true, tahun: true, bulan: true, mingguIndeks: true, indikator: true },
       orderBy: [{ tahun: "desc" }, { bulan: "desc" }, { mingguIndeks: "desc" }],
@@ -155,31 +177,62 @@ router.get(
   "/export",
   requireAuth,
   requireRoles("admin", "petugas"),
-  h(async (_req, res) => {
+  h(async (req, res) => {
     const records = await prisma.rekap.findMany({
       include: { details: { include: { komoditas: true } } },
       orderBy: [{ tahun: "desc" }, { bulan: "desc" }, { mingguIndeks: "desc" }],
     });
-    const rows = records.map(toRekapRow);
-    const header = "Periode;Cutoff Mulai;Cutoff Selesai;IPH;Status;Komoditas Deflasi;Komoditas Inflasi";
-    const lines = rows.map((r) =>
-      [
-        r.periode,
-        r.cutoffStart,
-        r.cutoffEnd,
-        r.nilaiIPH.toFixed(2),
-        r.statusIPH,
-        r.deflasi.map((d) => `${d.name}:${d.change}`).join("|"),
-        r.inflasi.map((d) => `${d.name}:${d.change}`).join("|"),
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(";")
-    );
+    const headers = ["Periode", "IPH (%)", "Komoditas", "Andil (persen poin)", "Jenis"];
+    const rows = records.flatMap(r => r.details.length ? r.details.map(d => [periodeLabel(r), r.indikator, d.komoditas.nama, d.nilai, d.isFluktuasi ? "Fluktuasi" : d.nilai > 0 ? "Inflasi" : d.nilai < 0 ? "Deflasi" : "Tidak berubah"]) : [[periodeLabel(r), r.indikator, "", "", ""]]);
+    if (req.query.format === "xlsx") {
+      const book = styledWorkbook(), sheet = book.addWorksheet("Rekap IPH");
+      sheet.columns = headers.map((header, i) => ({ header, width: [36, 16, 35, 24, 20][i] }));
+      sheet.addRows(rows);
+      sheet.getColumn(2).numFmt = "0.0000;-0.0000;0.0000";
+      sheet.getColumn(4).numFmt = "0.0000;-0.0000;0.0000";
+      styleSheet(sheet);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", 'attachment; filename="rekap-iph.xlsx"');
+      res.send(Buffer.from(await book.xlsx.writeBuffer())); return;
+    }
+    const quote = (cell: string | number) => {
+      const text = typeof cell === "number" ? cell.toFixed(4).replace(".", ",") : /^[=+\-@\t\r]/.test(cell) ? `'${cell}` : cell;
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+    const lines = rows.map(row => row.map(quote).join(";"));
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="rekap-iph.csv"`);
-    res.send([header, ...lines].join("\r\n"));
+    res.send("\uFEFF" + [headers.join(";"), ...lines].join("\r\n"));
   })
 );
+
+router.get("/template", requireAuth, requireRoles("admin"), h(async (_req, res) => {
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", 'attachment; filename="template-input-iph.xlsx"');
+  res.send(Buffer.from(await templateWorkbook()));
+}));
+router.post("/import", writeLimiter, requireAuth, requireRoles("admin"), h(async (req, res) => {
+  const body = z.object({ base64: z.string().min(4).max(1_400_000).regex(/^[A-Za-z0-9+/]+={0,2}$/), commit: z.boolean().default(false) }).parse(req.body);
+  let periods;
+  try { periods = await parseRekapWorkbook(Buffer.from(body.base64, "base64")); }
+  catch (error) { res.status(400).json({ message: error instanceof z.ZodError ? error.issues[0].message : (error as Error).message }); return; }
+  const conflicts = await prisma.rekap.findMany({ where: { OR: periods.map(p => ({ tahun: p.tahun, bulan: p.bulan, mingguIndeks: p.mingguKe })) }, select: { tahun: true, bulan: true, mingguIndeks: true } });
+  if (conflicts.length) { res.status(409).json({ message: `Periode sudah tersimpan: ${conflicts.map(periodeLabel).join(", ")}. Tidak ada data yang ditimpa.` }); return; }
+  if (body.commit) {
+    await prisma.$transaction(async tx => {
+      for (const p of periods) {
+        const record = await tx.rekap.create({ data: { tahun: p.tahun, bulan: p.bulan, mingguIndeks: p.mingguKe, indikator: p.indikator, createdById: (req as AuthedRequest).user!.id } });
+        for (const d of [...p.andil.map(d => ({ ...d, isFluktuasi: false })), ...(p.fluktuasi ? [{ ...p.fluktuasi, isFluktuasi: true }] : [])]) {
+          const commodity = await findOrCreateKomoditas(d.nama, tx);
+          await tx.rekapDetail.create({ data: { rekapId: record.id, komoditasId: commodity.id, nilai: d.nilai, isFluktuasi: d.isFluktuasi } });
+        }
+      }
+    }, { timeout: 30000 });
+    invalidateSummary();
+    await catatAudit(req, "rekap.excel-diimpor", `${periods.length} periode`);
+  }
+  res.json({ periods, committed: body.commit, message: body.commit ? `${periods.length} periode berhasil disimpan.` : `${periods.length} periode valid. Periksa pratinjau sebelum menyimpan.` });
+}));
 
 // ─── POST /api/rekap ─────────────────────────────────────────────────────
 router.post(

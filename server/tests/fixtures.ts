@@ -74,6 +74,7 @@ export async function buatRekapFixture() {
 }
 
 export async function bersihkanSemua() {
+  await prisma.appSetting.deleteMany();
   await prisma.notulensi.deleteMany();
   await prisma.petugasRapat.deleteMany();
   await prisma.rapat.deleteMany();

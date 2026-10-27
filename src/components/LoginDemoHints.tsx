@@ -7,7 +7,7 @@ export type DemoHint = { email: string; password: string };
 // import() dinamis yang dijaga import.meta.env.DEV; saat build produksi Vite
 // membuang cabang itu dan modul ini tidak ikut ter-emit sama sekali.
 const DEMO_HINTS: Record<UserRole, DemoHint> = {
-  admin: { email: "admin@tpid-batu.go.id", password: "admin123" },
+  admin: { email: "admin@bpskotabatu.com", password: "admin123" },
   petugas: { email: "siti.rahmawati@bps-batu.go.id", password: "petugas123" },
   tamu: { email: "Tanpa kredensial", password: "Tidak diperlukan" },
 };

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import PageHeading from "./PageHeading";
+import MinutesLinkField, { type MinutesDraft } from "./MinutesLinkField";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,8 @@ interface PetugasTerpilih {
 }
 
 interface RapatAgenda {
+  tautanRapat: string | null;
+  notulensiLink: string | null;
   id: string;
   topik: string;
   tanggal: string;
@@ -103,6 +106,7 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
     tanggal: tanggalInput(rapat.tanggal),
     waktu: waktuInput(rapat.tanggal),
     lokasi: rapat.lokasi ?? "",
+    tautanRapat: rapat.tautanRapat ?? "",
     catatan: rapat.catatan ?? "",
   });
   const [petugas, setPetugas] = useState<PetugasTerpilih[]>(
@@ -111,20 +115,27 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
   const [openPicker, setOpenPicker] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [searchPerson, setSearchPerson] = useState("");
+  const [minutes, setMinutes] = useState<MinutesDraft | null>(null);
 
-  const available = kader.filter((k) => !petugas.some((p) => p.pegawaiId === k.id));
+  const available = kader.filter((k) => !petugas.some((p) => p.pegawaiId === k.id) && k.name.toLocaleLowerCase("id").includes(searchPerson.toLocaleLowerCase("id")));
 
   function tambah(k: KaderPersonil) {
     setPetugas((cur) => [...cur, { pegawaiId: k.id, name: k.name, peran: cur.length === 0 ? "notulis" : "peserta" }]);
     setOpenPicker(false);
+    setSearchPerson("");
   }
 
   async function simpan() {
+    if (busy) return;
     setErr("");
     if (!form.topik.trim()) { setErr("Topik / agenda rapat wajib diisi."); return; }
     if (!form.tanggal || !form.waktu) { setErr("Tanggal dan waktu pelaksanaan wajib diisi."); return; }
     if (petugas.length === 0) { setErr("Pilih minimal satu petugas rapat."); return; }
     if (!petugas.some((p) => p.peran === "notulis")) { setErr("Minimal satu petugas berperan notulis."); return; }
+    const selectedNotulis = petugas.find(p => p.peran === "notulis")?.pegawaiId;
+    const hasMinutesLink = minutes?.pegawaiId === selectedNotulis || (selectedNotulis === rapat.petugas.find(p => p.peran === "notulis")?.pegawaiId && Boolean(rapat.notulensiLink));
+    if (!hasMinutesLink) { setErr("Buat tautan notulensi untuk notulis yang dipilih terlebih dahulu."); return; }
 
     setBusy(true);
     try {
@@ -132,6 +143,8 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
         topik: form.topik.trim(),
         tanggal: new Date(`${form.tanggal}T${form.waktu}:00+07:00`).toISOString(),
         lokasi: form.lokasi.trim() || null,
+        tautanRapat: form.tautanRapat.trim() || null,
+        ...(minutes ? { notulensiKey: minutes.key } : {}),
         catatan: form.catatan.trim() || null,
         petugas: petugas.map((p) => ({ pegawaiId: p.pegawaiId, peran: p.peran })),
       });
@@ -201,7 +214,7 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
           </div>
 
           <div>
-            <label htmlFor="edit-meeting-location" className="block text-xs font-semibold text-gray-700 mb-1.5">Lokasi atau tautan rapat</label>
+            <label htmlFor="edit-meeting-location" className="block text-xs font-semibold text-gray-700 mb-1.5">Lokasi rapat</label>
             <input
               id="edit-meeting-location"
               type="text"
@@ -211,6 +224,7 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
             />
           </div>
 
+          <label className="field-stack">Tautan rapat (opsional)<input type="url" value={form.tautanRapat} onChange={e => setForm({ ...form, tautanRapat: e.target.value })} placeholder="https://…" /></label>
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-semibold text-gray-700">Petugas Notulis</label>
@@ -258,9 +272,10 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
             </div>
             {openPicker && (
               <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <input type="search" aria-label="Cari nama personil untuk edit rapat" placeholder="Cari nama pegawai…" value={searchPerson} onChange={e => setSearchPerson(e.target.value)} className="w-full px-3 py-2 border-b" />
                 {available.length === 0 ? (
                   <div className="px-3 py-3 text-xs text-gray-400 text-center">
-                    Semua personil sudah ditambahkan.
+                    {searchPerson.trim() ? "Nama pegawai tidak ditemukan." : "Semua personil sudah ditambahkan."}
                   </div>
                 ) : (
                   <div className="max-h-40 overflow-y-auto divide-y divide-gray-50">
@@ -283,6 +298,7 @@ function EditRapatModal({ rapat, kader, onClose, onSaved }: EditRapatModalProps)
             )}
           </div>
 
+          <MinutesLinkField pegawaiId={petugas.find(p => p.peran === "notulis")?.pegawaiId} rapatId={rapat.id} initialLink={petugas.find(p => p.peran === "notulis")?.pegawaiId === rapat.petugas.find(p => p.peran === "notulis")?.pegawaiId ? rapat.notulensiLink : null} value={minutes} onChange={setMinutes} />
           <div>
             <label htmlFor="edit-meeting-notes" className="block text-xs font-semibold text-gray-700 mb-1.5">Catatan (opsional)</label>
             <textarea
@@ -328,6 +344,9 @@ export default function KelolaRapat() {
   const [tanggal, setTanggal] = useState("");
   const [waktu, setWaktu] = useState("");
   const [lokasi, setLokasi] = useState("");
+  const [tautanRapat, setTautanRapat] = useState("");
+  const [minutes, setMinutes] = useState<MinutesDraft | null>(null);
+  const [searchPerson, setSearchPerson] = useState("");
   const [catatan, setCatatan] = useState("");
   const [menyimpan, setMenyimpan] = useState(false);
   const [pesan, setPesan] = useState<{ tipe: "sukses" | "gagal"; teks: string } | null>(null);
@@ -384,11 +403,12 @@ export default function KelolaRapat() {
     muatStatistik();
   }, [muatStatistik]);
 
-  const available = kader.filter((k) => !petugas.some((p) => p.pegawaiId === k.id));
+  const available = kader.filter((k) => !petugas.some((p) => p.pegawaiId === k.id) && k.name.toLocaleLowerCase("id").includes(searchPerson.toLocaleLowerCase("id")));
 
   function addPersonil(k: KaderPersonil) {
     setPetugas((cur) => [...cur, { pegawaiId: k.id, name: k.name, peran: cur.length === 0 ? "notulis" : "peserta" }]);
     setOpenPicker(false);
+    setSearchPerson("");
   }
 
   function removePersonil(pegawaiId: string) {
@@ -438,6 +458,7 @@ export default function KelolaRapat() {
   }
 
   async function handleSubmit() {
+    if (menyimpan) return;
     setPesan(null);
     if (!topik.trim()) {
       setPesan({ tipe: "gagal", teks: "Topik / agenda rapat wajib diisi." });
@@ -456,12 +477,17 @@ export default function KelolaRapat() {
       return;
     }
 
+    if (!minutes || minutes.pegawaiId !== petugas.find(p => p.peran === "notulis")?.pegawaiId) {
+      setPesan({ tipe: "gagal", teks: "Buat tautan notulensi untuk notulis yang dipilih terlebih dahulu." }); return;
+    }
     setMenyimpan(true);
     try {
       const res = await api.post<{ message: string }>("/rapat", {
         topik: topik.trim(),
         tanggal: new Date(`${tanggal}T${waktu}:00+07:00`).toISOString(),
         lokasi: lokasi.trim() || null,
+        tautanRapat: tautanRapat.trim() || null,
+        notulensiKey: minutes.key,
         catatan: catatan.trim() || null,
         petugas: petugas.map((p) => ({ pegawaiId: p.pegawaiId, peran: p.peran })),
       });
@@ -470,6 +496,7 @@ export default function KelolaRapat() {
       setTanggal("");
       setWaktu("");
       setLokasi("");
+      setTautanRapat(""); setMinutes(null); setSearchPerson("");
       setCatatan("");
       setPetugas([]);
       muatStatistik();
@@ -583,7 +610,7 @@ export default function KelolaRapat() {
           {/* Ruang Rapat */}
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-              Lokasi atau tautan rapat
+              Lokasi rapat
             </label>
             <div className="relative">
               <FileText size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -591,13 +618,14 @@ export default function KelolaRapat() {
                 type="text"
                 value={lokasi}
                 onChange={(e) => setLokasi(e.target.value)}
-                placeholder="Nama ruangan atau tautan pertemuan"
+                placeholder="Nama ruangan atau alamat lokasi rapat"
                 aria-label="Lokasi rapat"
                 className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-gray-300"
               />
             </div>
           </div>
 
+          <label className="field-stack">Tautan rapat (opsional)<input type="url" value={tautanRapat} onChange={e => setTautanRapat(e.target.value)} placeholder="https://…" /></label>
           </div><div className="space-y-4">
           {/* Petugas Rapat */}
           <div>
@@ -652,6 +680,7 @@ export default function KelolaRapat() {
             {/* Pick daftar personil (flip card) */}
             {openPicker && (
               <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <input type="search" aria-label="Cari nama peserta atau notulis" placeholder="Cari nama pegawai…" value={searchPerson} onChange={e => setSearchPerson(e.target.value)} className="w-full px-3 py-2 border-b" />
                 {status === "memuat" ? (
                   <div className="px-3 py-3 text-xs text-gray-400 text-center">
                     Memuat data pegawai…
@@ -676,7 +705,7 @@ export default function KelolaRapat() {
                   <div className="px-3 py-3 text-xs text-gray-400 text-center">
                     {kader.length === 0
                       ? "Belum ada data pegawai. Tambahkan pegawai di menu Kelola Pegawai terlebih dahulu."
-                      : "Semua personil sudah ditambahkan."}
+                      : searchPerson.trim() ? "Nama pegawai tidak ditemukan." : "Semua personil sudah ditambahkan."}
                   </div>
                 ) : (
                   <div className="max-h-40 overflow-y-auto divide-y divide-gray-50">
@@ -699,6 +728,7 @@ export default function KelolaRapat() {
             )}
           </div>
 
+          <MinutesLinkField pegawaiId={petugas.find(p => p.peran === "notulis")?.pegawaiId} value={minutes} onChange={setMinutes} />
           {/* Catatan */}
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1.5">Catatan (opsional)</label>
@@ -855,7 +885,7 @@ export default function KelolaRapat() {
                               className="w-7 h-7 rounded-lg border border-red-100 flex items-center justify-center hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
                               title="Hapus rapat"
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={14} /><span>Hapus</span>
                             </button>
                           )}
                         </div>

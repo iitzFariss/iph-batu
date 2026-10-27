@@ -15,7 +15,7 @@ function getRowValue(row: WeeklyRow, columnId: string): number | null {
 
 function ValueCell({ value }: { value: number | null }) {
   if (value === null) {
-    return <span className="text-xs text-gray-600 font-medium">Belum ada</span>;
+    return <span className="text-xs text-gray-600 font-medium">N/A</span>;
   }
   if (value === 0) {
     return <span className="text-xs font-semibold text-gray-500">0.00</span>;
@@ -93,7 +93,7 @@ export default function WeeklyDataTable({
       </div>
 
       <div className="px-4 py-2.5 border-t border-gray-100">
-        <span className="text-xs text-gray-500">Periode tanpa rekap ditandai "Belum ada".</span>
+        <span className="text-xs text-gray-500">N/A berarti data periode tersebut belum tersedia.</span>
       </div>
     </div>
   );

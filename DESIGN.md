@@ -24,3 +24,5 @@ The earlier reference supplies the scale and spacing of the typography. Its fant
 - Page modules load when opened, so the public landing no longer imports all administrative pages and the chart library. Loading has visible feedback and does not change API permissions.
 
 The design's quality is assessed through browser review and task checks. Automatic accessibility checks supplement human review and do not establish complete accessibility certification.
+
+26 October 2026 revision: preserve the existing civic workspace, Public Sans, vertically stacked features, and navy dark mode. Frequency filters belong to their own report panels; graph statistics follow the selected years. Excel imports show a readable preview before committing. Meeting location, optional meeting URL, and required generated minutes URL have separate labelled fields. A narrow public minutes form presents the meeting, assigned notulis, server-based deadline/countdown and one save action. The meeting results page places participants above the actual submitted minutes. Destructive table actions have visible text, red emphasis and 44 px targets. ENERGY 1 / RHYTHM 1 / MOTION 1 remain unchanged.

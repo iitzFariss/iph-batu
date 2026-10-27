@@ -14,9 +14,10 @@ const navItems = [
   { id: "input-rekap", label: "Input rekap IPH", group: "Pemantauan harga" },
   { id: "rekapan-data", label: "Rekap data", group: "Pemantauan harga" },
   { id: "visualisasi-tren", label: "Visualisasi tren", group: "Pemantauan harga" },
-  { id: "analisis-teks", label: "Analisis teks siaran", group: "Pemantauan harga" },
-  { id: "kelola-rapat", label: "Kelola rapat", group: "Koordinasi daerah" },
-  { id: "monitoring-rapat", label: "Monitoring rapat", group: "Koordinasi daerah" },
+  { id: "kelola-rapat", label: "Kelola rapat", group: "Rapat TPID" },
+  { id: "monitoring-rapat", label: "Monitoring rapat", group: "Rapat TPID" },
+  { id: "analisis-teks", label: "Analisis teks siaran", group: "Rapat TPID" },
+  { id: "hasil-rapat", label: "Hasil rapat", group: "Rapat TPID" },
   { id: "kelola-pegawai", label: "Kelola pegawai", group: "Administrasi" },
 ];
 
@@ -34,7 +35,7 @@ export default function Sidebar({ activePage, open, onNavigate, onClose, hiddenP
     <aside ref={dialogRef} role={open && !desktop ? "dialog" : undefined} aria-modal={open && !desktop ? true : undefined} inert={!open && !desktop} aria-label="Navigasi utama" className={`sidebar-surface fixed inset-y-0 left-0 z-50 flex flex-col flex-shrink-0 transition-transform duration-200 lg:static lg:translate-x-0 lg:z-auto ${open ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}>
       <div className="sidebar-brand"><img src="/bps-logo.png" alt="BPS Kota Batu" /><div><strong>TPID Kota Batu</strong><span>Pengendalian inflasi daerah</span></div><button onClick={onClose} aria-label="Tutup menu" className="sidebar-close lg:hidden"><X size={18} /></button></div>
       <nav className="sidebar-nav flex-1 overflow-y-auto" aria-label="Halaman aplikasi">
-        {["Pemantauan harga", "Koordinasi daerah", "Administrasi"].map(group => {
+        {["Pemantauan harga", "Rapat TPID", "Administrasi"].map(group => {
           const items = navItems.filter(item => item.group === group && !hiddenPages.includes(item.id));
           return items.length > 0 && <div key={group}><p className="sidebar-group">{group}</p>{items.map(({ id, label }) => <button key={id} aria-current={activePage === id ? "page" : undefined} onClick={() => onNavigate(id)}>{label}</button>)}</div>;
         })}

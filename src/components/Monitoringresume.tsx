@@ -47,6 +47,7 @@ interface Rapat {
   petugas: PetugasRow[];
   notulensi: NotulensiRow | null;
   dapatNotulensi: boolean;
+  notulensiDeadline?: string | null;
 }
 
 interface ReminderItem {
@@ -120,6 +121,7 @@ export default function MonitoringResume() {
   const [halaman, setHalaman] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [savingMinutes, setSavingMinutes] = useState(false);
   const [pesan, setPesan] = useState("");
   const [pesanSukses, setPesanSukses] = useState("");
   const [hapusId, setHapusId] = useState<string | null>(null);
@@ -163,17 +165,20 @@ export default function MonitoringResume() {
 
   async function simpanNotulensi(r: Rapat) {
     const isi = draft.trim();
-    if (!isi) return;
+    if (savingMinutes) return;
+    if (isi.length < 10) { setPesan("Isi notulensi minimal 10 karakter."); return; }
     setPesan("");
+    setSavingMinutes(true);
     try {
       const res = await api.post<{ rapat: Rapat }>(`/rapat/${r.id}/notulensi`, { isi });
       setRapatList((cur) => cur.map((x) => (x.id === r.id ? res.rapat : x)));
       setExpandedId(null);
       setDraft("");
+      setPesanSukses("Notulensi berhasil disimpan.");
       muatReminder();
     } catch (e) {
       setPesan(e instanceof ApiError ? e.message : "Gagal menyimpan notulensi.");
-    }
+    } finally { setSavingMinutes(false); }
   }
 
   async function hapusRapat(id: string) {
@@ -516,11 +521,12 @@ export default function MonitoringResume() {
                           Lihat Notulensi
                         </button>
                       )}
-                      {st === "belum-diisi" && r.dapatNotulensi && !buka && (
+                      {!r.notulensi && r.dapatNotulensi && !buka && (
                         <button
                           onClick={() => {
                             setExpandedId(r.id);
                             setDraft("");
+                            setPesan("");
                           }}
                           className="flex items-center gap-1 px-3 py-1 rounded text-xs font-semibold bg-red-500 text-white hover:bg-red-600"
                         >
@@ -529,7 +535,7 @@ export default function MonitoringResume() {
                         </button>
                       )}
                       {st === "belum-diisi" && !r.dapatNotulensi && (
-                        <span className="text-[11px] text-gray-400">Menunggu notulis</span>
+                        <span className="text-[11px] text-gray-400">{r.notulensiDeadline && Date.parse(r.notulensiDeadline) <= kini ? "Batas pengisian berakhir" : "Menunggu notulis"}</span>
                       )}
                       {r.dapatNotulensi && r.notulensi && buka && (
                         <button
@@ -611,6 +617,8 @@ export default function MonitoringResume() {
                           </button>
                         </div>
                         <textarea
+                          disabled={savingMinutes}
+                          maxLength={50000}
                           value={draft}
                           onChange={(e) => setDraft(e.target.value)}
                           rows={4}
@@ -618,15 +626,17 @@ export default function MonitoringResume() {
                           aria-label="Isi notulensi rapat"
                           className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-gray-300"
                         />
+                        {r.notulensiDeadline && <p className="text-xs text-gray-500">Batas pengisian: {new Date(r.notulensiDeadline).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "long", timeStyle: "short" })} WIB</p>}
+                        {pesan && <p role="alert" className="error-message">{pesan}</p>}
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           <span className="text-xs text-gray-400">{draft.trim().length} karakter</span>
                           <button
                             onClick={() => simpanNotulensi(r)}
-                            disabled={!draft.trim()}
+                            disabled={savingMinutes || !draft.trim()}
                             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <CheckCircle2 size={11} />
-                            Simpan Notulensi
+                            {savingMinutes ? "Menyimpan…" : "Simpan Notulensi"}
                           </button>
                         </div>
                       </div>

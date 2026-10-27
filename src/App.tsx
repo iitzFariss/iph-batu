@@ -12,6 +12,8 @@ import PublicHeader from "./components/PublicHeader";
 import PageBoundary from "./components/PageBoundary";
 
 const Dashboard = lazy(() => import("./components/Dashboard"));
+const PublicMinutes = lazy(() => import("./components/PublicMinutes"));
+const HasilRapat = lazy(() => import("./components/HasilRapat"));
 const RekapanData = lazy(() => import("./components/Rekapandata"));
 const InputRekapIPH = lazy(() => import("./components/InputRekapIPH"));
 const VisualisasiTren = lazy(() => import("./components/Visualisasitren"));
@@ -23,6 +25,7 @@ const ProfilSaya = lazy(() => import("./components/Profilsaya"));
 const PengaturanAkun = lazy(() => import("./components/Pengaturanakun"));
 
 const PAGE_TITLES: Record<string, string> = {
+  "hasil-rapat": "Hasil rapat",
   dashboard: "Dashboard", "input-rekap": "Input rekap IPH", "rekapan-data": "Rekap data",
   "kelola-rapat": "Kelola rapat", "monitoring-rapat": "Monitoring rapat", "kelola-pegawai": "Kelola pegawai",
   "visualisasi-tren": "Visualisasi tren", "analisis-teks": "Analisis teks siaran", "profil-saya": "Profil saya", "pengaturan-akun": "Pengaturan akun",
@@ -32,6 +35,7 @@ const pageLoading = <div className="text-sm text-gray-500 p-6" role="status">Mem
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PageId =
+  | "hasil-rapat"
   | "dashboard"
   | "input-rekap"
   | "rekapan-data"
@@ -52,6 +56,7 @@ const ADMIN_ONLY: PageId[] = ["kelola-pegawai"];
 
 // Halaman yang bisa diakses petugas / pegawai
 const PETUGAS_ALLOWED: PageId[] = [
+  "hasil-rapat",
   "dashboard",
   "rekapan-data",
   "monitoring-rapat",
@@ -63,6 +68,7 @@ const PETUGAS_ALLOWED: PageId[] = [
 
 // Semua halaman (untuk memblokir akses tamu selain dashboard)
 const ALL_PAGES: PageId[] = [
+  "hasil-rapat",
   "dashboard",
   "input-rekap",
   "rekapan-data",
@@ -107,6 +113,7 @@ function PageContent({
   }
 
   switch (page) {
+    case "hasil-rapat": return <HasilRapat />;
     case "dashboard":
       return <Dashboard />;
     case "input-rekap":
@@ -230,6 +237,9 @@ function AppShell() {
     typeof window !== "undefined" &&
     hash.split("?")[0] === "#/publik";
 
+  if (hash.startsWith("#/notulensi/")) {
+    return <div className={isDark ? "dark min-h-screen" : "min-h-screen"}><PageBoundary key={hash}><Suspense fallback={pageLoading}><PublicMinutes token={hash.slice("#/notulensi/".length)} /></Suspense></PageBoundary></div>;
+  }
   if (isPublicView) {
     return <div className={isDark ? "dark h-full" : "h-full"}>
       <div className="public-dashboard min-h-screen bg-gray-50 font-sans">

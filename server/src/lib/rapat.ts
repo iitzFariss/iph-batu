@@ -1,4 +1,5 @@
 import { tautanWa } from "./phone";
+import { minutesDeadline, minutesLink } from "./minutesLink";
 
 export interface PetugasRapatRow {
   id: string;
@@ -15,6 +16,9 @@ export interface NotulensiRow {
 }
 
 export interface RapatDTO {
+  tautanRapat: string | null;
+  notulensiLink: string | null;
+  notulensiDeadline: string | null;
   id: string;
   topik: string;
   tanggal: string;
@@ -28,6 +32,10 @@ export interface RapatDTO {
 }
 
 interface RapatQueryRow {
+  tautanRapat?: string | null;
+  notulensiKey?: string | null;
+  createdAt?: Date;
+  notulensiInvitedAt?: Date | null;
   id: string;
   topik: string;
   tanggal: Date;
@@ -49,6 +57,10 @@ export interface Peminta {
 
 export function toRapatDTO(rapat: RapatQueryRow, me?: Peminta): RapatDTO {
   return {
+    tautanRapat: rapat.tautanRapat ?? null,
+    notulensiLink: rapat.notulensiKey && rapat.petugas.some(p => p.peran === "notulis") && me && (me.role === "admin" || rapat.petugas.some(p => p.peran === "notulis" && p.pegawai.userId === me.id))
+      ? minutesLink(rapat.notulensiKey, (rapat.petugas.find(p => p.peran === "notulis" && p.pegawai.userId === me.id) ?? rapat.petugas.find(p => p.peran === "notulis"))!.pegawai.id) : null,
+    notulensiDeadline: rapat.createdAt ? minutesDeadline({ createdAt: rapat.createdAt, notulensiInvitedAt: rapat.notulensiInvitedAt }).toISOString() : null,
     id: rapat.id,
     topik: rapat.topik,
     tanggal: rapat.tanggal.toISOString(),
@@ -70,8 +82,8 @@ export function toRapatDTO(rapat: RapatQueryRow, me?: Peminta): RapatDTO {
         }
       : null,
     dapatNotulensi: me
-      ? me.role === "admin" ||
-        rapat.petugas.some((p) => p.peran === "notulis" && p.pegawai.userId === me.id)
+      ? rapat.status !== "dibatalkan" && (!rapat.createdAt || minutesDeadline({ createdAt: rapat.createdAt, notulensiInvitedAt: rapat.notulensiInvitedAt }) > new Date()) && (me.role === "admin" ||
+        rapat.petugas.some((p) => p.peran === "notulis" && p.pegawai.userId === me.id))
       : false,
   };
 }
@@ -108,6 +120,7 @@ export interface ReminderItem {
 }
 
 interface ReminderSource {
+  notulensiDeadline?: Date;
   rapatId: string;
   topik: string;
   tanggal: Date;
@@ -117,6 +130,7 @@ interface ReminderSource {
     peran: string;
     name: string;
     phone: string | null;
+    minutesLink?: string;
   }[];
   notulensi: { notulisPegawaiId: string } | null;
 }
@@ -154,12 +168,12 @@ export function susunReminder(rapat: ReminderSource): ReminderItem[] {
     }
   }
 
-  if (!rapat.notulensi && selisih <= -1) {
+  if (!rapat.notulensi && selisih <= -1 && (!rapat.notulensiDeadline || rapat.notulensiDeadline > new Date())) {
     for (const notulis of rapat.petugas.filter((p) => p.peran === "notulis")) {
       const pesan =
         `Pengingat TPID Kota Batu\n` +
         `Notulensi rapat "${rapat.topik}" (${formatTanggal(rapat.tanggal)}) belum diisi. ` +
-        `Mohon lengkapi notulensi segera.`;
+        `Mohon lengkapi notulensi segera.${notulis.minutesLink ? `\n\n${notulis.minutesLink}` : ""}`;
       hasil.push({
         id: `${rapat.rapatId}:notulensi:${notulis.id}`,
         tipe: "notulensi",

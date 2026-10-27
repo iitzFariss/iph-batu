@@ -69,9 +69,9 @@ describe("GET /api/rekap/periods", () => {
       .set("Authorization", `Bearer ${admin}`);
 
     expect(res.body.rows[0].nilaiIPH).toBe(3.06);
-    expect(res.body.rows[0].statusIPH).toBe("perlu-intervensi");
+    expect(res.body.rows[0].statusIPH).toBe("inflasi");
     expect(res.body.rows[1].nilaiIPH).toBe(1.82);
-    expect(res.body.rows[1].statusIPH).toBe("perlu-intervensi");
+    expect(res.body.rows[1].statusIPH).toBe("inflasi");
   });
 
   it("menolak role tamu", async () => {

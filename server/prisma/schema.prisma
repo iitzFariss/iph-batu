@@ -152,6 +152,9 @@ model Rapat {
   topik       String
   tanggal     DateTime // saat rapat dimulai
   lokasi      String?
+  tautanRapat String?
+  notulensiKey String? @unique
+  notulensiInvitedAt DateTime?
   catatan     String?
   status      String   @default("terjadwal") // terjadwal | selesai | dibatalkan
   createdById String   // tanpa FK relasi; bareng AuditLog, tahan dihapus
@@ -216,5 +219,12 @@ model Notulensi {
   notulis          Pegawai  @relation(fields: [notulisPegawaiId], references: [id])
   submittedAt      DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  @@schema("iph_batu")
+}
+
+model AppSetting {
+  id        String @id
+  value     String
+  updatedAt DateTime @updatedAt
   @@schema("iph_batu")
 }

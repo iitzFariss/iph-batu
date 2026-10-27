@@ -3,6 +3,7 @@ import prisma from "./prisma";
 import { normalisasiNomorWa } from "./phone";
 import { log } from "./logger";
 import { hostname } from "node:os";
+import { minutesDeadline, minutesLink, prepareMinutesLinks } from "./minutesLink";
 
 const WIB = 7 * 60 * 60 * 1000;
 const MINUTE = 60_000;
@@ -20,11 +21,12 @@ export function reminderTime(meeting: Date): Date {
   return new Date(Math.max(midnight.getTime(), Math.min(morning.getTime(), meeting.getTime() - 60 * MINUTE)));
 }
 
-export function meetingMessage(meeting: { topik: string; tanggal: Date; lokasi: string | null }, name: string, role: string, kind: string): string {
+export function meetingMessage(meeting: { topik: string; tanggal: Date; lokasi: string | null; tautanRapat?: string | null; notulensiKey?: string | null }, name: string, role: string, kind: string, pegawaiId?: string): string {
   const date = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(meeting.tanggal);
   const time = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(meeting.tanggal);
   const title = kind === "reminder" ? "Pengingat rapat hari ini" : kind === "updated" ? "Perubahan jadwal rapat" : "Undangan rapat TPID Kota Batu";
-  return `${title}\n\nYth. Bapak/Ibu ${name},\nAnda terdaftar sebagai ${role === "notulis" ? "notulis" : "peserta"} pada rapat:\n${meeting.topik}\n\nHari/tanggal: ${date}\nWaktu: ${time} WIB\nTempat: ${meeting.lokasi || "Akan diinformasikan"}\n\nMohon hadir tepat waktu.`;
+  const minutes = role === "notulis" && meeting.notulensiKey && pegawaiId ? `\n\nTautan pengisian notulensi:\n${minutesLink(meeting.notulensiKey, pegawaiId)}\nDapat diisi sejak undangan diterima, maksimal tujuh hari sejak undangan dikirim.` : "";
+  return `${title}\n\nYth. Bapak/Ibu ${name},\nAnda terdaftar sebagai ${role === "notulis" ? "notulis" : "peserta"} pada rapat:\n${meeting.topik}\n\nHari/tanggal: ${date}\nWaktu: ${time} WIB\nTempat: ${meeting.lokasi || "Akan diinformasikan"}${meeting.tautanRapat ? `\nTautan rapat: ${meeting.tautanRapat}` : ""}\n\nMohon hadir tepat waktu.${minutes}`;
 }
 
 export async function cancelNotifications(tx: Prisma.TransactionClient, rapatId: string, keepBroadcast = false): Promise<void> {
@@ -47,7 +49,7 @@ export async function queueMeetingNotifications(tx: Prisma.TransactionClient, ra
       const key = { rapatId, pegawaiId: participant.pegawaiId, kind: event.kind, revision: meeting.notificationRevision };
       await tx.whatsAppNotification.upsert({ where: { rapatId_pegawaiId_kind_revision: key }, update: {}, create: {
         ...key, recipientName: participant.pegawai.name, phone,
-        message: meetingMessage(meeting, participant.pegawai.name, participant.peran, event.kind),
+        message: meetingMessage(meeting, participant.pegawai.name, participant.peran, event.kind, participant.pegawaiId),
         scheduledAt: event.scheduledAt, expiresAt: meeting.tanggal, status: phone ? "pending" : "missing_phone",
       } });
     }
@@ -57,6 +59,7 @@ export async function queueMeetingNotifications(tx: Prisma.TransactionClient, ra
 export type SendResult = { status: "sent" | "failed" | "unknown"; messageId?: string; error?: string };
 
 export async function queueMinutesReminders(now = new Date()): Promise<void> {
+  await prepareMinutesLinks();
   const today = new Date(now.getTime() + WIB).toISOString().slice(0, 10);
   const due = new Date(`${today}T09:00:00+07:00`);
   if (now < due) return;
@@ -66,12 +69,13 @@ export async function queueMinutesReminders(now = new Date()): Promise<void> {
     status: { not: "dibatalkan" }, notulensi: { is: null },
   }, include: { petugas: { where: { peran: "notulis", pegawai: { status: "aktif" } }, include: { pegawai: { include: { user: { select: { phone: true } } } } } } } });
   for (const meeting of meetings) {
+    if (minutesDeadline(meeting) <= now) continue;
     for (const participant of meeting.petugas) {
       const phone = normalisasiNomorWa(participant.pegawai.phone ?? participant.pegawai.user?.phone);
       const key = { rapatId: meeting.id, pegawaiId: participant.pegawaiId, kind: "minutes_reminder", revision: meeting.notificationRevision };
       const date = meeting.tanggal.toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "long", year: "numeric" });
       const baseUrl = process.env.PUBLIC_APP_URL?.replace(/\/$/, "");
-      const message = `Pengingat pengisian notulensi\n\nYth. Bapak/Ibu ${participant.pegawai.name},\nNotulensi rapat ${meeting.topik} pada ${date} belum diisi. Mohon lengkapi notulensi melalui menu Kelola rapat.${baseUrl ? `\n\n${baseUrl}` : ""}\n\nTerima kasih.`;
+      const message = `Pengingat pengisian notulensi\n\nYth. Bapak/Ibu ${participant.pegawai.name},\nNotulensi rapat ${meeting.topik} pada ${date} belum diisi. Mohon lengkapi notulensi.${meeting.notulensiKey ? `\n\n${minutesLink(meeting.notulensiKey, participant.pegawaiId)}` : baseUrl ? `\n\n${baseUrl}` : ""}\n\nTerima kasih.`;
       await prisma.whatsAppNotification.upsert({ where: { rapatId_pegawaiId_kind_revision: key }, update: {}, create: {
         ...key, recipientName: participant.pegawai.name, phone, message,
         scheduledAt: due, expiresAt: new Date(dayStart.getTime() + 86_400_000), status: phone ? "pending" : "missing_phone",
@@ -118,7 +122,7 @@ export async function processNotifications(now = new Date()): Promise<void> {
     for (const job of jobs) {
       const participant = await prisma.petugasRapat.findUnique({ where: { rapatId_pegawaiId: { rapatId: job.rapatId, pegawaiId: job.pegawaiId } }, include: { rapat: { include: { notulensi: { select: { id: true } } } }, pegawai: { include: { user: { select: { phone: true } } } } } });
       const invalidMeeting = participant && (job.kind === "minutes_reminder"
-        ? participant.rapat.status === "dibatalkan" || Boolean(participant.rapat.notulensi) || participant.peran !== "notulis"
+        ? participant.rapat.status === "dibatalkan" || Boolean(participant.rapat.notulensi) || participant.peran !== "notulis" || minutesDeadline(participant.rapat) <= now
         : job.kind.startsWith("broadcast:") ? participant.rapat.status === "dibatalkan" : participant.rapat.status !== "terjadwal");
       if (!participant || invalidMeeting || participant.rapat.notificationRevision !== job.revision || participant.pegawai.status !== "aktif") {
         await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: { in: writable } }, data: { status: "cancelled", lastError: "Rapat atau penugasan sudah tidak aktif." } });
@@ -146,6 +150,9 @@ export async function processNotifications(now = new Date()): Promise<void> {
       const claimed = await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: { in: writable }, attempts: job.attempts }, data: { status: "sending", phone, startedAt: new Date(), attempts: { increment: 1 }, lastError: null } });
       if (!claimed.count) continue;
       const result = await sendViaN8n({ ...job, phone });
+      if (result.status === "sent" && job.kind === "invitation" && participant.peran === "notulis") {
+        await prisma.rapat.updateMany({ where: { id: job.rapatId, notulensiInvitedAt: null }, data: { notulensiInvitedAt: new Date() } });
+      }
       if (result.status !== "sent") log.warn("whatsapp.pengirimanGagal", { notificationId: job.id, status: result.status, message: result.error, worker: hostname(), pid: process.pid });
       await prisma.whatsAppNotification.updateMany({ where: { id: job.id, status: "sending" }, data: {
         status: result.status, providerMessageId: result.messageId ?? null, sentAt: result.status === "sent" ? new Date() : null,

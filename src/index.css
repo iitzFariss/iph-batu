@@ -415,3 +415,39 @@ tbody tr:hover { background: var(--paper); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+.filter-fields { display: flex; flex-wrap: wrap; gap: 1rem; }
+.filter-fields > label { display: grid; gap: .45rem; flex: 1 1 180px; max-width: 320px; font-size: .8rem; color: var(--muted); }
+.filter-fields select, .field-stack input:not([type="checkbox"]), .field-stack textarea { width: 100%; min-width: 0; padding: .75rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.field-stack { display: grid; gap: .75rem; min-width: 0; }
+.field-stack > label, label.field-stack { font-size: .85rem; line-height: 1.6; }
+.field-stack > button { justify-self: start; }
+.field-stack input[readonly] { overflow: auto; }
+.trend-statistics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+.trend-statistics dt, .trend-statistics small { font-size: .8rem; line-height: 1.6; color: var(--muted); }
+.trend-statistics dd { margin: .5rem 0; font-size: clamp(1.25rem, 2vw, 1.8rem); font-variant-numeric: tabular-nums; }
+.trend-statistics dd small { display: block; margin-top: .5rem; font-weight: 400; }
+.data-table { border-collapse: collapse; font-size: .85rem; }
+.data-table th, .data-table td { text-align: left; padding: .9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.data-table th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+.minutes-public { width: min(900px, 100%); margin-inline: auto; padding: 2rem 1rem 4rem; }
+.public-dashboard { background: var(--paper); color: var(--ink); }
+.public-dashboard > main.minutes-public { max-width: 900px; }
+.minutes-public h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); margin-bottom: 1.5rem; }
+.minutes-public h2 { font-size: 1.25rem; }
+.deadline-panel { padding: 1rem; border: 1px solid var(--line); border-radius: 8px; line-height: 1.8; font-variant-numeric: tabular-nums; }
+.deadline-panel p { font-size: .8rem; color: var(--muted); }
+.participant-list { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; list-style-position: inside; font-size: .85rem; }
+.minutes-result { padding-top: 1rem; border-top: 1px solid var(--line); line-height: 1.8; overflow-wrap: anywhere; }
+.error-message { border: 1px solid var(--line); color: var(--danger, #a62e29); padding: 1rem; margin-block: 1rem; }
+button[title*="Hapus"], button[title*="hapus"], button[aria-label^="Hapus"] { color: var(--danger, #b42318); border-color: currentColor; }
+button[title*="Hapus"]:hover, button[aria-label^="Hapus"]:hover { background: var(--soft); }
+.dark { --danger: #ffaaa5; }
+.meeting-page td:last-child > div { flex-wrap: wrap; }
+button[title*="Hapus"], button[aria-label^="Hapus pegawai"] { width: auto; min-width: 44px; min-height: 44px; padding-inline: .65rem; gap: .4rem; font-size: .8rem; }
+@media (max-width: 639px) {
+  .trend-statistics { grid-template-columns: 1fr; gap: 1rem; }
+  .filter-fields > label { max-width: none; }
+  .minutes-public { padding-top: 1.5rem; }
+  .field-stack > button { justify-self: stretch; }
+}

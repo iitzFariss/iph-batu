@@ -10,6 +10,7 @@ import { buildPublicDashboardLink } from "../lib/publicDashboard";
 import RapatMessageSender from "./RapatMessageSender";
 import { useAuth } from "../context/AuthContext";
 import PageHeading from "./PageHeading";
+import { iphDirection } from "../lib/iph";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,18 +49,10 @@ const BULAN = [
 ] as const;
 const ROMAWI = ["I", "II", "III", "IV", "V"] as const;
 
-const STATUS_IPH: Record<string, string> = {
-  "deflasi-signifikan": "Deflasi Signifikan",
-  "deflasi-terkendali": "Deflasi Terkendali",
-  "stabil-terkendali": "Stabil Terkendali",
-  "inflasi-ringan": "Inflasi Ringan",
-  "perlu-intervensi": "Perlu Intervensi",
-};
-
 const drafKosong = "Belum ada rekap untuk periode ini. Pilih tahun, bulan, dan minggu yang memiliki data untuk menyusun draf.";
 
 function formatAndil(list: AndilItem[]): string[] {
-  return list.map((d) => `   - ${d.name} (${d.change > 0 ? "+" : ""}${d.change.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} persen poin)`);
+  return list.slice(0, 3).map(d => `${d.name} (${d.change.toLocaleString("id-ID", { minimumFractionDigits: 4, maximumFractionDigits: 4 })})`);
 }
 
 function formatIph(nilai: number): string {
@@ -97,38 +90,14 @@ function periodeCadangan(rows: PeriodeRow[], saatIni: Periode): Periode | null {
   return terbaru ? { tahun: terbaru.tahun, bulan: terbaru.bulan, minggu: terbaru.mingguIndeks } : null;
 }
 
-function buildDraf(row: RekapRow): string {
-  const minggu = `Minggu ${ROMAWI[row.mingguIndeks - 1] ?? row.mingguIndeks} ${BULAN[row.bulan - 1]} ${row.tahun}`;
-  const nilai = formatIph(row.nilaiIPH);
-  const baris: string[] = [
-    "Ringkasan perkembangan harga Kota Batu",
-    "",
-    "Yth. Bapak/Ibu peserta rapat TPID Kota Batu,",
-    "Berikut ringkasan Indeks Perkembangan Harga (IPH)",
-    `Kota Batu pada ${minggu}:`,
-    "",
-    `1. Angka IPH Gabungan Kota Batu tercatat sebesar ${nilai}`,
-    `   (kategori ${STATUS_IPH[row.statusIPH] ?? row.statusIPH}).`,
-  ];
-
-  let nomor = 2;
-  if (row.deflasi.length > 0) {
-    baris.push("", `${nomor++}. Komoditas utama yang memberikan andil penurunan harga:`, ...formatAndil(row.deflasi));
-  }
-  if (row.inflasi.length > 0) {
-    baris.push("", `${nomor++}. Komoditas yang memberikan andil kenaikan harga:`, ...formatAndil(row.inflasi));
-  }
-  if (row.fluktuasi) {
-    baris.push("", `${nomor}. Komoditas berfluktuasi:`, ...formatAndil([row.fluktuasi]));
-  }
-
-  baris.push(
-    "",
-    "Demikian laporan Tim Pengendalian Inflasi Daerah (TPID)",
-    "Kota Batu.",
-  );
-
-return baris.join("\n");
+function buildDraf(row: RekapRow, template: string): string {
+  const values: Record<string, string> = {
+    minggu: String(row.mingguIndeks), bulan: BULAN[row.bulan - 1], tahun: String(row.tahun),
+    arah: row.nilaiIPH > 0 ? "inflasi" : row.nilaiIPH < 0 ? "deflasi" : "perubahan harga nihil",
+    iph: Math.abs(row.nilaiIPH).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 4 }),
+    komoditas: formatAndil(row.nilaiIPH < 0 ? row.deflasi : row.inflasi).join("\n") || "Tidak ada komoditas tercatat untuk arah harga ini.",
+  };
+  return template.replace(/{{\s*([^{}]+?)\s*}}/g, (_, field: string) => values[field] ?? "");
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -142,6 +111,13 @@ export default function AnalisisTeksSiaran() {
   const [drafKustom, setDrafKustom] = useState<string | null>(null);
   const [mengedit, setMengedit] = useState(false);
   const [drafEdit, setDrafEdit] = useState("");
+  const [template, setTemplate] = useState<string | null>(null);
+  const [templateBusy, setTemplateBusy] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    api.get<{ template: string; custom: boolean }>("/rekap/siaran-template").then(result => { if (!cancelled) { setTemplate(result.template); setDrafKustom(result.custom ? result.template : null); } }).catch((e: Error) => { if (!cancelled) setCopyError(e.message); });
+    return () => { cancelled = true; };
+  }, []);
 
   const [rows, setRows] = useState<PeriodeRow[]>([]);
   const [detail, setDetail] = useState<{ key: string; row: RekapRow | null } | null>(null);
@@ -246,7 +222,6 @@ export default function AnalisisTeksSiaran() {
         if (!batal) {
           setDetail({ key: detailKey, row: data.rows[0] ?? null });
           setDetailError(false);
-          setDrafKustom(null);
           setMengedit(false);
         }
       })
@@ -322,8 +297,8 @@ export default function AnalisisTeksSiaran() {
   const selectedRow = detail?.row ?? null;
   const dashboardLink = buildPublicDashboardLink(periode ?? undefined);
 
-  const currentDraf = selectedRow ? buildDraf(selectedRow) : detailError ? "Gagal memuat detail rekap." : drafKosong;
-  const drafEfektif = drafKustom ?? currentDraf;
+  const currentDraf = selectedRow && template ? buildDraf(selectedRow, template) : detailError ? "Gagal memuat detail rekap." : template === null ? "Memuat template siaran…" : drafKosong;
+  const drafEfektif = currentDraf;
 
   const pesanSiaran = useMemo(
     () => `${drafEfektif}\n\nLink Dashboard Publik: ${dashboardLink}`,
@@ -332,25 +307,31 @@ export default function AnalisisTeksSiaran() {
 
   // Tanpa baris rekap terpilih, isinya cuma placeholder atau pesan error.
   // Mengirimnya ke kontak WhatsApp akan menyakitkan.
-  const drafSiap = selectedRow !== null && !detailLoading && !detailError && !mengedit;
+  const drafSiap = selectedRow !== null && template !== null && !detailLoading && !detailError && !mengedit && !templateBusy;
 
   function mulaiEdit() {
-    setDrafEdit(drafKustom ?? currentDraf);
+    setDrafEdit(template ?? "");
     setMengedit(true);
   }
 
-  function simpanEdit() {
-    setDrafKustom(drafEdit);
-    setMengedit(false);
+  async function simpanEdit() {
+    if (templateBusy) return;
+    setTemplateBusy(true); setCopyError("");
+    try {
+      const result = await api.put<{ template: string }>("/rekap/siaran-template", { template: drafEdit });
+      setTemplate(result.template); setDrafKustom(result.template); setMengedit(false);
+    } catch (e) { setCopyError((e as Error).message); } finally { setTemplateBusy(false); }
   }
 
   function batalEdit() {
     setMengedit(false);
   }
 
-  function resetKustom() {
-    setDrafKustom(null);
-    setMengedit(false);
+  async function resetKustom() {
+    if (!window.confirm("Kembalikan template siaran bawaan untuk semua periode?")) return;
+    setTemplateBusy(true); setCopyError("");
+    try { const result = await api.delete<{ template: string }>("/rekap/siaran-template"); setTemplate(result.template); setDrafKustom(null); setMengedit(false); }
+    catch (e) { setCopyError((e as Error).message); } finally { setTemplateBusy(false); }
   }
 
   async function handleCopyTeksLink() {
@@ -425,7 +406,7 @@ export default function AnalisisTeksSiaran() {
                     );
                     return (
                       <option key={m} value={m}>
-                        {`Minggu ${ROMAWI[m - 1] ?? m} (${row ? `${row.cutoffStart} – ${row.cutoffEnd}` : ""})`}
+                        {`Minggu ${ROMAWI[m - 1] ?? m}${row ? "" : " · N/A"}`}
                       </option>
                     );
                   })}
@@ -486,7 +467,7 @@ export default function AnalisisTeksSiaran() {
                   {detailLoading
                     ? "Memuat..."
                     : selectedRow
-                      ? `IPH ${selectedRow.nilaiIPH > 0 ? "+" : ""}${selectedRow.nilaiIPH.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% · ${STATUS_IPH[selectedRow.statusIPH] ?? selectedRow.statusIPH}`
+                      ? `IPH ${selectedRow.nilaiIPH > 0 ? "+" : ""}${selectedRow.nilaiIPH.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}% · ${iphDirection(selectedRow.nilaiIPH)}`
                       : "Belum ada data"}
                 </span>
                 {mengedit && (
@@ -509,13 +490,13 @@ export default function AnalisisTeksSiaran() {
                         r.bulan === periode.bulan &&
                         r.mingguIndeks === periode.minggu,
                     );
-                    return baris ? `Periode ${baris.cutoffStart} sampai ${baris.cutoffEnd}` : "Periode belum tersedia";
+                    return baris ? baris.periode : "Periode belum tersedia";
                   })()}
                 </span>
               </div>
             </header>
             <div className="px-5 py-3 flex flex-wrap items-center gap-2 border-b border-gray-100">
-              {mengedit ? <><button onClick={simpanEdit} className="primary-action">Simpan Perubahan</button><button onClick={batalEdit} className="secondary-action">Batal</button></> : <><button onClick={mulaiEdit} disabled={!drafSiap} className="secondary-action disabled:opacity-50">Edit Draf</button><button onClick={() => void handleCopyTeksLink()} disabled={!drafSiap} className="text-action disabled:opacity-50">{copied ? "Teks & Link Tersalin!" : "Salin Teks & Link"}</button>{drafKustom !== null && <button onClick={resetKustom} className="text-action">Reset Draf Otomatis</button>}</>}
+              {mengedit ? <><button onClick={() => void simpanEdit()} disabled={templateBusy} className="primary-action">{templateBusy ? "Menyimpan…" : "Simpan template semua periode"}</button><button onClick={batalEdit} disabled={templateBusy} className="secondary-action">Batal</button></> : <>{user?.role === "admin" && <button onClick={mulaiEdit} disabled={!drafSiap} className="secondary-action disabled:opacity-50">Edit draf / template</button>}<button onClick={() => void handleCopyTeksLink()} disabled={!drafSiap} className="text-action disabled:opacity-50">{copied ? "Teks & Link Tersalin!" : "Salin Teks & Link"}</button>{drafKustom !== null && user?.role === "admin" && <button onClick={() => void resetKustom()} disabled={templateBusy} className="text-action">Reset template bawaan</button>}</>}
             </div>
             {copyError && <p role="alert" className="px-5 pt-4 text-xs text-red-600">{copyError}</p>}
 
@@ -530,7 +511,7 @@ export default function AnalisisTeksSiaran() {
                     className="w-full min-h-48 resize-y font-mono text-sm leading-relaxed text-gray-700 bg-gray-50 rounded-lg p-4 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
                   />
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
-                    <span>Draf masih bisa disesuaikan sampai tombol Simpan ditekan.</span>
+                    <span>Perubahan berlaku untuk semua periode. Pertahankan penanda {"{{minggu}}, {{bulan}}, {{tahun}}, {{arah}}, {{iph}}, {{komoditas}}"} agar data terisi otomatis.</span>
                     <span>{drafEdit.length} karakter</span>
                   </div>
                 </div>

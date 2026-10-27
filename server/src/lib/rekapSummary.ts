@@ -58,6 +58,7 @@ export async function buildRekapSummary(period?: { tahun: number; bulan: number;
 
   return {
     trend: trendWith,
+    frequencyPeriods: records.map(r => ({ tahun: r.tahun, bulan: r.bulan, names: [...new Set(r.details.map(d => d.komoditas.nama))] })),
     weekly: [...weekly.entries()]
       .map(([tahun, data]) => ({ tahun, data }))
       .sort((a, b) => a.tahun - b.tahun),

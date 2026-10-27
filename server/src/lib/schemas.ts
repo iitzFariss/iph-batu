@@ -16,7 +16,10 @@ const angka = z.preprocess(
     }
     return undefined;
   },
-  z.number({ message: "Nilai harus berupa angka." })
+  z.number({ message: "Nilai harus berupa angka." }).finite().refine(
+    value => Math.abs(value * 10000 - Math.round(value * 10000)) < 0.000001,
+    "Nilai maksimal empat angka di belakang koma."
+  )
 );
 
 /**
@@ -113,6 +116,8 @@ export const rapatCreateSchema = z.object({
   topik: z.string().trim().min(3, "Topik rapat minimal 3 karakter."),
   tanggal: z.coerce.date({ required_error: "Tanggal rapat tidak valid." }),
   lokasi: z.string().trim().max(200).nullish(),
+  tautanRapat: z.string().trim().url("Tautan rapat harus berupa URL yang valid.").refine(value => /^https?:\/\//i.test(value), "Gunakan tautan http atau https.").nullish(),
+  notulensiKey: z.string().uuid("Buat tautan notulensi terlebih dahulu.").optional(),
   catatan: z.string().trim().nullish(),
   petugas: z
     .array(rapatPetugasSchema)
@@ -126,5 +131,5 @@ export const rapatUpdateSchema = rapatCreateSchema
   .extend({ status: z.enum(RAPAT_STATUSES).optional() });
 
 export const notulensiSchema = z.object({
-  isi: z.string().trim().min(10, "Notulensi minimal 10 karakter."),
+  isi: z.string().trim().min(10, "Notulensi minimal 10 karakter.").max(50000, "Notulensi maksimal 50.000 karakter."),
 });

@@ -10,10 +10,13 @@ import { automationEnabled, cancelNotifications, queueMeetingNotifications } fro
 import { normalisasiNomorWa } from "../lib/phone";
 import { meetingRecipients, publicPeriodLink, queueDispatch } from "../lib/meetingDispatch";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
+import { minutesDeadline, minutesLink, prepareMinutesLinks } from "../lib/minutesLink";
 
 const broadcastSchema = z.object({ rekapId: z.string().min(1), text: z.string().trim().min(10).max(3300) });
 
 export const router = Router();
+router.use((_req, _res, next) => { void prepareMinutesLinks().then(() => next(), next); });
 
 const RAPAT_INCLUDE = {
   petugas: {
@@ -22,6 +25,15 @@ const RAPAT_INCLUDE = {
   },
   notulensi: { include: { notulis: true } },
 };
+
+router.post("/notulensi-link", writeLimiter, requireAuth, requireRoles("admin"), h(async (req, res) => {
+  const body = z.object({ pegawaiId: z.string().min(1), rapatId: z.string().optional() }).parse(req.body);
+  const person = await prisma.pegawai.findFirst({ where: { id: body.pegawaiId, status: "aktif" } });
+  if (!person) { res.status(400).json({ message: "Pilih notulis aktif terlebih dahulu." }); return; }
+  const existing = body.rapatId ? await prisma.rapat.findUnique({ where: { id: body.rapatId } }) : null;
+  const key = existing?.notulensiKey ?? randomUUID();
+  res.json({ key, url: minutesLink(key, person.id) });
+}));
 
 router.get("/:id/recipients", requireAuth, requireRoles("admin"), h(async (req, res) => {
   if (!await prisma.rapat.findUnique({ where: { id: req.params.id }, select: { id: true } })) { res.status(404).json({ message: "Rapat tidak ditemukan." }); return; }
@@ -114,6 +126,9 @@ router.get(
         topik: true,
         tanggal: true,
         status: true,
+        createdAt: true,
+        notulensiInvitedAt: true,
+        notulensiKey: true,
         petugas: {
           select: {
             id: true,
@@ -135,11 +150,13 @@ router.get(
           topik: r.topik,
           tanggal: r.tanggal,
           status: r.status,
+          notulensiDeadline: minutesDeadline(r),
           petugas: r.petugas.map((p) => ({
             id: p.id,
             peran: p.peran,
             name: p.pegawai.name,
             phone: p.pegawai.phone ?? p.pegawai.user?.phone ?? null,
+            ...(p.peran === "notulis" && r.notulensiKey ? { minutesLink: minutesLink(r.notulensiKey, p.pegawai.id) } : {}),
           })),
           notulensi: r.notulensi,
         })
@@ -203,6 +220,8 @@ router.post(
         topik: body.topik,
         tanggal: body.tanggal,
         lokasi: body.lokasi ?? null,
+        tautanRapat: body.tautanRapat ?? null,
+        notulensiKey: body.notulensiKey ?? randomUUID(),
         catatan: body.catatan ?? null,
         createdById: me.id,
         petugas: {
@@ -255,6 +274,7 @@ router.patch(
     const changed = (body.topik !== undefined && body.topik !== rapat.topik)
       || (body.tanggal !== undefined && body.tanggal.getTime() !== rapat.tanggal.getTime())
       || (body.lokasi !== undefined && body.lokasi !== rapat.lokasi)
+      || (body.tautanRapat !== undefined && body.tautanRapat !== rapat.tautanRapat)
       || (body.status !== undefined && body.status !== rapat.status)
       || (petugasGanti !== null && JSON.stringify(petugasGanti.map(p => `${p.pegawaiId}:${p.peran}`).sort()) !== JSON.stringify(rapat.petugas.map(p => `${p.pegawaiId}:${p.peran}`).sort()));
     const updated = await prisma.$transaction(async (tx) => {
@@ -264,6 +284,8 @@ router.patch(
           ...(body.topik ? { topik: body.topik } : {}),
           ...(body.tanggal ? { tanggal: body.tanggal } : {}),
           ...(body.lokasi !== undefined ? { lokasi: body.lokasi ?? null } : {}),
+          ...(body.tautanRapat !== undefined ? { tautanRapat: body.tautanRapat ?? null } : {}),
+          ...(!rapat.notulensiKey ? { notulensiKey: body.notulensiKey ?? randomUUID() } : {}),
           ...(body.catatan !== undefined ? { catatan: body.catatan ?? null } : {}),
           ...(body.status ? { status: body.status } : {}),
           ...(changed ? { notificationRevision: { increment: 1 } } : {}),
@@ -346,6 +368,9 @@ router.post(
     }
 
     const body = notulensiSchema.parse(req.body);
+    if (rapat.status === "dibatalkan" || minutesDeadline(rapat) <= new Date()) {
+      res.status(410).json({ message: "Pengisian ditutup: rapat dibatalkan atau batas tujuh hari telah berakhir." }); return;
+    }
     await prisma.$transaction(async (tx) => {
       await tx.notulensi.upsert({
         where: { rapatId: rapat.id },
@@ -358,7 +383,7 @@ router.post(
       });
       // Notulensi yang tersimpan menandai rapat selesai. Rapat yang sudah
       // dibatalkan tidak dihidupkan lagi oleh notulensi yang telat masuk.
-      if (rapat.status !== "dibatalkan") {
+      if (rapat.status !== "dibatalkan" && rapat.tanggal <= new Date()) {
         await tx.rapat.update({ where: { id: rapat.id }, data: { status: "selesai" } });
         await cancelNotifications(tx, rapat.id, true);
       }
